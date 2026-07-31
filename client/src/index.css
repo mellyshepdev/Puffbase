@@ -1,0 +1,613 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* LIGHT MODE */
+:root {
+  --button-outline: rgba(0, 0, 0, 0.1);
+  --badge-outline: rgba(0, 0, 0, 0.05);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0, 0, 0, 0.03);
+  --elevate-2: rgba(0, 0, 0, 0.08);
+  --background: 280 20% 99%;
+  --foreground: 270 35% 10%;
+  --border: 280 12% 90%;
+  --card: 280 15% 99%;
+  --card-foreground: 270 35% 10%;
+  --card-border: 280 12% 93%;
+  --sidebar: 275 30% 96%;
+  --sidebar-foreground: 270 35% 10%;
+  --sidebar-border: 280 15% 91%;
+  --sidebar-primary: 275 80% 55%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 275 20% 90%;
+  --sidebar-accent-foreground: 270 35% 10%;
+  --sidebar-ring: 275 80% 55%;
+  --popover: 280 15% 97%;
+  --popover-foreground: 270 35% 10%;
+  --popover-border: 280 12% 90%;
+  --primary: 275 80% 55%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 280 15% 93%;
+  --secondary-foreground: 270 35% 10%;
+  --muted: 280 15% 94%;
+  --muted-foreground: 270 10% 42%;
+  --accent: 275 25% 92%;
+  --accent-foreground: 270 35% 10%;
+  --destructive: 0 84% 42%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 280 10% 78%;
+  --ring: 275 80% 55%;
+  --chart-1: 275 80% 55%;
+  --chart-2: 290 75% 60%;
+  --chart-3: 260 70% 50%;
+  --chart-4: 300 65% 55%;
+  --chart-5: 245 70% 58%;
+  --font-sans: 'Space Grotesk', 'Inter', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'JetBrains Mono', Menlo, monospace;
+  --radius: 0.5rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0);
+  --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0);
+  --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow-md: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 2px 4px -1px hsl(0 0% 0% / 0);
+  --shadow-lg: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 4px 6px -1px hsl(0 0% 0% / 0);
+  --shadow-xl: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 8px 10px -1px hsl(0 0% 0% / 0);
+  --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  /* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(
+    from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(
+    from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(
+    from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(
+    from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(
+    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(
+    from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(
+    from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+}
+
+.dark {
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
+  --background: 270 22% 6%;
+  --foreground: 275 15% 95%;
+  --border: 270 18% 16%;
+  --card: 270 20% 8%;
+  --card-foreground: 275 15% 95%;
+  --card-border: 270 18% 13%;
+  --sidebar: 272 25% 7%;
+  --sidebar-foreground: 275 15% 95%;
+  --sidebar-border: 270 18% 14%;
+  --sidebar-primary: 275 80% 65%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 275 20% 15%;
+  --sidebar-accent-foreground: 275 15% 95%;
+  --sidebar-ring: 275 80% 65%;
+  --popover: 270 20% 10%;
+  --popover-foreground: 275 15% 95%;
+  --popover-border: 270 18% 17%;
+  --primary: 275 80% 65%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 270 18% 16%;
+  --secondary-foreground: 275 15% 95%;
+  --muted: 270 18% 14%;
+  --muted-foreground: 275 10% 62%;
+  --accent: 275 20% 16%;
+  --accent-foreground: 275 15% 95%;
+  --destructive: 0 75% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 270 15% 25%;
+  --ring: 275 80% 65%;
+  --chart-1: 275 80% 65%;
+  --chart-2: 290 75% 70%;
+  --chart-3: 260 70% 60%;
+  --chart-4: 300 65% 65%;
+  --chart-5: 245 70% 68%;
+  --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0);
+  --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0);
+  --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0);
+  --shadow-md: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 2px 4px -1px hsl(0 0% 0% / 0);
+  --shadow-lg: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 4px 6px -1px hsl(0 0% 0% / 0);
+  --shadow-xl: 0px 2px 0px 0px hsl(0 0% 0% / 0), 0px 8px 10px -1px hsl(0 0% 0% / 0);
+  --shadow-2xl: 0px 2px 0px 0px hsl(0 0% 0% / 0);
+
+  /* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(
+    from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(
+    from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(
+    from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(
+    from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(
+    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(
+    from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(
+    from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/**
+ * Using the elevate system.
+ * Automatic contrast adjustment.
+ *
+ * <element className="hover-elevate" />
+ * <element className="active-elevate-2" />
+ *
+ * // Using the tailwind utility when a data attribute is "on"
+ * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
+ * // Or manually controlling the toggle state
+ * <element className="toggle-elevate toggle-elevated" />
+ *
+ * Elevation systems have to handle many states.
+ * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
+ * - toggled or not
+ * - focused or not (this is not handled with these utilities)
+ *
+ * Even without handling focused or not, this is six possible combinations that
+ * need to be distinguished from eachother visually.
+ */
+@layer utilities {
+  /* Hide ugly search cancel button in Chrome until we can style it properly */
+  input[type='search']::-webkit-search-cancel-button {
+    @apply hidden;
+  }
+
+  /* Placeholder styling for contentEditable div */
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
+   * buttons/badges can remove the automatic brightness adjustment on interactions
+   * and program their own. */
+  .no-default-hover-elevate {
+  }
+
+  .no-default-active-elevate {
+  }
+
+  /**
+   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
+   * This way they can stack/compound. Both will overlap the parent's borders!
+   * So borders will be automatically adjusted both on toggle, and hover/active,
+   * and they will be compounded.
+   */
+  .toggle-elevate::before,
+  .toggle-elevate-2::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: -1;
+    /* sits behind content but above backdrop */
+  }
+
+  .toggle-elevate.toggle-elevated::before {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.toggle-elevate::before {
+    inset: -1px;
+  }
+
+  /* Does not work on elements with overflow:hidden! */
+  .hover-elevate:not(.no-default-hover-elevate),
+  .active-elevate:not(.no-default-active-elevate),
+  .hover-elevate-2:not(.no-default-hover-elevate),
+  .active-elevate-2:not(.no-default-active-elevate) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate)::after,
+  .active-elevate:not(.no-default-active-elevate)::after,
+  .hover-elevate-2:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:not(.no-default-active-elevate)::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: 999;
+    /* sits in front of content */
+  }
+
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-1);
+  }
+
+  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
+    inset: -1px;
+  }
+}
+
+/* ===============================================================================
+   PUFFBASE OOZE SYSTEM
+   Purple slime that hangs, drips and runs down the whole app.
+   =============================================================================== */
+
+@layer utilities {
+  /* --- keyframes --- */
+
+  /* ooze slowly extending downward (the hanging curtain) */
+  @keyframes drip {
+    0%,
+    100% {
+      transform: scaleY(1) translateY(0);
+    }
+    50% {
+      transform: scaleY(1.14) translateY(3px);
+    }
+  }
+
+  /* drip particles falling down the screen */
+  @keyframes fall {
+    0% {
+      transform: translate3d(0, -10px, 0) scale(0.55);
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+      transform: translate3d(0, 4vh, 0) scale(1);
+    }
+    88% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(0, 108vh, 0) scale(0.8);
+      opacity: 0;
+    }
+  }
+
+  /* subtle pulsing glow on the ooze */
+  @keyframes ooze-pulse {
+    0%,
+    100% {
+      filter: drop-shadow(0 6px 26px hsl(275 85% 55% / 0.35));
+    }
+    50% {
+      filter: drop-shadow(0 14px 42px hsl(288 90% 62% / 0.6));
+    }
+  }
+
+  /* lateral goo sway for layered depth */
+  @keyframes ooze-sway {
+    0%,
+    100% {
+      transform: translateX(-1.2%) scaleY(1);
+    }
+    50% {
+      transform: translateX(1.2%) scaleY(1.06);
+    }
+  }
+
+  /* slow stretch of an individual hanging strand */
+  @keyframes strand {
+    0% {
+      transform: scaleY(0.55);
+      opacity: 0.75;
+    }
+    55% {
+      transform: scaleY(1.25);
+      opacity: 1;
+    }
+    100% {
+      transform: scaleY(0.55);
+      opacity: 0.75;
+    }
+  }
+
+  /* a bead of ooze sliding along a card edge */
+  @keyframes bead-run {
+    0% {
+      transform: translateY(-6px) scale(0.6);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(64px) scale(1.05);
+      opacity: 0;
+    }
+  }
+
+  @keyframes goo-shift {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* --- ooze layers --- */
+
+  .ooze-layer {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .ooze-band {
+    transform-origin: top center;
+    animation: drip 9s ease-in-out infinite, ooze-pulse 7s ease-in-out infinite;
+    will-change: transform, filter;
+  }
+
+  .ooze-band-alt {
+    transform-origin: top center;
+    animation: ooze-sway 15s ease-in-out infinite;
+    mix-blend-mode: screen;
+    will-change: transform;
+  }
+
+  /* a single falling droplet */
+  .ooze-drop {
+    position: absolute;
+    top: 0;
+    width: 10px;
+    height: 15px;
+    border-radius: 60% 60% 55% 55% / 90% 90% 40% 40%;
+    background: radial-gradient(
+        ellipse at 32% 26%,
+        hsl(295 100% 92% / 0.95) 0%,
+        hsl(283 92% 70%) 34%,
+        hsl(274 88% 52%) 68%,
+        hsl(268 85% 34%) 100%
+      );
+    box-shadow: 0 0 14px hsl(280 95% 62% / 0.75), inset 0 -3px 6px hsl(268 90% 28% / 0.6);
+    animation-name: fall;
+    animation-timing-function: cubic-bezier(0.42, 0, 0.85, 0.55);
+    animation-iteration-count: infinite;
+    will-change: transform, opacity;
+  }
+
+  .ooze-drop::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 2px;
+    height: 26px;
+    transform: translateX(-50%);
+    background: linear-gradient(to top, hsl(278 90% 66% / 0.7), transparent);
+  }
+
+  /* vertical slime rail used on sidebar / viewport edges */
+  .ooze-rail {
+    background: linear-gradient(
+      to bottom,
+      hsl(283 90% 62% / 0.85),
+      hsl(275 85% 52% / 0.5) 40%,
+      hsl(270 80% 42% / 0.18) 75%,
+      transparent
+    );
+    box-shadow: 0 0 18px hsl(280 90% 58% / 0.55);
+  }
+
+  /* hanging strand of goo (SVG-free, pure CSS blob) */
+  .ooze-strand {
+    position: absolute;
+    top: 0;
+    transform-origin: top center;
+    background: linear-gradient(to bottom, hsl(281 88% 60%), hsl(272 85% 44%) 70%, hsl(268 80% 34%));
+    border-radius: 0 0 999px 999px;
+    box-shadow: 0 0 16px hsl(281 90% 58% / 0.55);
+    animation-name: strand;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+
+  .ooze-strand::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 150%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -42%);
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse at 34% 28%,
+      hsl(296 100% 93% / 0.9),
+      hsl(282 92% 66%) 40%,
+      hsl(270 86% 40%) 100%
+    );
+  }
+
+  /* ---- component treatments ---- */
+
+  /* card with a slime lip dripping off its top edge */
+  .ooze-card {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .ooze-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -1px;
+    height: 13px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.75;
+    background:
+      linear-gradient(
+          to bottom,
+          hsl(281 88% 62% / 0.95) 0 3px,
+          hsl(276 85% 52% / 0.75) 3px 5px,
+          transparent 5px
+        )
+        0 0 / 100% 100% no-repeat,
+      radial-gradient(6px 9px at 10px 1px, hsl(279 88% 58% / 0.9) 98%, transparent 100%) 6px 0 /
+        42px 13px repeat-x,
+      radial-gradient(3px 12px at 4px 1px, hsl(285 90% 66% / 0.75) 98%, transparent 100%) 28px 0 /
+        61px 13px repeat-x;
+    filter: drop-shadow(0 4px 10px hsl(278 90% 50% / 0.45));
+  }
+
+  .ooze-card-quiet::before {
+    opacity: 0.55;
+  }
+
+  /* running bead down the left edge of a panel */
+  .ooze-bead {
+    position: absolute;
+    top: 0;
+    left: 14px;
+    width: 7px;
+    height: 10px;
+    border-radius: 60% 60% 55% 55% / 90% 90% 40% 40%;
+    background: radial-gradient(ellipse at 30% 25%, hsl(298 100% 92%), hsl(280 90% 62%) 45%, hsl(270 85% 42%));
+    box-shadow: 0 0 10px hsl(283 92% 62% / 0.8);
+    animation: bead-run 6s cubic-bezier(0.4, 0, 0.9, 0.5) infinite;
+    pointer-events: none;
+  }
+
+  .goo-text {
+    background: linear-gradient(
+      100deg,
+      hsl(285 95% 82%),
+      hsl(276 90% 66%) 35%,
+      hsl(300 88% 76%) 65%,
+      hsl(272 92% 70%)
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: goo-shift 12s ease-in-out infinite;
+  }
+
+  .goo-glow {
+    box-shadow: 0 0 0 1px hsl(275 60% 45% / 0.35), 0 18px 45px -22px hsl(278 90% 55% / 0.65);
+  }
+
+  .slime-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(278 80% 55%) transparent;
+  }
+
+  .slime-scroll::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .slime-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(hsl(285 90% 66%), hsl(272 85% 45%));
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .slime-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ooze-band,
+    .ooze-band-alt,
+    .ooze-drop,
+    .ooze-strand,
+    .ooze-bead,
+    .goo-text {
+      animation: none !important;
+    }
+  }
+}
