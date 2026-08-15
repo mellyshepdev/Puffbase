@@ -68,9 +68,13 @@ export function AppSidebar() {
       </div>
 
       <SidebarHeader className="px-3 pb-1 pt-4">
-        <Link href="/" data-testid="link-home-logo" className="block rounded-md p-1 hover-elevate">
+        <a
+          href="https://bsco-hub-frontend.fly.dev/puffbase.html"
+          data-testid="link-home-logo"
+          className="block rounded-md p-1 hover-elevate"
+        >
           <PuffbaseLogo />
-        </Link>
+        </a>
       </SidebarHeader>
 
       <SidebarContent className="slime-scroll">
