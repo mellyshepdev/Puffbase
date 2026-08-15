@@ -631,3 +631,114 @@
     }
   }
 }
+
+/* Guided tour (Shepherd.js) — matches the ooze/purple theme, tracks light/dark via the same CSS vars as the rest of the app */
+.shepherd-element.puffbase-tour-step {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: 1rem;
+  font-family: inherit;
+  max-width: 320px;
+  box-shadow: 0 10px 40px hsl(280 70% 10% / 0.5);
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-arrow::before {
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--primary) / 0.3);
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-header {
+  background: linear-gradient(90deg, hsl(285 90% 66%), hsl(275 80% 55%), hsl(272 85% 40%));
+  border-radius: 1rem 1rem 0 0;
+  padding: 0.75rem 1rem;
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-title {
+  color: hsl(0 0% 100%);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-cancel-icon {
+  color: hsl(0 0% 100% / 0.7);
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-cancel-icon:hover {
+  color: hsl(0 0% 100%);
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-text {
+  color: hsl(var(--popover-foreground));
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 1rem;
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-footer {
+  padding: 0 1rem 1rem;
+  gap: 0.5rem;
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-button {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  border: none;
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-button:not(:disabled):hover {
+  background: hsl(var(--primary) / 0.85);
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-button.shepherd-button-secondary {
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.shepherd-element.puffbase-tour-step .shepherd-button.shepherd-button-secondary:not(:disabled):hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.shepherd-modal-overlay-container {
+  opacity: 0.6;
+}
+
+.puffbase-tour-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: auto;
+}
+
+.puffbase-tour-progress-label {
+  font-size: 0.7rem;
+  color: hsl(var(--muted-foreground));
+  font-variant-numeric: tabular-nums;
+}
+
+.puffbase-tour-progress-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.puffbase-tour-progress-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(var(--border));
+}
+
+.puffbase-tour-progress-dot.is-active {
+  background: hsl(var(--primary));
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.7);
+}
+
+.puffbase-tour-progress-dot.is-done {
+  background: hsl(var(--muted-foreground));
+}

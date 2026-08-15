@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Bell, Command, Moon, Rocket, Search, Sun } from "lucide-react";
+import { Bell, Command, Compass, Moon, Rocket, Search, Sun } from "lucide-react";
+import { startPuffbaseTour } from "@/lib/tour";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,18 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             <Command className="h-2.5 w-2.5" />K
           </kbd>
         </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => startPuffbaseTour()}
+          data-testid="button-tour"
+          aria-label="Take a guided tour"
+          title="Take a guided tour"
+        >
+          <Compass className="h-4 w-4" />
+        </Button>
 
         <Button
           size="sm"
