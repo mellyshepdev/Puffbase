@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Puffbase Registration</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Font Awesome for form field icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+</head>
+<body>
+  <div class="card-container">
+    <!-- Header with Logo & Title -->
+    <div class="card-header">
+      <div class="logo">
+        <img src="logo.png" alt="Puffbase Logo" />
+      </div>
+      <h2>Create Your Puffbase Account</h2>
+      <p class="subtitle">Join the ecosystem and build the future.</p>
+    </div>
+
+    <!-- Registration Form -->
+    <form class="register-form">
+      <!-- Full Name -->
+      <div class="input-group">
+        <i class="fa-solid fa-user icon"></i>
+        <input type="text" placeholder="FULL NAME" required />
+      </div>
+
+      <!-- Username -->
+      <div class="input-group">
+        <i class="fa-solid fa-at icon"></i>
+        <input type="text" placeholder="USERNAME" required />
+      </div>
+
+      <!-- Email Address -->
+      <div class="input-group">
+        <i class="fa-solid fa-envelope icon"></i>
+        <input type="email" placeholder="EMAIL ADDRESS" required />
+      </div>
+
+      <!-- Password -->
+      <div class="input-group">
+        <i class="fa-solid fa-lock icon"></i>
+        <input type="password" placeholder="PASSWORD" required />
+        <i class="fa-solid fa-eye-slash toggle-password"></i>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="input-group">
+        <i class="fa-solid fa-lock icon"></i>
+        <input type="password" placeholder="CONFIRM PASSWORD" required />
+      </div>
+
+      <!-- Terms Checkbox -->
+      <div class="terms-group">
+        <input type="checkbox" id="terms" required />
+        <label for="terms">
+          I agree to the <a href="#">Terms of Service</a> & <a href="#">Privacy Policy</a>
+        </label>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn-submit">
+        <span>START YOUR JOURNEY</span>
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </form>
+
+    <!-- Footer Link -->
+    <div class="card-footer">
+      <span>Already have an account?</span>
+      <a href="#">Log In</a>
+    </div>
+  </div>
+</body>
+</html>
