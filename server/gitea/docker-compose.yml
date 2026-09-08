@@ -19,3 +19,10 @@ services:
      - ./gitea:/data
      - /etc/timezone:/etc/timezone:ro
      - /etc/localtime:/etc/localtime:ro
+ labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea.rule=Host(`gitea.prime-quality.online`)"
+      - "traefik.http.routers.gitea.entrypoints=websecure"
+      - "traefik.http.routers.gitea.tls=true"
+      - "traefik.http.routers.gitea.tls.certresolver=myresolver" # Replace 'myresolver' with your Traefik cert resolver name if applicable
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
