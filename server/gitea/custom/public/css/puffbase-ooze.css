@@ -1,0 +1,94 @@
+/* ==========================================================================
+   PuffBase Purple Slime & Ooze Theme
+   Colors: Primary Purple (#6B46C1, #8B5CF6), Yellow/Slime Accent (#F59E0B, #10B981)
+   Background: Dark Grey (#111827, #1F2937)
+   ========================================================================== */
+
+:root {
+  --puff-purple-main: #6b46c1;
+  --puff-purple-glow: #8b5cf6;
+  --puff-yellow-accent: #f59e0b;
+  --puff-slime-green: #10b981;
+  --puff-bg-dark: #111827;
+  --puff-card-bg: #1f2937;
+  --puff-border-glow: rgba(139, 92, 246, 0.4);
+  --puff-text-bright: #f9fafb;
+  --puff-text-muted: #9ca3af;
+}
+
+/* Global Body Styling */
+body {
+  background-color: var(--puff-bg-dark) !important;
+  color: var(--puff-text-bright) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Custom Slime Navigation Header */
+.ui.menu, .navbar, #page-header {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 100%) !important;
+  border-bottom: 2px solid var(--puff-purple-glow) !important;
+  box-shadow: 0 4px 20px rgba(107, 70, 193, 0.3) !important;
+}
+
+.ui.menu .item, .navbar a {
+  color: var(--puff-text-bright) !important;
+  font-weight: 600;
+}
+
+.ui.menu .item:hover, .navbar a:hover {
+  color: var(--puff-yellow-accent) !important;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+/* Cards & Container Containers */
+.ui.segment, .card, .dashboard-card {
+  background-color: var(--puff-card-bg) !important;
+  border: 1px solid var(--puff-border-glow) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 15px rgba(107, 70, 193, 0.25) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui.segment:hover, .card:hover {
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.5) !important;
+  transform: translateY(-2px);
+}
+
+/* Buttons & Interactive Elements */
+.ui.button.primary, .btn-primary {
+  background: linear-gradient(135deg, var(--puff-purple-main), var(--puff-purple-glow)) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(107, 70, 193, 0.4) !important;
+  border-radius: 8px !important;
+}
+
+.ui.button.primary:hover, .btn-primary:hover {
+  background: linear-gradient(135deg, var(--puff-purple-glow), #a855f7) !important;
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.6) !important;
+}
+
+/* Slime Accent Highlights */
+.accent-slime, .badge-warning, .highlight-yellow {
+  color: var(--puff-yellow-accent) !important;
+  font-weight: bold;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--puff-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--puff-purple-main);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--puff-purple-glow);
+}
