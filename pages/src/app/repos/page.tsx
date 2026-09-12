@@ -14,6 +14,7 @@ import {
   Plus,
   SlidersHorizontal,
 } from "lucide-react";
+import { CodeButton } from "@/components/CodeButton";
 
 interface Repo {
   id: number;
@@ -139,7 +140,8 @@ export default function ReposPage() {
                     {repo.name}
                   </h3>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <CodeButton repo={repo.name} />
                   {repo.visibility === "private" ? (
                     <Lock className="w-3.5 h-3.5 text-[#5a4d7a]" />
                   ) : (

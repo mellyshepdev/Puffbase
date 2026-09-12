@@ -14,6 +14,7 @@ import {
   type DeploymentStatus,
   type MetricType,
 } from "./storage";
+import { listRepos } from "./gitea";
 
 const deploymentEnvironments = [
   "production",
@@ -355,6 +356,14 @@ export async function registerRoutes(
       return res.status(201).json(await storage.createActivity(parsed.data));
     } catch (error) {
       return res.status(500).json({ error: "Failed to create activity" });
+    }
+  });
+
+  app.get("/api/repos", async (_req, res) => {
+    try {
+      return res.json(await listRepos());
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to list Gitea repos" });
     }
   });
 

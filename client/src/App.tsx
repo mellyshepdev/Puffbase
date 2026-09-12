@@ -10,9 +10,11 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppSidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { OozeOverlay } from "@/components/OozeOverlay";
+import { AuthGate } from "@/components/AuthGate";
 import Overview from "@/pages/Overview";
 import Deployments from "@/pages/Deployments";
 import Services from "@/pages/Services";
+import Repositories from "@/pages/Repositories";
 import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
@@ -21,6 +23,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/": { title: "Overview", subtitle: "puffbase · production vat" },
   "/deployments": { title: "Deployments", subtitle: "rollouts across all environments" },
   "/services": { title: "Services", subtitle: "runtime fleet health" },
+  "/repositories": { title: "Repositories", subtitle: "live from Gitea" },
   "/analytics": { title: "Analytics", subtitle: "traffic · latency · errors" },
   "/settings": { title: "Settings", subtitle: "workspace configuration" },
 };
@@ -48,6 +51,7 @@ function Shell() {
             <Route path="/" component={Overview} />
             <Route path="/deployments" component={Deployments} />
             <Route path="/services" component={Services} />
+            <Route path="/repositories" component={Repositories} />
             <Route path="/analytics" component={Analytics} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
@@ -71,11 +75,13 @@ export default function App() {
       <ThemeProvider>
         <TooltipProvider>
           <Toaster />
-          <Router hook={useHashLocation}>
-            <SidebarProvider style={sidebarStyle}>
-              <Shell />
-            </SidebarProvider>
-          </Router>
+          <AuthGate>
+            <Router hook={useHashLocation}>
+              <SidebarProvider style={sidebarStyle}>
+                <Shell />
+              </SidebarProvider>
+            </Router>
+          </AuthGate>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

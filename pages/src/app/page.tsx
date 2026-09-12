@@ -6,19 +6,27 @@ import {
   FolderGit2,
   AlertCircle,
   GitPullRequest,
-  Rocket,
   Star,
   Activity,
   TrendingUp,
   Clock,
   ArrowRight,
   Zap,
+  Plus,
+  X,
+  Sparkles,
+  Rocket,
+  Code2,
+  GitBranch,
+  ChevronDown,
+  MoreHorizontal,
   ExternalLink,
   CheckCircle2,
   XCircle,
   Loader2,
   CircleDot,
 } from "lucide-react";
+import { CodeButton } from "@/components/CodeButton";
 
 interface Stats {
   repos: number;
@@ -95,6 +103,28 @@ export default function DashboardPage() {
   const [pipelineData, setPipelineData] = useState<Pipeline[]>([]);
   const [issueData, setIssueData] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+
+  const notify = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 2600);
+  };
+
+  const createProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newProjectName.trim();
+    if (!name) return;
+    await fetch("/api/repos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }).catch(() => {});
+    setCreateOpen(false);
+    setNewProjectName("");
+    notify(`${name} created`);
+  };
 
   useEffect(() => {
     Promise.all([
@@ -125,10 +155,23 @@ export default function DashboardPage() {
   const statCards = [
     { label: "Repositories", value: stats?.repos || 0, icon: FolderGit2, color: "slime", href: "/repos" },
     { label: "Open Issues", value: stats?.openIssues || 0, icon: AlertCircle, color: "red", href: "/issues" },
-    { label: "Total Stars", value: stats?.totalStars || 0, icon: Star, color: "yellow", href: "/repos" },
-    { label: "Active Pipelines", value: stats?.activePipelines || 0, icon: GitPullRequest, color: "blue", href: "/pipelines" },
-    { label: "Deployments", value: stats?.activeDeployments || 0, icon: Rocket, color: "green", href: "/deploy" },
-    { label: "Success Rate", value: `${stats?.successRate || 0}%`, icon: TrendingUp, color: "emerald", href: "/pipelines" },
+    { label: "Pipelines Passing", value: `${stats?.successPipelines || 0} / ${stats?.totalPipelines || 0}`, icon: GitPullRequest, color: "blue", href: "/pipelines" },
+    { label: "Uptime", value: `${stats?.successRate || 0}%`, icon: TrendingUp, color: "emerald", href: "/deploy" },
+  ];
+
+  const codeLines = [
+    <><span className="code-purple">import</span> <span className="code-blue">{`{ Button }`}</span> <span className="code-purple">from</span> <span className="code-green">&quot;@orbit/ui&quot;</span></>,
+    <><span className="code-purple">import</span> <span className="code-blue">{`{ cn }`}</span> <span className="code-purple">from</span> <span className="code-green">&quot;@/lib/utils&quot;</span></>,
+    <>&nbsp;</>,
+    <><span className="code-purple">export default function</span> <span className="code-yellow">DeployCard</span>() {'{'}</>,
+    <><span className="code-muted indent">return</span> <span className="code-blue indent2">(</span></>,
+    <><span className="code-tag indent2">&lt;div</span> <span className="code-attr">className</span>=<span className="code-green">&quot;deploy-card&quot;</span><span className="code-tag">&gt;</span></>,
+    <><span className="code-tag indent2">&lt;Button</span> <span className="code-attr">variant</span>=<span className="code-green">&quot;slime&quot;</span><span className="code-tag">&gt;</span></>,
+    <><span className="code-text indent3">Ship to production</span></>,
+    <><span className="code-tag indent2">&lt;/Button&gt;</span></>,
+    <><span className="code-tag indent2">&lt;/div&gt;</span></>,
+    <><span className="code-blue indent2">)</span></>,
+    <><span className="code-muted">{'}'}</span></>,
   ];
 
   return (
@@ -136,20 +179,43 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <span className="glow-text">Dashboard</span>
-            <Zap className="w-5 h-5 text-slime-400" />
+          <div className="eyebrow"><span className="pulse-dot" /> ALL SYSTEMS OPERATIONAL</div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3 mt-1.5">
+            <span className="glow-text">Good morning, slime_dev</span>
+            <span className="wave">✦</span>
           </h1>
-          <p className="text-sm text-[#7a6b9d] mt-1">Welcome back, slime_dev. Here&apos;s your overview.</p>
+          <p className="text-sm text-[#7a6b9d] mt-1">Here&apos;s what&apos;s moving across your workspace today.</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#5a4d7a]">
-          <Clock className="w-3.5 h-3.5" />
-          <span>Last updated: just now</span>
+        <div className="heading-actions">
+          <button className="button secondary" onClick={() => notify("Import flow opened")}>
+            <FolderGit2 className="w-4 h-4" /> Import repo
+          </button>
+          <button className="button primary" onClick={() => setCreateOpen(true)}>
+            <Plus className="w-4 h-4" /> New project
+          </button>
         </div>
       </div>
 
+      {/* Slime Status hero banner */}
+      <section className="hero-card">
+        <div className="hero-copy">
+          <div className="hero-label"><Zap className="w-3.5 h-3.5" /> SLIME STATUS</div>
+          <h2>Everything is <em>flowing.</em></h2>
+          <p>Your builds are green, deployments are healthy, and the team is in sync.</p>
+          <Link href="/status" className="hero-link">View workspace activity <ArrowRight className="w-4 h-4" /></Link>
+        </div>
+        <div className="hero-orbit orbit-one" />
+        <div className="hero-orbit orbit-two" />
+        <div className="hero-blob"><span /><span /><span /><span /></div>
+        <div className="hero-metrics">
+          <div><strong>{stats?.successRate || 0}%</strong><span>build success</span></div>
+          <div><strong>{stats?.activeDeployments || 0}</strong><span>active deploys</span></div>
+          <div><strong>{stats?.totalStars || 0}</strong><span>total stars</span></div>
+        </div>
+      </section>
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <Link key={card.label} href={card.href} className="slime-card p-4 group cursor-pointer">
             <div className="flex items-center justify-between mb-3">
@@ -175,49 +241,52 @@ export default function DashboardPage() {
               View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="space-y-3">
+          <div className="project-grid">
             {repos.map((repo) => (
-              <Link
-                key={repo.id}
-                href={`/repos/${repo.id}`}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-[var(--color-dark-hover)] transition-all group border border-transparent hover:border-slime-800/30"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slime-700/50 to-goo-800/50 flex items-center justify-center flex-shrink-0">
-                    <FolderGit2 className="w-4 h-4 text-slime-300" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-white group-hover:text-slime-300 transition-colors truncate">
-                      {repo.name}
-                    </p>
-                    <p className="text-xs text-[#5a4d7a] truncate">
-                      {repo.lastCommitMessage || "No commits yet"}
-                    </p>
-                  </div>
+              <article className="project-card" key={repo.id}>
+                <div className="project-card-top">
+                  <div className="large-favicon">{repo.name.slice(0, 2).toUpperCase()}</div>
+                  <button className="dots-button" onClick={() => notify(`${repo.name} actions opened`)} aria-label={`More actions for ${repo.name}`}>⋯</button>
                 </div>
-                <div className="flex items-center gap-4 flex-shrink-0">
+                <div className="project-title-row">
+                  <h3><Link href={`/repos/${repo.id}`}>{repo.name}</Link></h3>
+                  <span className="visibility public">Public</span>
+                </div>
+                <p>{repo.lastCommitMessage || "No commits yet"}</p>
+                <div className="project-meta">
                   {repo.language && (
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: languageColors[repo.language] || "#8b3dff" }}
-                      />
-                      <span className="text-xs text-[#7a6b9d]">{repo.language}</span>
-                    </div>
+                    <span><i className="language-dot" style={{ backgroundColor: languageColors[repo.language] || "#8b3dff" }} />{repo.language}</span>
                   )}
-                  <div className="flex items-center gap-1 text-xs text-[#5a4d7a]">
-                    <Star className="w-3 h-3" />
-                    {repo.stars}
-                  </div>
-                  <span className="text-[11px] text-[#4a3f6a]">{repo.lastCommitAt ? timeAgo(repo.lastCommitAt) : ""}</span>
+                  <span><Star className="w-3 h-3" />{repo.stars}</span>
                 </div>
-              </Link>
+                <div className="project-divider" />
+                <div className="project-footer">
+                  <span className="deploy-state live"><i />Live</span>
+                  <span className="project-time">{repo.lastCommitAt ? timeAgo(repo.lastCommitAt) : ""}</span>
+                  <Link href={`/repos/${repo.id}`} className="open-project" aria-label={`Open ${repo.name}`}><ArrowRight className="w-4 h-4" /></Link>
+                </div>
+              </article>
             ))}
           </div>
         </div>
 
-        {/* Activity Feed */}
-        <div className="slime-card p-5">
+        <div className="space-y-6">
+          {/* Deploy banner */}
+          <section className="deploy-banner">
+            <div className="deploy-glow" />
+            <div className="deploy-banner-icon"><Rocket className="w-5 h-5" /></div>
+            <div>
+              <span>DEPLOY WITH CONFIDENCE</span>
+              <strong>Ship your next idea.</strong>
+              <p>Connect a repo and go live in minutes.</p>
+            </div>
+            <button onClick={() => notify("Deployment flow opened")} className="button primary workspace-open">
+              Deploy <ArrowRight className="w-4 h-4" />
+            </button>
+          </section>
+
+          {/* Activity Feed */}
+          <div className="slime-card p-5">
           <h2 className="text-base font-semibold text-white flex items-center gap-2 mb-4">
             <Activity className="w-4 h-4 text-slime-400" />
             Latest Activity
@@ -254,8 +323,56 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+          </div>
         </div>
       </div>
+
+      {/* Code workspace — keep your hands in the code */}
+      <section className="code-card">
+        <div className="code-card-header">
+          <div>
+            <div className="section-eyebrow">CODE WORKSPACE</div>
+            <h2>Keep your hands in the code.</h2>
+          </div>
+          <div className="code-card-actions">
+            <button className="button secondary" onClick={() => notify("Preview opened in a new tab")}>
+              <ExternalLink className="w-3.5 h-3.5" /> Preview
+            </button>
+            <button className="button primary" onClick={() => notify("Editor opened")}>
+              <Code2 className="w-3.5 h-3.5" /> Open editor
+            </button>
+          </div>
+        </div>
+        <div className="editor-shell">
+          <div className="editor-toolbar">
+            <div className="editor-file"><span className="file-dot" /> orbit-ui <span>/</span> components <span>/</span> DeployCard.tsx</div>
+            <div className="editor-branch"><GitBranch className="w-3.5 h-3.5" /> main <ChevronDown className="w-3 h-3" /></div>
+          </div>
+          <div className="editor-body">
+            <div className="file-tree">
+              <div className="tree-heading">EXPLORER <MoreHorizontal className="w-3.5 h-3.5" /></div>
+              <div className="tree-item folder"><span>⌄</span> components</div>
+              <div className="tree-item selected"><span className="file-type">TS</span> DeployCard.tsx</div>
+              <div className="tree-item"><span className="file-type">TS</span> Button.tsx</div>
+              <div className="tree-item folder"><span>›</span> lib</div>
+              <div className="tree-item folder"><span>›</span> app</div>
+              <div className="tree-item"><span className="file-type json">{`{ }`}</span> package.json</div>
+              <div className="tree-bottom"><GitBranch className="w-3.5 h-3.5" /> Working tree clean</div>
+            </div>
+            <div className="code-view">
+              <div className="code-tab"><span className="file-type">TS</span> DeployCard.tsx <X className="w-3 h-3 ml-auto" /></div>
+              <div className="code-content">
+                {codeLines.map((line, index) => (
+                  <div className="code-line" key={index}>
+                    <span className="line-number">{String(index + 1).padStart(2, "0")}</span>
+                    <span>{line}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Bottom grid: Pipelines & Issues */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -339,6 +456,31 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* New project modal */}
+      {createOpen && (
+        <div className="modal-backdrop" onMouseDown={() => setCreateOpen(false)}>
+          <div className="create-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setCreateOpen(false)} aria-label="Close"><X className="w-4 h-4" /></button>
+            <div className="modal-icon"><Sparkles className="w-5 h-5" /></div>
+            <div className="section-eyebrow">NEW WORKSPACE</div>
+            <h2>Create a new project</h2>
+            <p>Start with a clean repository and let the slime do the rest.</p>
+            <form onSubmit={createProject}>
+              <label>Project name
+                <input autoFocus value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} placeholder="e.g. moonlight-app" />
+              </label>
+              <div className="modal-actions">
+                <button type="button" className="button secondary" onClick={() => setCreateOpen(false)}>Cancel</button>
+                <button type="submit" className="button primary" disabled={!newProjectName.trim()}>Create project <ArrowRight className="w-4 h-4" /></button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* toast */}
+      {toast && <div className="ooze-toast">{toast}</div>}
     </div>
   );
 }

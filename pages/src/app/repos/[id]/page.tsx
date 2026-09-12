@@ -22,6 +22,7 @@ import {
   Eye,
   Terminal,
 } from "lucide-react";
+import { CodeButton } from "@/components/CodeButton";
 
 interface Repo {
   id: number;
@@ -403,6 +404,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
               <GitBranch className="w-3.5 h-3.5 text-slime-400" />
               {repo.defaultBranch}
             </div>
+            <CodeButton repo={repo.name} />
             <div className="flex items-center gap-1 text-xs text-[#5a4d7a]">
               <Star className="w-3.5 h-3.5" /> {repo.stars.toLocaleString()}
             </div>

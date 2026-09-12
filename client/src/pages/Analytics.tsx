@@ -6,14 +6,12 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, AlertOctagon, Globe2, Timer } from "lucide-react";
+import { Activity, AlertOctagon, Timer } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ChartSkeleton,
@@ -21,10 +19,9 @@ import {
   PageShell,
   Panel,
   SectionTitle,
-  SlimeBar,
   StatCard,
 } from "@/components/kit";
-import { compact, mockGeo, mockLatency, shortDate, useDashboard } from "@/lib/data";
+import { compact, shortDate, useDashboard } from "@/lib/data";
 
 const RANGES = ["7d", "14d", "30d"] as const;
 type Range = (typeof RANGES)[number];
@@ -35,7 +32,6 @@ export default function Analytics() {
   const window = range === "7d" ? 7 : range === "14d" ? 14 : 30;
 
   const usage = data.chartData.slice(-window);
-  const latency = mockLatency.slice(-window);
   const errors = usage.map((p) => ({ date: p.date, errors: p.errors ?? 0 }));
   const worstError = Math.max(...errors.map((e) => e.errors), 1);
 
@@ -60,21 +56,19 @@ export default function Analytics() {
         </Tabs>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           testId="stat-total-calls"
           label="Requests"
           value={compact(usage.reduce((s, p) => s + (p.apiCalls ?? 0), 0))}
-          delta={18.2}
           icon={Activity}
           loading={isLoading}
           accent={1}
         />
         <StatCard
-          testId="stat-p99"
-          label="p99 latency"
-          value={`${latency.length ? latency[latency.length - 1].p99 : 0}ms`}
-          delta={-6.1}
+          testId="stat-avg-latency"
+          label="Avg latency"
+          value={`${usage.length ? Math.round(usage.reduce((s, p) => s + (p.latency ?? 0), 0) / usage.length) : 0}ms`}
           icon={Timer}
           loading={isLoading}
           accent={2}
@@ -87,19 +81,9 @@ export default function Analytics() {
               Math.max(usage.reduce((s, p) => s + (p.apiCalls ?? 1), 0), 1)) *
             100
           ).toFixed(3)}%`}
-          delta={-2.8}
           icon={AlertOctagon}
           loading={isLoading}
           accent={4}
-        />
-        <StatCard
-          testId="stat-regions"
-          label="Active regions"
-          value={String(mockGeo.length)}
-          hint="edge PoPs serving traffic"
-          icon={Globe2}
-          loading={isLoading}
-          accent={5}
         />
       </div>
 
@@ -152,12 +136,18 @@ export default function Analytics() {
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel testId="panel-latency" title="Latency percentiles" subtitle="p50 / p90 / p99 in ms">
+        <Panel testId="panel-latency" title="Latency" subtitle="Average, in ms">
           {isLoading ? (
             <ChartSkeleton height={250} />
           ) : (
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={latency} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+              <AreaChart data={usage} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="latency-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="2 6" vertical={false} />
                 <XAxis
                   dataKey="date"
@@ -174,32 +164,15 @@ export default function Analytics() {
                   width={38}
                 />
                 <Tooltip content={<OozeTooltip />} />
-                <Line
+                <Area
                   type="monotone"
-                  dataKey="p50"
-                  name="p50"
-                  dot={false}
-                  stroke="hsl(var(--chart-3))"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="p90"
-                  name="p90"
-                  dot={false}
-                  stroke="hsl(var(--chart-1))"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="p99"
-                  name="p99"
-                  dot={false}
+                  dataKey="latency"
+                  name="Latency"
                   stroke="hsl(var(--chart-2))"
                   strokeWidth={2}
-                  strokeDasharray="5 4"
+                  fill="url(#latency-fill)"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           )}
         </Panel>
@@ -248,53 +221,6 @@ export default function Analytics() {
           )}
         </Panel>
       </div>
-
-      <Panel
-        testId="panel-geo"
-        title="Geographic distribution"
-        subtitle="Share of requests by region"
-      >
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-          <div className="space-y-4">
-            {mockGeo.map((g) => (
-              <div key={g.region} data-testid={`geo-${g.region.replace(/\s+/g, "-").toLowerCase()}`}>
-                <div className="mb-1.5 flex items-baseline justify-between text-xs">
-                  <span className="font-medium">{g.region}</span>
-                  <span className="font-mono text-[11px] text-muted-foreground">
-                    {compact(g.requests)} · {g.share}%
-                  </span>
-                </div>
-                <SlimeBar value={g.share * 2.4} />
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart
-                data={mockGeo}
-                layout="vertical"
-                margin={{ top: 0, right: 12, left: 0, bottom: 0 }}
-              >
-                <XAxis type="number" hide />
-                <YAxis
-                  type="category"
-                  dataKey="region"
-                  width={96}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip content={<OozeTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }} />
-                <Bar dataKey="requests" name="Requests" radius={[0, 6, 6, 0]}>
-                  {mockGeo.map((_, i) => (
-                    <Cell key={i} fill={`hsl(var(--chart-${(i % 5) + 1}))`} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </Panel>
     </PageShell>
   );
 }

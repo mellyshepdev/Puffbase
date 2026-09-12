@@ -92,3 +92,105 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--puff-purple-glow);
 }
+
+/* ===== deep coverage pass ===== */
+:root {
+  --color-body: var(--puff-bg-dark);
+  --color-box-body: var(--puff-card-bg);
+  --color-secondary: #111827;
+  --color-text: var(--puff-text-bright);
+  --color-text-light: var(--puff-text-muted);
+  --color-primary: var(--puff-purple-glow);
+  --color-primary-dark-1: var(--puff-purple-main);
+  --color-secondary-nav-bg: #190f28;
+  --color-menu: var(--puff-card-bg);
+  --color-card: var(--puff-card-bg);
+  --color-table: var(--puff-card-bg);
+  --color-code-bg: #190f28;
+  --color-markup-table-row: var(--puff-card-bg);
+  --color-markup-code-block: #190f28;
+  --color-footer: #0b0712;
+  --color-timeline: #7e22ce;
+  --color-input-text: var(--puff-text-bright);
+  --color-input-background: #190f28;
+  --color-input-border: #7e22ce;
+  --color-hover: rgba(139, 92, 246, 0.12);
+  --color-active: rgba(139, 92, 246, 0.2);
+  --color-console-fg: var(--puff-slime-green);
+  --color-console-bg: #0b0712;
+  --color-badge-bg: rgba(139, 92, 246, 0.2);
+  --color-badge-fg: #c084fc;
+}
+
+/* links & accents */
+a { color: #c084fc !important; }
+a:hover { color: var(--puff-yellow-accent) !important; }
+.text.primary, .text.purple { color: var(--puff-purple-glow) !important; }
+.text.yellow, .text.warning { color: var(--puff-yellow-accent) !important; }
+.text.green, .ui.green.label { color: var(--puff-slime-green) !important; }
+
+/* inputs */
+input, textarea, select, .ui.input input {
+  background: var(--puff-card-bg) !important;
+  color: var(--puff-text-bright) !important;
+  border-color: #7e22ce !important;
+}
+input:focus, textarea:focus { border-color: var(--puff-yellow-accent) !important; box-shadow: 0 0 8px rgba(245,158,11,.35) !important; }
+
+/* buttons - all variants ooze */
+.ui.button, .ui.basic.button {
+  background: #190f28 !important;
+  color: #c084fc !important;
+  border: 1px solid #7e22ce !important;
+}
+.ui.button:hover, .ui.basic.button:hover {
+  border-color: var(--puff-purple-glow) !important;
+  box-shadow: 0 0 12px rgba(139,92,246,.5) !important;
+  color: #e9d5ff !important;
+}
+.ui.green.button, .ui.primary.button {
+  background: linear-gradient(135deg, var(--puff-purple-main), var(--puff-purple-glow)) !important;
+  color: #fff !important;
+}
+
+/* tables */
+.ui.table { background: var(--puff-card-bg) !important; color: var(--puff-text-bright) !important; }
+.ui.table thead th { background: #190f28 !important; color: var(--puff-purple-glow) !important; border-bottom: 2px solid #7e22ce !important; }
+.ui.table tr td { border-color: rgba(126,34,206,.3) !important; }
+.ui.table tr:hover { background: rgba(139,92,246,.08) !important; }
+
+/* menus/tabs */
+.ui.tabular.menu .item { color: var(--puff-text-muted) !important; }
+.ui.tabular.menu .item.active { color: var(--puff-purple-glow) !important; border-color: var(--puff-purple-glow) !important; }
+.ui.secondary.menu .active.item { color: var(--puff-yellow-accent) !important; }
+.ui.menu { background: var(--puff-card-bg) !important; border-color: #7e22ce !important; }
+.ui.menu .item { color: var(--puff-text-bright) !important; }
+
+/* code/markup */
+.markup, .markup pre, .code-view, pre, code {
+  background: #190f28 !important; color: #e9d5ff !important;
+  border-color: #7e22ce !important;
+}
+.chroma { background: #190f28 !important; }
+
+/* labels/badges */
+.ui.label { background: rgba(139,92,246,.15) !important; color: #c084fc !important; border: 1px solid rgba(139,92,246,.35) !important; }
+.ui.basic.label { background: transparent !important; }
+
+/* repo list / cards */
+.repository.item, .ui.list .item { border-color: rgba(126,34,206,.3) !important; }
+.repository.item:hover { background: rgba(139,92,246,.06) !important; }
+
+/* headers */
+h1,h2,h3,h4,.ui.header { color: var(--puff-text-bright) !important; }
+.ui.header .sub.header, .text.grey { color: var(--puff-text-muted) !important; }
+
+/* footer + diff + modal */
+footer { background: #0b0712 !important; border-top: 1px solid #7e22ce !important; }
+.ui.modal, .ui.modal .header, .ui.modal .content { background: var(--puff-card-bg) !important; color: var(--puff-text-bright) !important; }
+.ui.modal .header { border-bottom-color: #7e22ce !important; }
+
+/* actions status chips */
+.commit-status .job-status-success, .job-status-success { color: var(--puff-slime-green) !important; }
+.job-status-failure { color: #ef4444 !important; }
+.job-status-running { color: var(--puff-yellow-accent) !important; }

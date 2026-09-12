@@ -50,15 +50,9 @@ type SettingsValues = z.infer<typeof settingsSchema>;
 
 type ApiKey = { id: number; label: string; token: string; created: string; scope: string };
 
-const INITIAL_KEYS: ApiKey[] = [
-  { id: 1, label: "production-server", token: "pb_live_9f2ac31d84b7e0aa5c6f", created: "Mar 4, 2026", scope: "read/write" },
-  { id: 2, label: "ci-pipeline", token: "pb_live_1c40be77de0a4b81f5c9", created: "Apr 19, 2026", scope: "deploy" },
-  { id: 3, label: "grafana-readonly", token: "pb_live_0ea77125ab9d20cc7712", created: "Jun 2, 2026", scope: "read" },
-];
-
 export default function Settings() {
   const { toast } = useToast();
-  const [keys, setKeys] = useState<ApiKey[]>(INITIAL_KEYS);
+  const [keys, setKeys] = useState<ApiKey[]>([]);
   const [revealed, setRevealed] = useState<number | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
   const [prefs, setPrefs] = useState({

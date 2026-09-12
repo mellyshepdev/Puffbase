@@ -23,7 +23,7 @@ function sparkline(seed: number) {
 }
 
 export default function Services() {
-  const { data, isLoading, isFallback } = useServices();
+  const { data, isLoading } = useServices();
   const [query, setQuery] = useState("");
 
   const services = useMemo(() => {
@@ -51,11 +51,6 @@ export default function Services() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isFallback && (
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-amber-300">
-              sample data
-            </span>
-          )}
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input

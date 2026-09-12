@@ -44,7 +44,7 @@ const FILTERS = ["all", "production", "staging", "development"] as const;
 type Filter = (typeof FILTERS)[number];
 
 export default function Deployments() {
-  const { data, isLoading, isFallback } = useDeployments();
+  const { data, isLoading } = useDeployments();
   const { toast } = useToast();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -141,11 +141,6 @@ export default function Deployments() {
               ))}
             </TabsList>
           </Tabs>
-          {isFallback && (
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-amber-300">
-              sample data
-            </span>
-          )}
         </div>
 
         {isLoading ? (

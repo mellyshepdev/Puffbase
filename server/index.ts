@@ -4,8 +4,16 @@ import type { Request } from 'express';
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "node:http";
+import { sessionMiddleware, registerAuthRoutes, requireAuth } from "./auth";
 
 const app = express();
+// Traefik terminates TLS and forwards to this container over plain HTTP, so
+// Express itself never sees the connection as secure. Without this, the
+// session cookie's `secure: true` flag (required in production - see
+// server/auth.ts) silently never gets set at all: no session survives from
+// /api/auth/login to /api/auth/callback, and login fails with "No login in
+// progress" no matter how far the Keycloak side got.
+app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -59,6 +67,16 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+app.use(sessionMiddleware());
+registerAuthRoutes(app);
+// Everything under /api is real data now, not a public demo - gate it behind
+// a session, except the auth routes themselves (login has to be reachable
+// while logged out, obviously).
+app.use("/api", (req, res, next) => {
+  if (req.path.startsWith("/auth/")) return next();
+  return requireAuth(req, res, next);
 });
 
 (async () => {

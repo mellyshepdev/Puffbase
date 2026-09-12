@@ -52,7 +52,7 @@ const ENV_COLOR: Record<string, string> = {
 };
 
 export default function Overview() {
-  const { data, isLoading, isFallback } = useDashboard();
+  const { data, isLoading } = useDashboard();
   const chart = data.chartData.slice(-30);
 
   const deploysByDay = useMemo(() => {
@@ -73,15 +73,6 @@ export default function Overview() {
       const row = rows.find((r) => r.date === key);
       if (row) row[dep.environment] += 1;
     }
-    // keep the chart from looking empty when the API has sparse history
-    const total = rows.reduce((s, r) => s + r.production + r.staging + r.development, 0);
-    if (total < 6) {
-      rows.forEach((r, i) => {
-        r.production += 2 + ((i * 5) % 4);
-        r.staging += 1 + ((i * 3) % 3);
-        r.development += (i * 7) % 4;
-      });
-    }
     return rows;
   }, [data.recentDeployments]);
 
@@ -99,11 +90,6 @@ export default function Overview() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isFallback && (
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-amber-300">
-              sample data
-            </span>
-          )}
           <Button variant="outline" size="sm" asChild data-testid="link-view-deployments">
             <Link href="/deployments">
               All deployments <ArrowUpRight className="ml-1 h-3.5 w-3.5" />

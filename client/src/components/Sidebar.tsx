@@ -3,8 +3,9 @@ import {
   Activity as ActivityIcon,
   BarChart3,
   Boxes,
-  ChevronsUpDown,
+  GitBranch,
   LayoutDashboard,
+  LogOut,
   Rocket,
   Settings as SettingsIcon,
   Waves,
@@ -24,6 +25,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PuffbaseLogo } from "@/components/PuffbaseLogo";
 import { SlimeBar } from "@/components/kit";
+import { useAuth, logoutUrl } from "@/lib/auth";
 import oozeSidebar from "@/assets/ooze-sidebar.webp";
 import oozeRail from "@/assets/ooze-drip-rail.webp";
 
@@ -31,6 +33,7 @@ export const NAV_ITEMS = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
+  { title: "Repositories", url: "/repositories", icon: GitBranch },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;
@@ -68,13 +71,9 @@ export function AppSidebar() {
       </div>
 
       <SidebarHeader className="px-3 pb-1 pt-4">
-        <a
-          href="https://bsco-hub-frontend.fly.dev/puffbase.html"
-          data-testid="link-home-logo"
-          className="block rounded-md p-1 hover-elevate"
-        >
+        <Link href="/" data-testid="link-home-logo" className="block rounded-md p-1 hover-elevate">
           <PuffbaseLogo />
-        </a>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent className="slime-scroll">
@@ -125,22 +124,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="gap-2 px-2 pb-4">
-        <div className="rounded-lg border border-sidebar-border/70 bg-sidebar-accent/40 p-2 backdrop-blur-sm group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center gap-2.5">
-            <Avatar className="h-8 w-8 border border-primary/40">
-              <AvatarFallback className="bg-primary/20 font-mono text-[11px] text-primary">
-                MV
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-semibold">Mira Vex</div>
-              <div className="truncate font-mono text-[10px] text-muted-foreground">
-                Slime Ops · Pro
-              </div>
-            </div>
-            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          </div>
-        </div>
+        <UserCard />
       </SidebarFooter>
     </Sidebar>
   );
@@ -168,6 +152,42 @@ function UsageRow({
       </div>
       <SlimeBar value={value} tone={tone} className="h-1.5" />
       <div className="mt-1 font-mono text-[10px] text-muted-foreground">{detail}</div>
+    </div>
+  );
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+function UserCard() {
+  const { user } = useAuth();
+  const label = user?.name || user?.email || "Signed in";
+
+  return (
+    <div className="rounded-lg border border-sidebar-border/70 bg-sidebar-accent/40 p-2 backdrop-blur-sm group-data-[collapsible=icon]:hidden">
+      <div className="flex items-center gap-2.5">
+        <Avatar className="h-8 w-8 border border-primary/40">
+          <AvatarFallback className="bg-primary/20 font-mono text-[11px] text-primary">
+            {initials(label)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-xs font-semibold">{label}</div>
+          <div className="truncate font-mono text-[10px] text-muted-foreground">
+            {user?.email && user?.name ? user.email : "blacksheep account"}
+          </div>
+        </div>
+        <a
+          href={logoutUrl}
+          data-testid="link-sign-out"
+          title="Sign out"
+          className="shrink-0 rounded p-1 text-muted-foreground hover-elevate"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+        </a>
+      </div>
     </div>
   );
 }
