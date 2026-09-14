@@ -15,6 +15,12 @@ import {
   type MetricType,
 } from "./storage";
 import { listRepos } from "./gitea";
+import { linearConfigured, listLinearIssues } from "./linear";
+import {
+  deployDomain,
+  registerDeploymentRoute,
+  withdrawDeploymentRoute,
+} from "./locator";
 
 const deploymentEnvironments = [
   "production",
@@ -38,6 +44,12 @@ const metricTypes = [
 const deploymentStatusSchema = z
   .object({ status: z.enum(deploymentStatuses) })
   .strict();
+const createDeploymentSchema = insertDeploymentSchema.extend({
+  host: z
+    .string()
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
+});
 const servicePatchSchema = insertServiceSchema.partial();
 
 function parsePositiveInteger(value: unknown): number | undefined {
@@ -160,11 +172,38 @@ export async function registerRoutes(
   });
 
   app.post("/api/deployments", async (req, res) => {
-    const parsed = insertDeploymentSchema.safeParse(req.body);
+    const parsed = createDeploymentSchema.safeParse(req.body);
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
 
+    // A deployment asking for a subdomain gets a real edge route first:
+    // locator emits Host(`<sub>.<deploy-domain>`) on its next /api/traefik
+    // poll, and the row stores the computed public url.
+    let url: string | null = null;
+    if (parsed.data.subdomain) {
+      if (!deployDomain()) {
+        return res
+          .status(503)
+          .json({ error: "Deployment domain not configured" });
+      }
+      try {
+        url = await registerDeploymentRoute({
+          name: `deploy-${parsed.data.subdomain}`,
+          subdomain: parsed.data.subdomain,
+          host: parsed.data.host ?? "unit7",
+          port: parsed.data.port ?? 80,
+        });
+      } catch (error) {
+        return res
+          .status(502)
+          .json({ error: "Failed to register deployment route" });
+      }
+    }
+
     try {
-      const deployment = await storage.createDeployment(parsed.data);
+      const deployment = await storage.createDeployment({
+        ...parsed.data,
+        url,
+      });
       return res.status(201).json(deployment);
     } catch (error) {
       return res.status(500).json({ error: "Failed to create deployment" });
@@ -196,9 +235,17 @@ export async function registerRoutes(
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
-      if (!(await storage.deleteDeployment(id))) {
+      const deployment = await storage.getDeployment(id);
+      if (!deployment) {
         return res.status(404).json({ error: "Deployment not found" });
       }
+      if (deployment.subdomain) {
+        await withdrawDeploymentRoute(
+          `deploy-${deployment.subdomain}`,
+          deployment.host ?? "unit7",
+        ).catch(() => {});
+      }
+      await storage.deleteDeployment(id);
       return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete deployment" });
@@ -364,6 +411,17 @@ export async function registerRoutes(
       return res.json(await listRepos());
     } catch (error) {
       return res.status(500).json({ error: "Failed to list Gitea repos" });
+    }
+  });
+
+  app.get("/api/linear/issues", async (_req, res) => {
+    if (!linearConfigured()) {
+      return res.json({ configured: false, issues: [] });
+    }
+    try {
+      return res.json({ configured: true, issues: await listLinearIssues() });
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to fetch Linear issues" });
     }
   });
 

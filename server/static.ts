@@ -11,6 +11,12 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // The public landing page owns `/`; the console SPA lives at /console
+  // (hash-routed, so /console#/deployments etc. all resolve through it).
+  app.get("/", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "landing.html"));
+  });
+
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist

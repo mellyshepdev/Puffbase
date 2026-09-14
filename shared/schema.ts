@@ -58,12 +58,25 @@ export const deployments = pgTable("puffbase_deployments", {
   lastDeployed: text("last_deployed").notNull(),
   commitSha: text("commit_sha"),
   duration: integer("duration"),
+  // Edge addressing: locator turns subdomain+PUFFBASE_DEPLOY_DOMAIN into
+  // Host(`<sub>.<dom>`) -> http://<host-ip>:<port>; url is the computed
+  // public address handed back to the user.
+  subdomain: text("subdomain"),
+  url: text("url"),
+  host: text("host"),
+  port: integer("port"),
 });
 
 export const insertDeploymentSchema = createInsertSchema(deployments, {
   status: z.enum(["deployed", "pending", "failed", "in-progress"]),
   environment: z.enum(["production", "staging", "development"]),
   duration: z.number().int().nonnegative().nullable().optional(),
+  subdomain: z
+    .string()
+    .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/)
+    .nullable()
+    .optional(),
+  port: z.number().int().min(1).max(65535).nullable().optional(),
 }).omit({ id: true });
 
 export type InsertDeployment = z.infer<typeof insertDeploymentSchema>;

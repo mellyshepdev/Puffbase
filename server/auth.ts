@@ -9,6 +9,7 @@ import * as client from "openid-client";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import type { Express, NextFunction, Request, Response } from "express";
+import { trackActivity } from "./usage";
 
 declare module "express-session" {
   interface SessionData {
@@ -106,7 +107,9 @@ export function registerAuthRoutes(app: Express) {
         email: typeof claims.email === "string" ? claims.email : undefined,
         name: typeof claims.name === "string" ? claims.name : undefined,
       };
-      res.redirect("/");
+      trackActivity("auth", `${claims.name || claims.email || claims.sub} signed in`, "success");
+      // `/` is the public landing page now; the console SPA lives at /console.
+      res.redirect("/console");
     } catch (err) {
       next(err);
     }

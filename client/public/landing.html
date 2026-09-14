@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puffbase — slime infra cloud</title>
+<link rel="icon" href="/favicon.png">
+<style>
+  :root {
+    --bg: hsl(268 45% 6%);
+    --card: hsl(272 40% 10% / 0.72);
+    --card-border: hsl(280 60% 45% / 0.25);
+    --text: hsl(280 30% 92%);
+    --muted: hsl(280 15% 62%);
+    --purple: hsl(284 85% 60%);
+    --green: hsl(84 85% 63%);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { min-height: 100vh; overflow-x: hidden; position: relative; }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(70% 55% at 18% -8%, hsl(278 85% 40% / 0.35), transparent 62%),
+      radial-gradient(55% 45% at 92% 4%,  hsl(292 80% 45% / 0.22), transparent 60%),
+      radial-gradient(80% 60% at 50% 115%, hsl(272 80% 38% / 0.3), transparent 65%);
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  header { padding: 28px 0; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { height: 40px; width: auto; }
+  .brand .name { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+  .brand .sub  { font-family: ui-monospace, monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 10px; padding: 10px 22px; font-size: 14px; font-weight: 600;
+    text-decoration: none; transition: transform .12s ease, filter .12s ease; }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .btn-primary { background: var(--purple); color: hsl(280 60% 8%); }
+  .btn-ghost { border: 1px solid var(--card-border); color: var(--text);
+    background: hsl(272 40% 12% / 0.5); }
+
+  .hero { text-align: center; padding: 72px 0 56px; }
+  .hero img.emblem { height: 180px; width: auto;
+    filter: drop-shadow(0 0 28px hsl(284 90% 55% / 0.45)); }
+  .hero h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 800;
+    letter-spacing: -0.03em; margin-top: 18px;
+    background: linear-gradient(100deg, hsl(280 90% 78%), hsl(300 85% 65%) 55%, var(--green));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: 16px auto 0; max-width: 560px; color: var(--muted);
+    font-size: 17px; line-height: 1.6; }
+  .cta { margin-top: 32px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px; padding: 24px 0 64px; }
+  .card { background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 22px; backdrop-filter: blur(6px); }
+  .card .ic { font-size: 22px; }
+  .card h3 { font-size: 15px; font-weight: 700; margin: 10px 0 6px; }
+  .card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+  .card code { font-family: ui-monospace, monospace; font-size: 12px;
+    color: var(--green); }
+
+  footer { border-top: 1px solid var(--card-border); padding: 26px 0 40px;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--muted); font-size: 12px; font-family: ui-monospace, monospace; }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <img src="/assets-landing/puffbase-icon.png" alt="">
+      <div>
+        <div class="name">Puffbase</div>
+        <div class="sub">slime infra cloud</div>
+      </div>
+    </div>
+    <a class="btn btn-ghost" href="/console">Sign in</a>
+  </header>
+
+  <section class="hero">
+    <img class="emblem" src="/assets-landing/puffbase-emblem.png" alt="Puffbase">
+    <h1>Your code. Your cloud.<br>No permission slips.</h1>
+    <p>
+      Puffbase is the Black Sheep forge: mirror repos from GitHub or GitLab,
+      sync issues with Linear, edit in the browser, push and deploy from the
+      command line, and watch what it all costs to run.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="/console">Open the console</a>
+      <a class="btn btn-ghost" href="https://git.prime-quality.online">Browse the forge</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <div class="ic">&#x21C4;</div>
+      <h3>Mirror from anywhere</h3>
+      <p>Pull-mirror repos from GitHub or GitLab — they stay in sync hourly.
+        <code>git remote add puff https://git.prime-quality.online/&lt;you&gt;/&lt;repo&gt;.git</code></p>
+    </div>
+    <div class="card">
+      <div class="ic">&#x2713;</div>
+      <h3>Linear sync</h3>
+      <p>Issues flow both ways between Linear and the forge — file it in one
+        place, track it in both.</p>
+    </div>
+    <div class="card">
+      <div class="ic">&#x2328;</div>
+      <h3>Edit in the browser</h3>
+      <p>The built-in code editor commits straight to the branch — no clone
+        needed for the quick fixes.</p>
+    </div>
+    <div class="card">
+      <div class="ic">&#x2B06;</div>
+      <h3>Push &amp; deploy from the CLI</h3>
+      <p><code>git push puff main</code> then let the runner take it —
+        pipelines deploy on merge.</p>
+    </div>
+    <div class="card">
+      <div class="ic">&#x25C9;</div>
+      <h3>Usage tracking</h3>
+      <p>Traffic, latency, deploys and storage per service — the console's
+        Analytics page reads live counters, not vibes.</p>
+    </div>
+    <div class="card">
+      <div class="ic">&#x2699;</div>
+      <h3>Pipelines included</h3>
+      <p>A self-hosted runner (unit7) is attached — push a
+        <code>.gitea/workflows/</code> file and it runs.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>puffbase · blacksheep infra</span>
+    <span>
+      <a href="https://git.prime-quality.online">git</a> ·
+      <a href="/console">console</a> ·
+      <a href="https://app.prime-quality.online">git-ops</a>
+    </span>
+  </footer>
+</div>
+</body>
+</html>

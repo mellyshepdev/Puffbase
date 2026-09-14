@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "node:http";
 import { sessionMiddleware, registerAuthRoutes, requireAuth } from "./auth";
+import { usageTracker } from "./usage";
 
 const app = express();
 // Traefik terminates TLS and forwards to this container over plain HTTP, so
@@ -69,6 +70,7 @@ app.use((req, res, next) => {
   next();
 });
 
+usageTracker(app);
 app.use(sessionMiddleware());
 registerAuthRoutes(app);
 // Everything under /api is real data now, not a public demo - gate it behind
