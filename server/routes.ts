@@ -5,7 +5,7 @@ import {
   insertServiceSchema,
 } from "@shared/schema";
 import type { Metric } from "@shared/schema";
-import type { Express, Response } from "express";
+import type { Express, Request, Response } from "express";
 import type { Server } from "node:http";
 import { z } from "zod";
 import {
@@ -14,7 +14,13 @@ import {
   type DeploymentStatus,
   type MetricType,
 } from "./storage";
-import { listRepos } from "./gitea";
+import {
+  deleteRepoFile,
+  listRepos,
+  readRepoFile,
+  repoTree,
+  writeRepoFile,
+} from "./gitea";
 import { linearConfigured, listLinearIssues } from "./linear";
 import {
   deployDomain,
@@ -411,6 +417,95 @@ export async function registerRoutes(
       return res.json(await listRepos());
     } catch (error) {
       return res.status(500).json({ error: "Failed to list Gitea repos" });
+    }
+  });
+
+  /* ---- code editor: browse + edit repo files through the contents API ---- */
+
+  const repoCoords = (req: Request) => ({
+    owner: String(req.params.owner),
+    repo: String(req.params.repo),
+  });
+
+  app.get("/api/repos/:owner/:repo/tree", async (req, res) => {
+    const ref = typeof req.query.ref === "string" ? req.query.ref : undefined;
+    const { owner, repo } = repoCoords(req);
+    try {
+      return res.json(await repoTree(owner, repo, ref));
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to list repository tree" });
+    }
+  });
+
+  app.get("/api/repos/:owner/:repo/file", async (req, res) => {
+    const path = typeof req.query.path === "string" ? req.query.path : "";
+    const ref = typeof req.query.ref === "string" ? req.query.ref : undefined;
+    if (!path || path.includes("..")) {
+      return sendValidationError(res, { path: "Required" });
+    }
+    const { owner, repo } = repoCoords(req);
+    try {
+      return res.json(await readRepoFile(owner, repo, path, ref));
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to read file" });
+    }
+  });
+
+  const fileWriteSchema = z.object({
+    path: z
+      .string()
+      .min(1)
+      .refine((p) => !p.includes("..") && !p.startsWith("/")),
+    content: z.string(),
+    sha: z.string().optional(),
+    message: z.string().max(500).optional(),
+    branch: z.string().max(200).optional(),
+  });
+
+  const handleFileWrite = async (req: Request, res: Response) => {
+    const parsed = fileWriteSchema.safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    const { path, content, sha, message, branch } = parsed.data;
+    const { owner, repo } = repoCoords(req);
+    try {
+      await writeRepoFile(owner, repo, path, {
+        content,
+        sha,
+        branch,
+        message: message ?? `${sha ? "Update" : "Create"} ${path}`,
+      });
+      return res.status(sha ? 200 : 201).json({ path });
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to commit file" });
+    }
+  };
+
+  app.put("/api/repos/:owner/:repo/file", handleFileWrite);
+  app.post("/api/repos/:owner/:repo/file", handleFileWrite);
+
+  app.delete("/api/repos/:owner/:repo/file", async (req, res) => {
+    const parsed = z
+      .object({
+        path: z
+          .string()
+          .min(1)
+          .refine((p) => !p.includes("..") && !p.startsWith("/")),
+        sha: z.string().min(1),
+        message: z.string().max(500).optional(),
+        branch: z.string().max(200).optional(),
+      })
+      .safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    const { owner, repo } = repoCoords(req);
+    try {
+      await deleteRepoFile(owner, repo, parsed.data.path, {
+        sha: parsed.data.sha,
+        message: parsed.data.message ?? `Delete ${parsed.data.path}`,
+        branch: parsed.data.branch,
+      });
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to delete file" });
     }
   });
 

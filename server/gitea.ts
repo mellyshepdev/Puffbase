@@ -53,15 +53,21 @@ function toPublicUrl(internalUrl: string): string {
     : internalUrl;
 }
 
-async function giteaFetch<T>(path: string): Promise<T> {
+async function giteaFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = requireEnv("GITEA_URL");
   const token = requireEnv("GITEA_TOKEN");
   const res = await fetch(`${baseUrl}${path}`, {
-    headers: { Authorization: `token ${token}` },
+    ...init,
+    headers: {
+      Authorization: `token ${token}`,
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
   });
   if (!res.ok) {
     throw new Error(`Gitea request failed (${res.status}): ${path}`);
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
@@ -87,4 +93,115 @@ export async function listRepos(): Promise<GiteaRepo[]> {
     "/api/v1/repos/search?limit=50",
   );
   return (data.data ?? []).map(toRepo);
+}
+
+/* ------------------------------------------------------------------------- *
+ * File browsing + editing - backs the console's code editor page. Gitea's
+ * contents API is the write path; every save is a real commit on the branch.
+ * ------------------------------------------------------------------------- */
+
+/** The contents API wants the filepath in the URL path - slashes are real
+ *  separators, so encode segment by segment, never the whole path. */
+function encodeFilePath(path: string): string {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
+async function defaultBranch(owner: string, repo: string): Promise<string> {
+  const r = await giteaFetch<{ default_branch: string }>(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+  );
+  return r.default_branch;
+}
+
+export type RepoTreeEntry = { path: string; type: "file" | "dir"; size: number };
+
+export async function repoTree(
+  owner: string,
+  repo: string,
+  ref?: string,
+): Promise<RepoTreeEntry[]> {
+  const branch = ref ?? (await defaultBranch(owner, repo));
+  const data = await giteaFetch<{
+    tree: { path: string; type: string; size: number }[];
+  }>(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=true`,
+  );
+  return (data.tree ?? []).map((e) => ({
+    path: e.path,
+    type: e.type === "tree" ? "dir" : "file",
+    size: e.size,
+  }));
+}
+
+export type RepoFile = {
+  path: string;
+  name: string;
+  sha: string;
+  size: number;
+  content: string;
+};
+
+export async function readRepoFile(
+  owner: string,
+  repo: string,
+  path: string,
+  ref?: string,
+): Promise<RepoFile> {
+  const q = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+  const data = await giteaFetch<{
+    type: string;
+    name: string;
+    path: string;
+    sha: string;
+    size: number;
+    content?: string;
+  }>(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeFilePath(path)}${q}`,
+  );
+  if (data.type !== "file") throw new Error(`Not a file: ${path}`);
+  return {
+    path: data.path,
+    name: data.name,
+    sha: data.sha,
+    size: data.size,
+    content: Buffer.from(data.content ?? "", "base64").toString("utf8"),
+  };
+}
+
+export async function writeRepoFile(
+  owner: string,
+  repo: string,
+  path: string,
+  opts: { content: string; message: string; branch?: string; sha?: string },
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    content: Buffer.from(opts.content, "utf8").toString("base64"),
+    message: opts.message,
+    branch: opts.branch ?? (await defaultBranch(owner, repo)),
+  };
+  // sha present = update existing file (PUT); absent = create (POST)
+  if (opts.sha) body.sha = opts.sha;
+  await giteaFetch(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeFilePath(path)}`,
+    { method: opts.sha ? "PUT" : "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function deleteRepoFile(
+  owner: string,
+  repo: string,
+  path: string,
+  opts: { sha: string; message: string; branch?: string },
+): Promise<void> {
+  await giteaFetch(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeFilePath(path)}`,
+    {
+      method: "DELETE",
+      body: JSON.stringify({
+        sha: opts.sha,
+        message: opts.message,
+        branch: opts.branch ?? (await defaultBranch(owner, repo)),
+      }),
+    },
+  );
 }

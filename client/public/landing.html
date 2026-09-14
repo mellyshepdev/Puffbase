@@ -1,150 +1,1778 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Puffbase — slime infra cloud</title>
-<link rel="icon" href="/favicon.png">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Puffbase — Create. Build. Deploy.</title>
+<meta
+  name="description"
+  content="Puffbase is open-source, agentic infrastructure for securely deploying applications, websites, virtual machines, functions, and cloud storage."
+/>
+
 <style>
-  :root {
-    --bg: hsl(268 45% 6%);
-    --card: hsl(272 40% 10% / 0.72);
-    --card-border: hsl(280 60% 45% / 0.25);
-    --text: hsl(280 30% 92%);
-    --muted: hsl(280 15% 62%);
-    --purple: hsl(284 85% 60%);
-    --green: hsl(84 85% 63%);
+:root {
+  --purple: #6d36e8;
+  --purple-dark: #32146f;
+  --purple-light: #f2edff;
+  --purple-soft: #faf8ff;
+  --yellow: #ffd84d;
+  --yellow-light: #fff7cb;
+  --white: #ffffff;
+  --ink: #191523;
+  --muted: #716b7c;
+  --line: #e9e4f2;
+  --shadow: 0 24px 70px rgba(55, 25, 116, 0.12);
+  --radius: 24px;
+  --container: 1180px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--ink);
+  background: var(--white);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+#canvas-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.container {
+  width: min(calc(100% - 40px), var(--container));
+  margin-inline: auto;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 13px;
+  color: var(--purple-dark);
+  background: var(--purple-light);
+  border: 1px solid #e2d8ff;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  width: 8px;
+  height: 8px;
+  background: var(--yellow);
+  border: 2px solid var(--purple-dark);
+  border-radius: 50%;
+  content: "";
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 50px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 800;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+.button-primary {
+  color: white;
+  background: var(--purple);
+  box-shadow: 0 12px 30px rgba(109, 54, 232, 0.25);
+}
+
+.button-primary:hover {
+  background: #5d29d3;
+  box-shadow: 0 16px 35px rgba(109, 54, 232, 0.34);
+}
+
+.button-yellow {
+  color: var(--purple-dark);
+  background: var(--yellow);
+  box-shadow: 0 14px 30px rgba(255, 216, 77, 0.24);
+}
+
+.button-outline {
+  color: var(--purple-dark);
+  background: var(--white);
+  border-color: var(--line);
+}
+
+.button-outline:hover {
+  border-color: #cdbdff;
+  box-shadow: 0 10px 25px rgba(55, 25, 116, 0.1);
+}
+
+.button-login {
+  color: var(--white);
+  background: linear-gradient(to right, var(--purple), var(--purple-dark), var(--ink));
+  border: 1px solid rgba(255, 216, 77, 0.35);
+  box-shadow: 0 10px 26px rgba(25, 21, 35, 0.28);
+}
+
+.button-login:hover {
+  box-shadow: 0 14px 32px rgba(25, 21, 35, 0.4);
+}
+
+/* Navigation */
+
+.site-header {
+  position: relative;
+  z-index: 20;
+  padding: 20px 0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--purple-dark);
+  font-size: 1.28rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.brand-mark {
+  position: relative;
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  color: white;
+  background: var(--purple);
+  border-radius: 14px 14px 14px 6px;
+  box-shadow: 0 9px 20px rgba(109, 54, 232, 0.25);
+}
+
+.brand-mark::after {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 12px;
+  height: 12px;
+  background: var(--yellow);
+  border: 3px solid white;
+  border-radius: 50%;
+  content: "";
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  color: #5d5669;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.nav-links a:hover {
+  color: var(--purple);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  color: var(--purple-dark);
+  background: var(--purple-light);
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* Hero */
+
+.hero {
+  position: relative;
+  min-height: 760px;
+  padding: 96px 0 100px;
+}
+
+.hero::before {
+  position: absolute;
+  z-index: -2;
+  top: -190px;
+  right: -170px;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle at center, #f0eaff 0, #faf8ff 46%, transparent 70%);
+  border-radius: 50%;
+  content: "";
+}
+
+.hero::after {
+  position: absolute;
+  z-index: -1;
+  bottom: 20px;
+  left: -90px;
+  width: 190px;
+  height: 190px;
+  background: var(--yellow-light);
+  border-radius: 50%;
+  filter: blur(2px);
+  content: "";
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: 78px;
+}
+
+.hero h1 {
+  max-width: 760px;
+  margin-top: 22px;
+  color: var(--purple-dark);
+  font-size: clamp(3.5rem, 7.2vw, 6.7rem);
+  line-height: 0.95;
+  letter-spacing: -0.075em;
+}
+
+.hero h1 span {
+  position: relative;
+  color: var(--purple);
+  white-space: nowrap;
+}
+
+.hero h1 span::after {
+  position: absolute;
+  z-index: -1;
+  right: -4px;
+  bottom: 6px;
+  left: -3px;
+  height: 18%;
+  background: var(--yellow);
+  border-radius: 999px;
+  content: "";
+  transform: rotate(-1.5deg);
+}
+
+.hero h1 .outline-word {
+  color: var(--purple-dark);
+  -webkit-text-stroke: 1.5px var(--yellow);
+  text-stroke: 1.5px var(--yellow);
+  paint-order: stroke fill;
+}
+
+.hero h1 .outline-word::after {
+  content: none;
+}
+
+.hero h1 .glow-word {
+  color: var(--purple-dark);
+}
+
+.hero h1 .glow-word::after {
+  content: none;
+}
+
+.hero h1 .glow-word::before {
+  position: absolute;
+  z-index: -1;
+  inset: -22% -14%;
+  background: radial-gradient(circle, var(--yellow) 0%, rgba(255, 216, 77, 0.5) 45%, transparent 72%);
+  filter: blur(22px);
+  border-radius: 50%;
+  content: "";
+}
+
+.hero-copy {
+  max-width: 650px;
+  margin: 26px 0 32px;
+  color: var(--muted);
+  font-size: clamp(1.05rem, 2vw, 1.22rem);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+}
+
+.hero-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 28px;
+  color: #696173;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.hero-note span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.check {
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  color: white;
+  background: var(--purple);
+  border-radius: 50%;
+  font-size: 0.7rem;
+}
+
+/* Hero visual */
+
+.cloud-stage {
+  position: relative;
+  min-height: 520px;
+}
+
+.orbit {
+  position: absolute;
+  inset: 5% 0 0;
+  border: 1px dashed #d9ccff;
+  border-radius: 50%;
+  transform: rotate(-9deg);
+}
+
+.terminal {
+  position: absolute;
+  z-index: 3;
+  top: 75px;
+  right: 15px;
+  width: min(100%, 475px);
+  overflow: hidden;
+  color: #e9e1ff;
+  background: #241144;
+  border: 8px solid white;
+  border-radius: 25px;
+  box-shadow: var(--shadow);
+  transform: rotate(1.7deg);
+}
+
+.terminal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  background: #32185c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.terminal-dots i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.terminal-dots i:nth-child(1) { background: #ff6d7e; }
+.terminal-dots i:nth-child(2) { background: var(--yellow); }
+.terminal-dots i:nth-child(3) { background: #5ee3a6; }
+
+.terminal-title {
+  color: #bba5e9;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.terminal-body {
+  min-height: 300px;
+  padding: 26px 24px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.86rem;
+  line-height: 1.9;
+}
+
+.terminal-body .dim { color: #8970b7; }
+.terminal-body .purple { color: #bb93ff; }
+.terminal-body .yellow { color: var(--yellow); }
+.terminal-body .green { color: #70edb6; }
+
+.deployment-card {
+  position: absolute;
+  z-index: 5;
+  right: -25px;
+  bottom: 35px;
+  width: 245px;
+  padding: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(55, 25, 116, 0.16);
+}
+
+.deployment-card strong {
+  display: block;
+  color: var(--purple-dark);
+  font-size: 0.96rem;
+}
+
+.deployment-card small {
+  color: var(--muted);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 13px;
+  padding: 10px 12px;
+  color: #17623f;
+  background: #eafbf3;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.pulse {
+  width: 9px;
+  height: 9px;
+  background: #36c981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(54, 201, 129, 0.14);
+}
+
+.agent-card {
+  position: absolute;
+  z-index: 5;
+  top: 18px;
+  left: -10px;
+  padding: 14px 17px;
+  color: var(--purple-dark);
+  background: var(--yellow);
+  border: 5px solid white;
+  border-radius: 18px;
+  box-shadow: 0 16px 35px rgba(85, 52, 0, 0.15);
+  font-size: 0.88rem;
+  font-weight: 900;
+  transform: rotate(-5deg);
+}
+
+/* Shared sections */
+
+section {
+  position: relative;
+}
+
+.section-heading {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr;
+  align-items: end;
+  gap: 60px;
+  margin-bottom: 50px;
+}
+
+.section-heading h2 {
+  margin-top: 15px;
+  color: var(--purple-dark);
+  font-size: clamp(2.2rem, 4vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+}
+
+.section-heading p {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+/* Services */
+
+.services {
+  padding: 110px 0;
+  background: linear-gradient(180deg, white 0, var(--purple-soft) 25%, var(--purple-soft) 100%);
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.service-card {
+  min-height: 290px;
+  padding: 27px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.service-card:hover {
+  transform: translateY(-7px);
+  border-color: #d3c5fb;
+  box-shadow: var(--shadow);
+}
+
+.service-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 28px;
+  place-items: center;
+  color: var(--purple);
+  background: var(--purple-light);
+  border-radius: 16px;
+  font-size: 1.5rem;
+}
+
+.service-card:nth-child(2) .service-icon {
+  color: #735800;
+  background: var(--yellow-light);
+}
+
+.service-card h3 {
+  margin-bottom: 10px;
+  color: var(--purple-dark);
+  font-size: 1.25rem;
+}
+
+.service-card p {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.service-card a {
+  display: inline-flex;
+  margin-top: 20px;
+  color: var(--purple);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+/* Agentic section */
+
+.agentic {
+  padding: 130px 0;
+}
+
+.agentic-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: center;
+  gap: 100px;
+}
+
+.agent-panel {
+  position: relative;
+  padding: 30px;
+  color: white;
+  background: var(--purple-dark);
+  border-radius: 34px;
+  box-shadow: var(--shadow);
+}
+
+.agent-panel::before {
+  position: absolute;
+  z-index: -1;
+  right: -25px;
+  bottom: -25px;
+  width: 70%;
+  height: 70%;
+  background: var(--yellow);
+  border-radius: 34px;
+  content: "";
+}
+
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.agent-avatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: var(--purple-dark);
+  background: var(--yellow);
+  border-radius: 15px;
+  font-weight: 900;
+}
+
+.agent-task {
+  margin-top: 25px;
+  padding: 18px;
+  color: #392664;
+  background: white;
+  border-radius: 17px;
+}
+
+.agent-task small {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--purple);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.agent-steps {
+  display: grid;
+  gap: 11px;
+  margin-top: 18px;
+}
+
+.agent-step {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 13px;
+  color: #e7dcff;
+  font-size: 0.88rem;
+}
+
+.agent-step b {
+  display: grid;
+  min-width: 23px;
+  height: 23px;
+  place-items: center;
+  color: var(--purple-dark);
+  background: #76e5af;
+  border-radius: 50%;
+  font-size: 0.72rem;
+}
+
+.agentic-copy h2 {
+  margin: 18px 0 20px;
+  color: var(--purple-dark);
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.agentic-copy > p {
+  color: var(--muted);
+  font-size: 1.08rem;
+}
+
+.feature-list {
+  display: grid;
+  gap: 18px;
+  margin: 30px 0 34px;
+}
+
+.feature {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 14px;
+}
+
+.feature-number {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: var(--purple);
+  background: var(--purple-light);
+  border-radius: 13px;
+  font-weight: 900;
+}
+
+.feature h3 {
+  color: var(--purple-dark);
+  font-size: 1rem;
+}
+
+.feature p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Trust strip */
+
+.trust {
+  padding: 26px 0 115px;
+}
+
+.trust-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+}
+
+.trust-item {
+  padding: 27px;
+  text-align: center;
+  background: white;
+  border-right: 1px solid var(--line);
+}
+
+.trust-item:last-child {
+  border-right: 0;
+}
+
+.trust-item strong {
+  display: block;
+  color: var(--purple-dark);
+  font-size: 1.05rem;
+}
+
+.trust-item span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* CTA */
+
+.cta {
+  padding: 0 0 50px;
+}
+
+.cta-box {
+  position: relative;
+  overflow: hidden;
+  padding: 82px 30px;
+  text-align: center;
+  color: white;
+  background: var(--purple);
+  border-radius: 36px;
+}
+
+.cta-box::before,
+.cta-box::after {
+  position: absolute;
+  border-radius: 50%;
+  content: "";
+}
+
+.cta-box::before {
+  top: -130px;
+  left: -80px;
+  width: 330px;
+  height: 330px;
+  border: 65px solid rgba(255, 255, 255, 0.08);
+}
+
+.cta-box::after {
+  right: -60px;
+  bottom: -150px;
+  width: 320px;
+  height: 320px;
+  background: var(--yellow);
+  opacity: 0.95;
+}
+
+.cta-content {
+  position: relative;
+  z-index: 2;
+}
+
+.cta h2 {
+  max-width: 770px;
+  margin: 0 auto 18px;
+  font-size: clamp(2.5rem, 5vw, 4.7rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.cta p {
+  max-width: 620px;
+  margin: 0 auto 30px;
+  color: #e9ddff;
+  font-size: 1.06rem;
+}
+
+/* Footer */
+
+footer {
+  padding: 34px 0 48px;
+}
+
+.footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.footer-copy {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  color: #5d5669;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Responsive */
+
+@media (max-width: 1000px) {
+  .nav-links,
+  .nav-actions .button-outline {
+    display: none;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { background: var(--bg); color: var(--text);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-  body { min-height: 100vh; overflow-x: hidden; position: relative; }
-  body::before {
-    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background:
-      radial-gradient(70% 55% at 18% -8%, hsl(278 85% 40% / 0.35), transparent 62%),
-      radial-gradient(55% 45% at 92% 4%,  hsl(292 80% 45% / 0.22), transparent 60%),
-      radial-gradient(80% 60% at 50% 115%, hsl(272 80% 38% / 0.3), transparent 65%);
+
+  .menu-toggle {
+    display: grid;
+    place-items: center;
   }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
 
-  header { padding: 28px 0; display: flex; align-items: center; justify-content: space-between; }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand img { height: 40px; width: auto; }
-  .brand .name { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
-  .brand .sub  { font-family: ui-monospace, monospace; font-size: 10px;
-    text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
+  .nav-links.open {
+    position: absolute;
+    top: 76px;
+    right: 20px;
+    left: 20px;
+    display: grid;
+    gap: 0;
+    padding: 12px;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+  }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center;
-    border-radius: 10px; padding: 10px 22px; font-size: 14px; font-weight: 600;
-    text-decoration: none; transition: transform .12s ease, filter .12s ease; }
-  .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
-  .btn-primary { background: var(--purple); color: hsl(280 60% 8%); }
-  .btn-ghost { border: 1px solid var(--card-border); color: var(--text);
-    background: hsl(272 40% 12% / 0.5); }
+  .nav-links.open a {
+    padding: 13px;
+    border-radius: 10px;
+  }
 
-  .hero { text-align: center; padding: 72px 0 56px; }
-  .hero img.emblem { height: 180px; width: auto;
-    filter: drop-shadow(0 0 28px hsl(284 90% 55% / 0.45)); }
-  .hero h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 800;
-    letter-spacing: -0.03em; margin-top: 18px;
-    background: linear-gradient(100deg, hsl(280 90% 78%), hsl(300 85% 65%) 55%, var(--green));
-    -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .hero p { margin: 16px auto 0; max-width: 560px; color: var(--muted);
-    font-size: 17px; line-height: 1.6; }
-  .cta { margin-top: 32px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .nav-links.open a:hover {
+    background: var(--purple-light);
+  }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px; padding: 24px 0 64px; }
-  .card { background: var(--card); border: 1px solid var(--card-border);
-    border-radius: 16px; padding: 22px; backdrop-filter: blur(6px); }
-  .card .ic { font-size: 22px; }
-  .card h3 { font-size: 15px; font-weight: 700; margin: 10px 0 6px; }
-  .card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
-  .card code { font-family: ui-monospace, monospace; font-size: 12px;
-    color: var(--green); }
+  .hero-grid,
+  .agentic-grid {
+    grid-template-columns: 1fr;
+  }
 
-  footer { border-top: 1px solid var(--card-border); padding: 26px 0 40px;
-    display: flex; justify-content: space-between; align-items: center;
-    color: var(--muted); font-size: 12px; font-family: ui-monospace, monospace; }
-  footer a { color: var(--muted); text-decoration: none; }
-  footer a:hover { color: var(--text); }
+  .hero {
+    padding-top: 70px;
+  }
+
+  .hero-grid {
+    gap: 40px;
+  }
+
+  .hero-copy {
+    max-width: 750px;
+  }
+
+  .cloud-stage {
+    width: min(100%, 680px);
+    margin: auto;
+  }
+
+  .service-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .agentic-grid {
+    gap: 75px;
+  }
+
+  .agent-panel {
+    width: min(100%, 660px);
+    margin: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .container {
+    width: min(calc(100% - 28px), var(--container));
+  }
+
+  .nav-actions .button-primary {
+    display: none;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 55px 0 80px;
+  }
+
+  .hero h1 {
+    font-size: clamp(3.2rem, 17vw, 5.2rem);
+  }
+
+  .hero-actions .button {
+    width: 100%;
+  }
+
+  .cloud-stage {
+    min-height: 440px;
+  }
+
+  .terminal {
+    top: 70px;
+    right: 0;
+  }
+
+  .terminal-body {
+    min-height: 260px;
+    padding: 20px 17px;
+    font-size: 0.75rem;
+  }
+
+  .agent-card {
+    left: 0;
+  }
+
+  .deployment-card {
+    right: 5px;
+    bottom: 5px;
+  }
+
+  .section-heading {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .service-card {
+    min-height: auto;
+  }
+
+  .services,
+  .agentic {
+    padding: 85px 0;
+  }
+
+  .agent-panel {
+    padding: 20px;
+  }
+
+  .trust-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trust-item:nth-child(2) {
+    border-right: 0;
+  }
+
+  .trust-item:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .cta-box {
+    padding: 65px 20px;
+    border-radius: 26px;
+  }
+
+  .cta-box::after {
+    right: -190px;
+  }
+
+  .footer-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}
 </style>
 </head>
+
 <body>
-<div class="wrap">
-  <header>
-    <div class="brand">
-      <img src="/assets-landing/puffbase-icon.png" alt="">
+<div id="canvas-container"></div>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="#" aria-label="Puffbase home">
+      <span class="brand-mark">P</span>
+      Puffbase
+    </a>
+
+    <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+      <a href="#platform">Platform</a>
+      <a href="#agentic">Agentic infrastructure</a>
+      <a href="#open-source">Open source</a>
+      <a href="#developers">Developers</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="button button-outline" href="#developers">Documentation</a>
+      <a class="button button-primary" href="/console">
+        Start deploying
+        <span aria-hidden="true">→</span>
+      </a>
+      <a class="button button-login" href="/console">Sign In</a>
+
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+        aria-controls="navLinks"
+      >
+        ☰
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container hero-grid">
       <div>
-        <div class="name">Puffbase</div>
-        <div class="sub">slime infra cloud</div>
+        <div class="eyebrow">Open-source cloud infrastructure</div>
+
+        <h1>
+          <span class="outline-word">Create.</span> <span class="glow-word">Build.</span>
+          <span>Deploy.</span>
+        </h1>
+
+        <p class="hero-copy">
+          Host applications, websites, virtual machines, functions, and cloud
+          storage on secure, multi-tenant infrastructure designed to work
+          alongside you.
+        </p>
+
+        <div class="hero-actions">
+          <a class="button button-primary" href="/console">
+            Deploy your first project
+            <span aria-hidden="true">↗</span>
+          </a>
+
+          <a class="button button-outline" href="#open-source">
+            View on GitHub
+            <span aria-hidden="true">⌘</span>
+          </a>
+        </div>
+
+        <div class="hero-note">
+          <span><i class="check">✓</i> Open source</span>
+          <span><i class="check">✓</i> Secure by design</span>
+          <span><i class="check">✓</i> Built for every workload</span>
+        </div>
+      </div>
+
+      <div class="cloud-stage" aria-label="Puffbase deployment preview">
+        <div class="orbit"></div>
+
+        <div class="agent-card">✦ Puff Agent is working</div>
+
+        <div class="terminal">
+          <div class="terminal-top">
+            <div class="terminal-dots">
+              <i></i><i></i><i></i>
+            </div>
+            <span class="terminal-title">puffbase — deploy</span>
+          </div>
+
+          <div class="terminal-body">
+            <div><span class="purple">$</span> puff deploy my-app</div>
+            <div class="dim">→ Detecting application...</div>
+            <div>→ Runtime <span class="yellow">Node.js 22</span></div>
+            <div>→ Building production image</div>
+            <div>→ Creating isolated environment</div>
+            <div>→ Configuring global network</div>
+            <div class="green">✓ Deployment ready</div>
+            <br />
+            <div>
+              <span class="dim">URL</span>
+              <span class="purple">https://my-app.puffbase.cloud</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="deployment-card">
+          <strong>my-app / production</strong>
+          <small>Deployed 12 seconds ago</small>
+          <div class="status">
+            <i class="pulse"></i>
+            All systems operational
+          </div>
+        </div>
       </div>
     </div>
-    <a class="btn btn-ghost" href="/console">Sign in</a>
-  </header>
+  </section>
 
-  <section class="hero">
-    <img class="emblem" src="/assets-landing/puffbase-emblem.png" alt="Puffbase">
-    <h1>Your code. Your cloud.<br>No permission slips.</h1>
-    <p>
-      Puffbase is the Black Sheep forge: mirror repos from GitHub or GitLab,
-      sync issues with Linear, edit in the browser, push and deploy from the
-      command line, and watch what it all costs to run.
-    </p>
-    <div class="cta">
-      <a class="btn btn-primary" href="/console">Open the console</a>
-      <a class="btn btn-ghost" href="https://git.prime-quality.online">Browse the forge</a>
+  <section class="services" id="platform">
+    <div class="container">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">One platform, every workload</div>
+          <h2>Infrastructure without the friction.</h2>
+        </div>
+
+        <p>
+          Go from an idea to a running production service without stitching
+          together a dozen tools. Puffbase provides the resources while you
+          stay focused on building.
+        </p>
+      </div>
+
+      <div class="service-grid">
+        <article class="service-card">
+          <div class="service-icon" aria-hidden="true">⌁</div>
+          <h3>Apps & websites</h3>
+          <p>
+            Deploy full-stack applications and static sites directly from
+            your repository with automated builds and releases.
+          </p>
+          <a href="/console">Deploy an app →</a>
+        </article>
+
+        <article class="service-card">
+          <div class="service-icon" aria-hidden="true">λ</div>
+          <h3>Cloud functions</h3>
+          <p>
+            Run event-driven functions that scale with demand while Puffbase
+            handles orchestration and infrastructure.
+          </p>
+          <a href="/console">Create a function →</a>
+        </article>
+
+        <article class="service-card">
+          <div class="service-icon" aria-hidden="true">▣</div>
+          <h3>Virtual machines</h3>
+          <p>
+            Launch isolated, high-performance virtual machines with flexible
+            compute and complete workload control.
+          </p>
+          <a href="/console">Launch a VM →</a>
+        </article>
+
+        <article class="service-card">
+          <div class="service-icon" aria-hidden="true">◉</div>
+          <h3>Cloud storage</h3>
+          <p>
+            Store and serve files, backups, media, and application data using
+            durable, scalable object storage.
+          </p>
+          <a href="/console">Create storage →</a>
+        </article>
+      </div>
     </div>
   </section>
 
-  <section class="grid">
-    <div class="card">
-      <div class="ic">&#x21C4;</div>
-      <h3>Mirror from anywhere</h3>
-      <p>Pull-mirror repos from GitHub or GitLab — they stay in sync hourly.
-        <code>git remote add puff https://git.prime-quality.online/&lt;you&gt;/&lt;repo&gt;.git</code></p>
-    </div>
-    <div class="card">
-      <div class="ic">&#x2713;</div>
-      <h3>Linear sync</h3>
-      <p>Issues flow both ways between Linear and the forge — file it in one
-        place, track it in both.</p>
-    </div>
-    <div class="card">
-      <div class="ic">&#x2328;</div>
-      <h3>Edit in the browser</h3>
-      <p>The built-in code editor commits straight to the branch — no clone
-        needed for the quick fixes.</p>
-    </div>
-    <div class="card">
-      <div class="ic">&#x2B06;</div>
-      <h3>Push &amp; deploy from the CLI</h3>
-      <p><code>git push puff main</code> then let the runner take it —
-        pipelines deploy on merge.</p>
-    </div>
-    <div class="card">
-      <div class="ic">&#x25C9;</div>
-      <h3>Usage tracking</h3>
-      <p>Traffic, latency, deploys and storage per service — the console's
-        Analytics page reads live counters, not vibes.</p>
-    </div>
-    <div class="card">
-      <div class="ic">&#x2699;</div>
-      <h3>Pipelines included</h3>
-      <p>A self-hosted runner (unit7) is attached — push a
-        <code>.gitea/workflows/</code> file and it runs.</p>
+  <section class="agentic" id="agentic">
+    <div class="container agentic-grid">
+      <div class="agent-panel">
+        <div class="agent-header">
+          <div class="agent-avatar">✦</div>
+          <div>
+            <strong>Puff Agent</strong>
+            <div style="color:#bba5e9;font-size:.8rem;">Infrastructure assistant</div>
+          </div>
+        </div>
+
+        <div class="agent-task">
+          <small>Requested task</small>
+          Deploy the API, create private storage, and configure production
+          scaling.
+        </div>
+
+        <div class="agent-steps">
+          <div class="agent-step">
+            <b>✓</b>
+            Repository and dependencies analyzed
+          </div>
+          <div class="agent-step">
+            <b>✓</b>
+            Secure container environment created
+          </div>
+          <div class="agent-step">
+            <b>✓</b>
+            Private storage attached
+          </div>
+          <div class="agent-step">
+            <b>✓</b>
+            Autoscaling and health checks configured
+          </div>
+        </div>
+      </div>
+
+      <div class="agentic-copy">
+        <div class="eyebrow">Agentic infrastructure</div>
+        <h2>Tell Puffbase what you want to run.</h2>
+
+        <p>
+          Puffbase transforms intent into working infrastructure. Its agents
+          can help build, configure, deploy, monitor, and optimize your
+          services while keeping you in control.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature">
+            <div class="feature-number">01</div>
+            <div>
+              <h3>Describe the outcome</h3>
+              <p>Start with your repository, image, template, or a simple request.</p>
+            </div>
+          </div>
+
+          <div class="feature">
+            <div class="feature-number">02</div>
+            <div>
+              <h3>Review the infrastructure plan</h3>
+              <p>See the resources, configuration, and security model before launch.</p>
+            </div>
+          </div>
+
+          <div class="feature">
+            <div class="feature-number">03</div>
+            <div>
+              <h3>Deploy and evolve</h3>
+              <p>Release confidently, observe performance, and improve continuously.</p>
+            </div>
+          </div>
+        </div>
+
+        <a class="button button-primary" href="#developers">
+          Explore the platform
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
     </div>
   </section>
 
-  <footer>
-    <span>puffbase · blacksheep infra</span>
-    <span>
-      <a href="https://git.prime-quality.online">git</a> ·
-      <a href="/console">console</a> ·
-      <a href="https://app.prime-quality.online">git-ops</a>
-    </span>
-  </footer>
-</div>
+  <section class="trust" id="open-source">
+    <div class="container">
+      <div class="trust-strip">
+        <div class="trust-item">
+          <strong>Open source</strong>
+          <span>Transparent and extensible</span>
+        </div>
+        <div class="trust-item">
+          <strong>Multi-tenant</strong>
+          <span>Secure workload isolation</span>
+        </div>
+        <div class="trust-item">
+          <strong>Cloud native</strong>
+          <span>Containers, functions, and VMs</span>
+        </div>
+        <div class="trust-item">
+          <strong>Developer first</strong>
+          <span>API, CLI, and automated workflows</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" id="deploy">
+    <div class="container">
+      <div class="cta-box">
+        <div class="cta-content">
+          <h2>Your next idea belongs in the cloud.</h2>
+          <p>
+            Bring your code, container, or workload. Puffbase will help turn
+            it into secure, production-ready infrastructure.
+          </p>
+
+          <a class="button button-yellow" href="/console">
+            Create your Puffbase
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="developers">
+  <div class="container footer-row">
+    <div>
+      <a class="brand" href="#" aria-label="Puffbase home">
+        <span class="brand-mark">P</span>
+        Puffbase
+      </a>
+      <p class="footer-copy" style="margin-top:12px;">
+        © <span id="year"></span> Puffbase. Open infrastructure for everyone.
+      </p>
+    </div>
+
+    <div class="footer-links">
+      <a href="#">Documentation</a>
+      <a href="#">GitHub</a>
+      <a href="#">Status</a>
+      <a href="#">Community</a>
+      <a href="#">Privacy</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script>
+(function () {
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  // Resolution-independent helpers: how tall/wide the view is at a given depth,
+  // so objects stay on-screen on any aspect ratio (phone, tablet, desktop).
+  function visibleHeightAtDepth(depth) {
+    var vFOV = camera.fov * Math.PI / 180;
+    return 2 * Math.tan(vFOV / 2) * depth;
+  }
+  function visibleWidthAtDepth(depth) {
+    return visibleHeightAtDepth(depth) * camera.aspect;
+  }
+
+  // --- LIGHTING ---
+  var ambient = new THREE.AmbientLight(0xffffff, 0.7);
+  scene.add(ambient);
+  var key = new THREE.DirectionalLight(0xffffff, 0.6);
+  key.position.set(10, 20, 10);
+  scene.add(key);
+  var purpleSpot = new THREE.PointLight(0x6d36e8, 60, 80); // matches --purple
+  purpleSpot.position.set(-15, 12, 5);
+  scene.add(purpleSpot);
+
+  // --- BACKGROUND: soft white/grey peaks with one off-center light-purple patch (ported from 19q.html) ---
+  var bgDepth = 30;
+  var bgW = visibleWidthAtDepth(bgDepth);
+  var bgH = visibleHeightAtDepth(bgDepth);
+  var bgGeo = new THREE.PlaneGeometry(bgW * 1.4, bgH * 1.4, 80, 80);
+  var bgPos = bgGeo.attributes.position;
+
+  var bgBaseColor = new THREE.Color(0xf5f5f5);  // off-white / light grey (19q.html)
+  var bgPurpleTint = new THREE.Color(0xe3d6fb); // light light purple (19q.html)
+  // off-center patch, not the whole plane — same proportions as 19q.html's 100-unit plane
+  var bgPatchCenterX = bgW * 0.31;
+  var bgPatchCenterY = bgH * 0.22;
+  var bgPatchRadius = bgW * 0.28;
+
+  var bgColors = [];
+  for (var i = 0; i < bgPos.count; i++) {
+    // random soft valleys and peaks
+    bgPos.setZ(i, Math.random() * 1.2);
+
+    var bx = bgPos.getX(i);
+    var by = bgPos.getY(i);
+    var dist = Math.hypot(bx - bgPatchCenterX, by - bgPatchCenterY);
+    var blend = Math.max(0, 1 - dist / bgPatchRadius) * 0.55; // small area, soft/light blend
+    var c = bgBaseColor.clone().lerp(bgPurpleTint, blend);
+    bgColors.push(c.r, c.g, c.b);
+  }
+  bgGeo.setAttribute('color', new THREE.Float32BufferAttribute(bgColors, 3));
+  var bgMat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    flatShading: true,
+    roughness: 0.9,
+  });
+  var bg = new THREE.Mesh(bgGeo, bgMat);
+  bg.position.z = -bgDepth;
+  scene.add(bg);
+
+  // The plane is 1.4x the viewport so it runs off every edge — but it is built
+  // ONCE, from camera.aspect as it was at page load. The resize handler updates
+  // camera.aspect and the renderer, and never touched this, so widening the
+  // window (or any zoom change, which is a resize here) eventually outran the
+  // plane and you could see past its edges.
+  //
+  // Rescale to cover rather than rebuilding: this is an 80x80 grid carrying a
+  // per-vertex colour attribute, and regenerating that on every resize event
+  // would be wasteful for what is a pure stretch. Never scales below 1, so the
+  // plane can only ever grow past its original margin, never shrink inside it.
+  var bgBuiltW = bgW * 1.4;
+  var bgBuiltH = bgH * 1.4;
+  function fitBackground() {
+    var needW = visibleWidthAtDepth(bgDepth) * 1.4;
+    var needH = visibleHeightAtDepth(bgDepth) * 1.4;
+    bg.scale.set(Math.max(1, needW / bgBuiltW), Math.max(1, needH / bgBuiltH), 1);
+  }
+  fitBackground();
+
+  // --- PURPLE FACETED SPHERE, top left (from 15.html: MeshPhysicalMaterial + thick black facet outlines) ---
+  var sphereDepth = 18;
+  var sphereRadius = visibleHeightAtDepth(sphereDepth) * 0.68;
+  var sphereGeom = new THREE.IcosahedronGeometry(sphereRadius, 7);
+  var purpleMat = new THREE.MeshPhysicalMaterial({
+    color: 0x6d36e8,    // matches --purple
+    metalness: 0.9,
+    roughness: 0.05,
+    flatShading: true,
+    emissive: 0x32146f  // matches --purple-dark (was an off-hue blue)
+  });
+  var purpleSphere = new THREE.Mesh(sphereGeom, purpleMat);
+  var sphereBaseX = -visibleWidthAtDepth(sphereDepth) * 0.28;
+  var sphereBaseY = visibleHeightAtDepth(sphereDepth) * 0.28;
+  purpleSphere.position.set(sphereBaseX, sphereBaseY, -sphereDepth);
+  scene.add(purpleSphere);
+
+  // Rolls further northwest (up + left) as the page scrolls down, far enough
+  // that by full scroll the whole sphere (radius included) has cleared the
+  // viewport — not just drifted toward the edge.
+  var sphereViewW = visibleWidthAtDepth(sphereDepth);
+  var sphereViewH = visibleHeightAtDepth(sphereDepth);
+  var sphereExitMargin = sphereRadius * 0.35;
+  var sphereDriftX = sphereViewW * 0.5 - Math.abs(sphereBaseX) + sphereRadius + sphereExitMargin;
+  var sphereDriftY = sphereViewH * 0.5 - Math.abs(sphereBaseY) + sphereRadius + sphereExitMargin;
+
+  // Thick black outlines for the facets, pinned to the sphere
+  var sphereEdges = new THREE.EdgesGeometry(sphereGeom);
+  var sphereLineMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+  var sphereLines = new THREE.LineSegments(sphereEdges, sphereLineMat);
+  purpleSphere.add(sphereLines);
+
+  // --- THIRD SPHERE: large white wireframe, bottom right, opposite corner from the purple sphere (ported from 19q.html) ---
+  var greyMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    wireframe: true,
+    transparent: true,
+    // 0.1 was tuned for a grey wireframe. White at that opacity against the
+    // off-white (#f5f5f5) background is all but invisible, so the colour change
+    // did not read. Raised enough to be legibly white without promoting it
+    // from background art to a foreground element.
+    opacity: 0.28,
+  });
+  var greySphere = new THREE.Mesh(sphereGeom, greyMat); // same large geometry as the purple sphere
+  greySphere.position.set(
+    visibleWidthAtDepth(sphereDepth) * 0.32,
+    -visibleHeightAtDepth(sphereDepth) * 0.3,
+    -sphereDepth
+  );
+  scene.add(greySphere);
+
+  // --- TWO WIREFRAME BALLS, bottom, bouncing around and off each other ---
+  var ballDepth = 16;
+  var visH = visibleHeightAtDepth(ballDepth);
+  var visW = visibleWidthAtDepth(ballDepth);
+  var ballR = visH * 0.09;
+
+  var wireGeom = new THREE.IcosahedronGeometry(ballR, 2);
+  // Hidden until the page is scrolled to the bottom — see scroll handling in animate().
+  var yellowWire = new THREE.Mesh(
+    wireGeom,
+    new THREE.MeshBasicMaterial({ color: 0xffd84d, wireframe: true, transparent: true, opacity: 0 })
+  );
+  var purpleWire = new THREE.Mesh(
+    wireGeom,
+    new THREE.MeshBasicMaterial({ color: 0x6d36e8, wireframe: true, transparent: true, opacity: 0 }) // matches --purple
+  );
+  yellowWire.visible = false;
+  purpleWire.visible = false;
+  scene.add(yellowWire, purpleWire);
+  var BOTTOM_BALLS_OPACITY = 0.9;
+
+  // --- scroll tracking, drives the sphere drift + bottom-ball reveal ---
+  var scrollState = { progress: 0, atBottom: false };
+  function updateScrollState() {
+    var doc = document.documentElement;
+    var maxScroll = Math.max(1, doc.scrollHeight - window.innerHeight);
+    var top = window.scrollY || doc.scrollTop || 0;
+    scrollState.progress = Math.min(1, Math.max(0, top / maxScroll));
+    scrollState.atBottom = scrollState.progress > 0.96;
+  }
+  window.addEventListener('scroll', updateScrollState, { passive: true });
+  updateScrollState();
+
+  var boundsX = visW * 0.38;
+  var boundsYTop = -visH * 0.05;
+  var boundsYBottom = -visH * 0.42;
+  var speed = visH * 0.0012;
+
+  // --- WHITE SPHERE JOINS THE PHYSICS -------------------------------------
+  // It used to be decorative: static, and sitting at sphereDepth (-18) while
+  // the balls live at ballDepth (-16), so the two wireframe balls passed
+  // straight through it. It now shares their plane and collides with them.
+  //
+  // Halved in size as requested. The extra ballDepth/sphereDepth factor
+  // compensates for moving it forward into the ball plane — without it,
+  // perspective would make the "half size" sphere read noticeably larger than
+  // half. Scaling the mesh rather than the geometry matters because sphereGeom
+  // is shared with the purple sphere, which must not change.
+  var whiteScale = 0.5 * (ballDepth / sphereDepth);
+  greySphere.scale.setScalar(whiteScale);
+  var whiteR = sphereRadius * whiteScale;
+  greySphere.position.set(0, -visH * 0.22, -ballDepth);
+
+  // Bounds are limits on the CENTRE, not the edges: with a radius of ~0.34 *
+  // visH this sphere is wider than the ball box, so an edge clamp would pin it
+  // in place. Same size as before — but it now bounces across the FULL width
+  // along the bottom of the box instead of being penned to a patch on the
+  // right. A shallow vertical range keeps it low, so it still reads as a
+  // background element and not a third foreground ball.
+  var whiteHomeX = 0;
+  var whiteHomeY = -visH * 0.22;
+  var whiteRoamX = visW * 0.60;
+  var whiteRoamY = visH * 0.08;
+
+  var balls = [
+    { mesh: yellowWire, x: -boundsX * 0.5, y: boundsYBottom * 0.6, vx: speed, vy: speed * 0.7, r: ballR,
+      bx: boundsX, byTop: boundsYTop, byBottom: boundsYBottom, m: ballR * ballR, spin: 0.012 },
+    { mesh: purpleWire, x: boundsX * 0.5, y: boundsYTop * 0.8, vx: -speed * 0.85, vy: speed * 0.9, r: ballR,
+      bx: boundsX, byTop: boundsYTop, byBottom: boundsYBottom, m: ballR * ballR, spin: 0.012 },
+    // Now a proper bouncer at the bottom: real horizontal speed and a wide
+    // centre box, so it tracks back and forth across the whole width. spin
+    // stays 0 because animate() already gives this mesh its own slow
+    // counter-rotation; adding the ball spin would fight it.
+    { mesh: greySphere, x: whiteHomeX, y: whiteHomeY, vx: -speed * 0.7, vy: speed * 0.3, r: whiteR,
+      cxMin: whiteHomeX - whiteRoamX, cxMax: whiteHomeX + whiteRoamX,
+      cyMin: whiteHomeY - whiteRoamY, cyMax: whiteHomeY + whiteRoamY,
+      m: whiteR * whiteR, spin: 0 }
+  ];
+
+  // --- THE PURPLE SPHERE SHOVES WHATEVER IS IN ITS WAY ---------------------
+  // purpleSphere is kinematic: animate() drives its position straight from
+  // scroll progress, so it is never displaced by a collision, it only
+  // displaces. That is the point — scrolling should feel like it is barging
+  // through, not like it negotiates with the physics.
+  //
+  // It also lives at sphereDepth (-18) while the balls live at ballDepth (-16),
+  // so nothing here would ever intersect in raw world coordinates. Under
+  // perspective, screen position goes as x/z, so a point at sphereDepth lands
+  // on screen where x * (ballDepth / sphereDepth) would at ballDepth. Both its
+  // centre and its radius are converted with that factor — the same one used
+  // for whiteScale above — which makes the collision line up with what the
+  // viewer actually sees overlapping.
+  var depthToBallPlane = ballDepth / sphereDepth;
+  var purplePushR = sphereRadius * depthToBallPlane;
+  var purplePrev = { x: sphereBaseX * depthToBallPlane, y: sphereBaseY * depthToBallPlane, has: false };
+
+  // Soft-pen tuning for the white sphere (used in updateBalls above)
+  var WHITE_PEN_SPRING = 0.006;   // firmness of the pull home after a shove
+  var WHITE_DAMP = 0.98;          // bleeds off shove energy so it settles
+  var WHITE_MAX_SPEED = speed * 4;
+
+  function pushWithPurpleSphere() {
+    var px = purpleSphere.position.x * depthToBallPlane;
+    var py = purpleSphere.position.y * depthToBallPlane;
+
+    // Its own per-frame motion. Scrolling up drives it back southeast toward
+    // home, and carrying that velocity into whatever it touches is what makes
+    // it throw the white sphere clear rather than just leaning on it.
+    var pvx = purplePrev.has ? px - purplePrev.x : 0;
+    var pvy = purplePrev.has ? py - purplePrev.y : 0;
+    purplePrev.x = px; purplePrev.y = py; purplePrev.has = true;
+
+    balls.forEach(function (b) {
+      if (!b.mesh.visible && b.mesh !== greySphere) return; // the bottom balls only exist when shown
+      var dx = b.x - px, dy = b.y - py;
+      var dist = Math.hypot(dx, dy);
+      var minDist = purplePushR + b.r;
+      if (dist < minDist && dist > 0.0001) {
+        var nx = dx / dist, ny = dy / dist;
+        // Lift it clear of the surface. Only the ball moves.
+        b.x = px + nx * minDist;
+        b.y = py + ny * minDist;
+        // Transfer the sphere's approach speed, plus a small separation kick
+        // so contact never turns into a sustained scrape along the surface.
+        var along = pvx * nx + pvy * ny;
+        if (along > 0) { b.vx += nx * along * 1.6; b.vy += ny * along * 1.6; }
+        b.vx += nx * speed * 0.4;
+        b.vy += ny * speed * 0.4;
+      }
+    });
+  }
+
+  function updateBalls() {
+    balls.forEach(function (b) {
+      b.x += b.vx;
+      b.y += b.vy;
+
+      if (b.cxMin !== undefined) {
+        // Centre-limited (the white sphere): too large for edge clamping to
+        // leave it any travel, so its centre is penned into a small box.
+        //
+        // The pen is SOFT, not a hard clamp. The purple sphere shoves this one
+        // aside on scroll, and a hard clamp would pin it against the wall mid
+        // shove — it would read as stuck rather than pushed. So while it is
+        // outside the pen it springs back instead, and eases home once the
+        // purple sphere has passed.
+        var outside = b.x < b.cxMin || b.x > b.cxMax || b.y < b.cyMin || b.y > b.cyMax;
+        if (outside) {
+          var homeX = Math.min(b.cxMax, Math.max(b.cxMin, b.x));
+          var homeY = Math.min(b.cyMax, Math.max(b.cyMin, b.y));
+          b.vx += (homeX - b.x) * WHITE_PEN_SPRING;
+          b.vy += (homeY - b.y) * WHITE_PEN_SPRING;
+          b.vx *= WHITE_DAMP;
+          b.vy *= WHITE_DAMP;
+        } else {
+          if (b.x < b.cxMin) { b.x = b.cxMin; b.vx *= -1; }
+          if (b.x > b.cxMax) { b.x = b.cxMax; b.vx *= -1; }
+          if (b.y < b.cyMin) { b.y = b.cyMin; b.vy *= -1; }
+          if (b.y > b.cyMax) { b.y = b.cyMax; b.vy *= -1; }
+        }
+        // A shove must not launch it across the screen
+        var sp = Math.hypot(b.vx, b.vy);
+        if (sp > WHITE_MAX_SPEED) {
+          b.vx = b.vx / sp * WHITE_MAX_SPEED;
+          b.vy = b.vy / sp * WHITE_MAX_SPEED;
+        }
+      } else {
+        if (b.x - b.r < -b.bx) { b.x = -b.bx + b.r; b.vx *= -1; }
+        if (b.x + b.r > b.bx)  { b.x = b.bx - b.r;  b.vx *= -1; }
+        if (b.y - b.r < b.byBottom) { b.y = b.byBottom + b.r; b.vy *= -1; }
+        if (b.y + b.r > b.byTop)    { b.y = b.byTop - b.r;    b.vy *= -1; }
+      }
+    });
+
+    // Elastic collision over every pair, weighted by mass (r^2 in 2D). The
+    // white sphere is much heavier, so the small balls bounce off it hard
+    // while it barely deflects — which is what reads correctly at these sizes.
+    for (var i = 0; i < balls.length; i++) {
+      for (var j = i + 1; j < balls.length; j++) {
+        var a = balls[i], c = balls[j];
+        var dx = c.x - a.x, dy = c.y - a.y;
+        var dist = Math.hypot(dx, dy);
+        var minDist = a.r + c.r;
+        if (dist < minDist && dist > 0.0001) {
+          var nx = dx / dist, ny = dy / dist;
+          var rel = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
+          if (rel < 0) {
+            var imp = 2 * rel / (a.m + c.m);
+            a.vx += imp * c.m * nx; a.vy += imp * c.m * ny;
+            c.vx -= imp * a.m * nx; c.vy -= imp * a.m * ny;
+          }
+          // Push apart in inverse proportion to mass so the heavy sphere is
+          // not shoved out of place by a resting contact.
+          var overlap = minDist - dist;
+          var total = a.m + c.m;
+          a.x -= nx * overlap * (c.m / total); a.y -= ny * overlap * (c.m / total);
+          c.x += nx * overlap * (a.m / total); c.y += ny * overlap * (a.m / total);
+        }
+      }
+    }
+
+    // Runs after the ball-vs-ball pass so the kinematic sphere always gets the
+    // last word: nothing can be left overlapping it at the end of a frame.
+    pushWithPurpleSphere();
+
+    balls.forEach(function (b) {
+      b.mesh.position.set(b.x, b.y, -ballDepth);
+      if (b.spin) {
+        b.mesh.rotation.x += b.spin;
+        b.mesh.rotation.y += b.spin * 1.33;
+      }
+    });
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var t = performance.now() * 0.001;
+
+    bg.position.y = Math.sin(t * 0.1) * 0.2;
+
+    // Roll the purple sphere northwest (up + left) as the page scrolls down.
+    // fully exits by 85% scroll, so it's already gone once the bottom section is reached
+    var sphereDriftProgress = Math.min(1, scrollState.progress / 0.85);
+    var targetX = sphereBaseX - sphereDriftProgress * sphereDriftX;
+    var targetY = sphereBaseY + sphereDriftProgress * sphereDriftY;
+    purpleSphere.position.x += (targetX - purpleSphere.position.x) * 0.06;
+    purpleSphere.position.y += (targetY - purpleSphere.position.y) * 0.06;
+    var traveled = Math.hypot(
+      purpleSphere.position.x - sphereBaseX,
+      purpleSphere.position.y - sphereBaseY
+    );
+    purpleSphere.rotation.z = traveled / sphereRadius; // rolling motion along the travel path
+    purpleSphere.rotation.y += 0.0003;
+    purpleSphere.rotation.x += 0.00015;
+
+    // Grey sphere spins the opposite direction, slowly (19q.html)
+    greySphere.rotation.y -= 0.0004;
+    greySphere.rotation.x -= 0.0002;
+
+    // Bottom balls only fade in once the page is scrolled all the way down.
+    var targetBallsOpacity = scrollState.atBottom ? BOTTOM_BALLS_OPACITY : 0;
+    yellowWire.material.opacity += (targetBallsOpacity - yellowWire.material.opacity) * 0.08;
+    purpleWire.material.opacity += (targetBallsOpacity - purpleWire.material.opacity) * 0.08;
+    yellowWire.visible = yellowWire.material.opacity > 0.01;
+    purpleWire.visible = purpleWire.material.opacity > 0.01;
+
+    updateBalls();
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', function () {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    fitBackground(); // must follow updateProjectionMatrix — it reads the new aspect
+  });
+})();
+</script>
+
+<script>
+const menuButton = document.querySelector(".menu-toggle");
+const navLinks = document.querySelector("#navLinks");
+
+menuButton.addEventListener("click", () => {
+  const isOpen = navLinks.classList.toggle("open");
+  menuButton.setAttribute("aria-expanded", String(isOpen));
+  menuButton.textContent = isOpen ? "×" : "☰";
+});
+
+navLinks.querySelectorAll("a").forEach((link) => {
+  link.addEventListener("click", () => {
+    navLinks.classList.remove("open");
+    menuButton.setAttribute("aria-expanded", "false");
+    menuButton.textContent = "☰";
+  });
+});
+
+document.querySelector("#year").textContent = new Date().getFullYear();
+</script>
 </body>
 </html>
