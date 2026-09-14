@@ -1526,9 +1526,9 @@ footer {
   window.addEventListener('scroll', updateScrollState, { passive: true });
   updateScrollState();
 
-  var boundsX = visW * 0.38;
-  var boundsYTop = -visH * 0.05;
-  var boundsYBottom = -visH * 0.42;
+  var boundsX = visW * 0.47;
+  var boundsYTop = visH * 0.03;
+  var boundsYBottom = -visH * 0.47;
   var speed = visH * 0.0012;
 
   // --- WHITE SPHERE JOINS THE PHYSICS -------------------------------------
@@ -1554,8 +1554,8 @@ footer {
   // background element and not a third foreground ball.
   var whiteHomeX = 0;
   var whiteHomeY = -visH * 0.22;
-  var whiteRoamX = visW * 0.60;
-  var whiteRoamY = visH * 0.08;
+  var whiteRoamX = visW * 0.75;
+  var whiteRoamY = visH * 0.20;
 
   var balls = [
     { mesh: yellowWire, x: -boundsX * 0.5, y: boundsYBottom * 0.6, vx: speed, vy: speed * 0.7, r: ballR,
@@ -1590,7 +1590,7 @@ footer {
   var purplePrev = { x: sphereBaseX * depthToBallPlane, y: sphereBaseY * depthToBallPlane, has: false };
 
   // Soft-pen tuning for the white sphere (used in updateBalls above)
-  var WHITE_PEN_SPRING = 0.006;   // firmness of the pull home after a shove
+  var WHITE_PEN_SPRING = 0.0035;  // firmness of the pull home after a shove
   var WHITE_DAMP = 0.98;          // bleeds off shove energy so it settles
   var WHITE_MAX_SPEED = speed * 4;
 
