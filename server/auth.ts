@@ -64,6 +64,21 @@ function appUrl(): string {
   return (process.env.APP_URL ?? "http://localhost:5000").replace(/\/$/, "");
 }
 
+// Pending logins keyed by the OIDC `state` param, which survives the whole
+// round trip because it comes back inside the callback URL itself. The
+// session-cookie copy remains the preferred path; this map is the fallback
+// for browsers (Firefox Total Cookie Protection / ETP Strict) that partition
+// or drop the cookie across the cross-domain hop to Keycloak and back.
+// Entries are single-use and expire after 10 minutes.
+const pendingLogins = new Map<string, { codeVerifier: string; expiresAt: number }>();
+const PENDING_LOGIN_TTL_MS = 10 * 60 * 1000;
+
+function prunePendingLogins() {
+  const now = Date.now();
+  pendingLogins.forEach((v, k) => { if (v.expiresAt <= now) pendingLogins.delete(k); });
+}
+setInterval(prunePendingLogins, 60_000).unref();
+
 export function registerAuthRoutes(app: Express) {
   app.get("/api/auth/login", async (_req, res, next) => {
     try {
@@ -72,6 +87,7 @@ export function registerAuthRoutes(app: Express) {
       const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
       const state = client.randomState();
       _req.session.oidc = { state, codeVerifier };
+      pendingLogins.set(state, { codeVerifier, expiresAt: Date.now() + PENDING_LOGIN_TTL_MS });
 
       const url = client.buildAuthorizationUrl(config, {
         redirect_uri: `${appUrl()}/api/auth/callback`,
@@ -88,12 +104,22 @@ export function registerAuthRoutes(app: Express) {
 
   app.get("/api/auth/callback", async (req, res, next) => {
     try {
-      const pending = req.session.oidc;
+      let pending = req.session.oidc;
       if (!pending) {
-        console.log(
-          `[auth] callback without pending state: cookie=${req.headers.cookie ? "present" : "ABSENT"} sessionID=${req.sessionID} host=${req.hostname} xfp=${req.get("x-forwarded-proto") ?? "none"} referer=${req.get("referer") ?? "none"}`,
-        );
-        return res.status(400).send("No login in progress");
+        // Session cookie didn't round-trip (see pendingLogins comment above).
+        // Recover the pending login from the `state` param instead.
+        const state = typeof req.query.state === "string" ? req.query.state : "";
+        const entry = state ? pendingLogins.get(state) : undefined;
+        if (entry && entry.expiresAt > Date.now()) {
+          pending = { state, codeVerifier: entry.codeVerifier };
+        }
+        if (!pending) {
+          console.log(
+            `[auth] callback without pending state: cookie=${req.headers.cookie ? "present" : "ABSENT"} state-param=${state ? "present" : "ABSENT"} sessionID=${req.sessionID} host=${req.hostname} referer=${req.get("referer") ?? "none"}`,
+          );
+          return res.status(400).send("No login in progress");
+        }
+        console.log(`[auth] callback recovered pending login via state param (cookie ${req.headers.cookie ? "present" : "ABSENT"})`);
       }
 
       const config = await getOidcConfig();
@@ -103,6 +129,7 @@ export function registerAuthRoutes(app: Express) {
         expectedState: pending.state,
       });
       delete req.session.oidc;
+      pendingLogins.delete(pending.state);
 
       const claims = tokens.claims();
       if (!claims?.sub) return res.status(401).send("Login failed - no subject claim");
