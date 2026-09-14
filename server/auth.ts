@@ -89,7 +89,12 @@ export function registerAuthRoutes(app: Express) {
   app.get("/api/auth/callback", async (req, res, next) => {
     try {
       const pending = req.session.oidc;
-      if (!pending) return res.status(400).send("No login in progress");
+      if (!pending) {
+        console.log(
+          `[auth] callback without pending state: cookie=${req.headers.cookie ? "present" : "ABSENT"} sessionID=${req.sessionID} host=${req.hostname} xfp=${req.get("x-forwarded-proto") ?? "none"} referer=${req.get("referer") ?? "none"}`,
+        );
+        return res.status(400).send("No login in progress");
+      }
 
       const config = await getOidcConfig();
       const currentUrl = new URL(req.originalUrl, appUrl());

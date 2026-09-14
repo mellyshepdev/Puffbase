@@ -33,7 +33,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <div className="w-full max-w-sm rounded-2xl border border-card-border/80 bg-card/70 p-8 text-center backdrop-blur-sm">
           <PuffbaseEmblem className="mx-auto mb-2 h-36 w-auto" />
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in with your blacksheep account to open the console.
+            Sign in with your Puffbase account to open the console.
           </p>
           <a
             href={loginUrl}
