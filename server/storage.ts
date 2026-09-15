@@ -47,38 +47,51 @@ export type MetricType =
   | "errors"
   | "uptime";
 
+// Every method takes `owner` (the caller's Keycloak sub) and scopes the
+// query to it. There is deliberately no unscoped read or write path:
+// getById/update/delete also filter on owner, so knowing another account's
+// row id buys you nothing.
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  listDeployments(environment?: DeploymentEnvironment): Promise<Deployment[]>;
-  getDeployment(id: number): Promise<Deployment | undefined>;
-  createDeployment(deployment: InsertDeployment): Promise<Deployment>;
+  listDeployments(
+    owner: string,
+    environment?: DeploymentEnvironment,
+  ): Promise<Deployment[]>;
+  getDeployment(owner: string, id: number): Promise<Deployment | undefined>;
+  createDeployment(
+    owner: string,
+    deployment: InsertDeployment,
+  ): Promise<Deployment>;
   updateDeploymentStatus(
+    owner: string,
     id: number,
     status: DeploymentStatus,
   ): Promise<Deployment | undefined>;
-  deleteDeployment(id: number): Promise<boolean>;
+  deleteDeployment(owner: string, id: number): Promise<boolean>;
 
-  listServices(): Promise<Service[]>;
-  getService(id: number): Promise<Service | undefined>;
-  createService(service: InsertService): Promise<Service>;
+  listServices(owner: string): Promise<Service[]>;
+  getService(owner: string, id: number): Promise<Service | undefined>;
+  createService(owner: string, service: InsertService): Promise<Service>;
   updateService(
+    owner: string,
     id: number,
     service: Partial<InsertService>,
   ): Promise<Service | undefined>;
-  deleteService(id: number): Promise<boolean>;
+  deleteService(owner: string, id: number): Promise<boolean>;
 
   listMetrics(
+    owner: string,
     type?: MetricType,
     startDate?: string,
     endDate?: string,
   ): Promise<Metric[]>;
-  createMetric(metric: InsertMetric): Promise<Metric>;
+  createMetric(owner: string, metric: InsertMetric): Promise<Metric>;
 
-  listActivity(limit?: number): Promise<Activity[]>;
-  createActivity(entry: InsertActivity): Promise<Activity>;
+  listActivity(owner: string, limit?: number): Promise<Activity[]>;
+  createActivity(owner: string, entry: InsertActivity): Promise<Activity>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -101,118 +114,155 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listDeployments(
+    owner: string,
     environment?: DeploymentEnvironment,
   ): Promise<Deployment[]> {
+    const conditions = [eq(deployments.owner, owner)];
     if (environment) {
-      return db
-        .select()
-        .from(deployments)
-        .where(eq(deployments.environment, environment))
-        .orderBy(desc(deployments.lastDeployed));
+      conditions.push(eq(deployments.environment, environment));
     }
-
-    return db.select().from(deployments).orderBy(desc(deployments.lastDeployed));
+    return db
+      .select()
+      .from(deployments)
+      .where(and(...conditions))
+      .orderBy(desc(deployments.lastDeployed));
   }
 
-  async getDeployment(id: number): Promise<Deployment | undefined> {
+  async getDeployment(
+    owner: string,
+    id: number,
+  ): Promise<Deployment | undefined> {
     const rows = await db
       .select()
       .from(deployments)
-      .where(eq(deployments.id, id));
+      .where(and(eq(deployments.owner, owner), eq(deployments.id, id)));
     return rows[0];
   }
 
   async createDeployment(
+    owner: string,
     deployment: InsertDeployment,
   ): Promise<Deployment> {
-    const rows = await db.insert(deployments).values(deployment).returning();
+    const rows = await db
+      .insert(deployments)
+      .values({ ...deployment, owner })
+      .returning();
     return rows[0];
   }
 
   async updateDeploymentStatus(
+    owner: string,
     id: number,
     status: DeploymentStatus,
   ): Promise<Deployment | undefined> {
     const rows = await db
       .update(deployments)
       .set({ status })
-      .where(eq(deployments.id, id))
+      .where(and(eq(deployments.owner, owner), eq(deployments.id, id)))
       .returning();
     return rows[0];
   }
 
-  async deleteDeployment(id: number): Promise<boolean> {
-    const result = await db.delete(deployments).where(eq(deployments.id, id));
+  async deleteDeployment(owner: string, id: number): Promise<boolean> {
+    const result = await db
+      .delete(deployments)
+      .where(and(eq(deployments.owner, owner), eq(deployments.id, id)));
     return (result.rowCount ?? 0) > 0;
   }
 
-  async listServices(): Promise<Service[]> {
-    return db.select().from(services).orderBy(services.name);
+  async listServices(owner: string): Promise<Service[]> {
+    return db
+      .select()
+      .from(services)
+      .where(eq(services.owner, owner))
+      .orderBy(services.name);
   }
 
-  async getService(id: number): Promise<Service | undefined> {
-    const rows = await db.select().from(services).where(eq(services.id, id));
+  async getService(
+    owner: string,
+    id: number,
+  ): Promise<Service | undefined> {
+    const rows = await db
+      .select()
+      .from(services)
+      .where(and(eq(services.owner, owner), eq(services.id, id)));
     return rows[0];
   }
 
-  async createService(service: InsertService): Promise<Service> {
-    const rows = await db.insert(services).values(service).returning();
+  async createService(
+    owner: string,
+    service: InsertService,
+  ): Promise<Service> {
+    const rows = await db
+      .insert(services)
+      .values({ ...service, owner })
+      .returning();
     return rows[0];
   }
 
   async updateService(
+    owner: string,
     id: number,
     service: Partial<InsertService>,
   ): Promise<Service | undefined> {
     const rows = await db
       .update(services)
       .set(service)
-      .where(eq(services.id, id))
+      .where(and(eq(services.owner, owner), eq(services.id, id)))
       .returning();
     return rows[0];
   }
 
-  async deleteService(id: number): Promise<boolean> {
-    const result = await db.delete(services).where(eq(services.id, id));
+  async deleteService(owner: string, id: number): Promise<boolean> {
+    const result = await db
+      .delete(services)
+      .where(and(eq(services.owner, owner), eq(services.id, id)));
     return (result.rowCount ?? 0) > 0;
   }
 
   async listMetrics(
+    owner: string,
     type?: MetricType,
     startDate?: string,
     endDate?: string,
   ): Promise<Metric[]> {
-    const conditions: SQL[] = [];
+    const conditions: SQL[] = [eq(metrics.owner, owner)];
     if (type) conditions.push(eq(metrics.type, type));
     if (startDate) conditions.push(gte(metrics.timestamp, startDate));
     if (endDate) conditions.push(lte(metrics.timestamp, endDate));
 
-    if (conditions.length > 0) {
-      return db
-        .select()
-        .from(metrics)
-        .where(and(...conditions))
-        .orderBy(metrics.timestamp);
-    }
-
-    return db.select().from(metrics).orderBy(metrics.timestamp);
+    return db
+      .select()
+      .from(metrics)
+      .where(and(...conditions))
+      .orderBy(metrics.timestamp);
   }
 
-  async createMetric(metric: InsertMetric): Promise<Metric> {
-    const rows = await db.insert(metrics).values(metric).returning();
+  async createMetric(owner: string, metric: InsertMetric): Promise<Metric> {
+    const rows = await db
+      .insert(metrics)
+      .values({ ...metric, owner })
+      .returning();
     return rows[0];
   }
 
-  async listActivity(limit = 12): Promise<Activity[]> {
+  async listActivity(owner: string, limit = 12): Promise<Activity[]> {
     return db
       .select()
       .from(activity)
+      .where(eq(activity.owner, owner))
       .orderBy(desc(activity.timestamp))
       .limit(limit);
   }
 
-  async createActivity(entry: InsertActivity): Promise<Activity> {
-    const rows = await db.insert(activity).values(entry).returning();
+  async createActivity(
+    owner: string,
+    entry: InsertActivity,
+  ): Promise<Activity> {
+    const rows = await db
+      .insert(activity)
+      .values({ ...entry, owner })
+      .returning();
     return rows[0];
   }
 }

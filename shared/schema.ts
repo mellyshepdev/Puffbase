@@ -18,6 +18,10 @@ export type User = typeof users.$inferSelect;
 
 export const services = pgTable("services", {
   id: serial("id").primaryKey(),
+  // Row owner = the Keycloak `sub` claim of the account that created it.
+  // Every storage method filters on this - rows are never shared across
+  // accounts. Default "" keeps pre-tenancy rows readable by nobody.
+  owner: text("owner").notNull().default(""),
   name: text("name").notNull(),
   status: text("status", {
     enum: ["healthy", "degraded", "down", "idle"],
@@ -35,7 +39,7 @@ export const insertServiceSchema = createInsertSchema(services, {
   health: z.number().int().min(0).max(100),
   requests: z.number().int().nonnegative(),
   latency: z.number().int().nonnegative(),
-}).omit({ id: true });
+}).omit({ id: true, owner: true });
 
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type Service = typeof services.$inferSelect;
@@ -46,6 +50,7 @@ export type Service = typeof services.$inferSelect;
 // this app's own table needs a distinct name to avoid colliding with it.
 export const deployments = pgTable("puffbase_deployments", {
   id: serial("id").primaryKey(),
+  owner: text("owner").notNull().default(""),
   name: text("name").notNull(),
   status: text("status", {
     enum: ["deployed", "pending", "failed", "in-progress"],
@@ -77,13 +82,14 @@ export const insertDeploymentSchema = createInsertSchema(deployments, {
     .nullable()
     .optional(),
   port: z.number().int().min(1).max(65535).nullable().optional(),
-}).omit({ id: true });
+}).omit({ id: true, owner: true });
 
 export type InsertDeployment = z.infer<typeof insertDeploymentSchema>;
 export type Deployment = typeof deployments.$inferSelect;
 
 export const metrics = pgTable("metrics", {
   id: serial("id").primaryKey(),
+  owner: text("owner").notNull().default(""),
   type: text("type", {
     enum: ["api_calls", "revenue", "latency", "errors", "uptime"],
   }).notNull(),
@@ -95,13 +101,14 @@ export const metrics = pgTable("metrics", {
 export const insertMetricSchema = createInsertSchema(metrics, {
   type: z.enum(["api_calls", "revenue", "latency", "errors", "uptime"]),
   value: z.number().int(),
-}).omit({ id: true });
+}).omit({ id: true, owner: true });
 
 export type InsertMetric = z.infer<typeof insertMetricSchema>;
 export type Metric = typeof metrics.$inferSelect;
 
 export const activity = pgTable("activity", {
   id: serial("id").primaryKey(),
+  owner: text("owner").notNull().default(""),
   type: text("type", {
     enum: ["deploy", "scale", "alert", "config", "auth"],
   }).notNull(),
@@ -110,13 +117,12 @@ export const activity = pgTable("activity", {
     enum: ["info", "warning", "error", "success"],
   }).notNull(),
   timestamp: text("timestamp").notNull(),
-  userId: integer("user_id"),
 });
 
 export const insertActivitySchema = createInsertSchema(activity, {
   type: z.enum(["deploy", "scale", "alert", "config", "auth"]),
   severity: z.enum(["info", "warning", "error", "success"]),
-}).omit({ id: true });
+}).omit({ id: true, owner: true });
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activity.$inferSelect;

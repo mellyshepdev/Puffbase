@@ -75,6 +75,12 @@ function sendValidationError(res: Response, issues: unknown): void {
   res.status(400).json({ error: "Invalid request", issues });
 }
 
+/** The caller's tenant key: Keycloak `sub`, guaranteed present by the
+ *  requireAuth middleware mounted ahead of these routes. */
+function ownerOf(req: Request): string {
+  return req.session.user!.sub;
+}
+
 function startDateForDays(days: number): string {
   const start = new Date();
   start.setUTCHours(0, 0, 0, 0);
@@ -154,6 +160,7 @@ export async function registerRoutes(
         });
       }
       const rows = await storage.listDeployments(
+        ownerOf(req),
         environment as DeploymentEnvironment | undefined,
       );
       return res.json(rows);
@@ -167,7 +174,7 @@ export async function registerRoutes(
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
-      const deployment = await storage.getDeployment(id);
+      const deployment = await storage.getDeployment(ownerOf(req), id);
       if (!deployment) {
         return res.status(404).json({ error: "Deployment not found" });
       }
@@ -206,7 +213,7 @@ export async function registerRoutes(
     }
 
     try {
-      const deployment = await storage.createDeployment({
+      const deployment = await storage.createDeployment(ownerOf(req), {
         ...parsed.data,
         url,
       });
@@ -224,6 +231,7 @@ export async function registerRoutes(
 
     try {
       const deployment = await storage.updateDeploymentStatus(
+        ownerOf(req),
         id,
         parsed.data.status as DeploymentStatus,
       );
@@ -241,7 +249,7 @@ export async function registerRoutes(
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
-      const deployment = await storage.getDeployment(id);
+      const deployment = await storage.getDeployment(ownerOf(req), id);
       if (!deployment) {
         return res.status(404).json({ error: "Deployment not found" });
       }
@@ -251,16 +259,16 @@ export async function registerRoutes(
           deployment.host ?? "unit7",
         ).catch(() => {});
       }
-      await storage.deleteDeployment(id);
+      await storage.deleteDeployment(ownerOf(req), id);
       return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete deployment" });
     }
   });
 
-  app.get("/api/services", async (_req, res) => {
+  app.get("/api/services", async (req, res) => {
     try {
-      return res.json(await storage.listServices());
+      return res.json(await storage.listServices(ownerOf(req)));
     } catch (error) {
       return res.status(500).json({ error: "Failed to list services" });
     }
@@ -271,7 +279,7 @@ export async function registerRoutes(
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
-      const service = await storage.getService(id);
+      const service = await storage.getService(ownerOf(req), id);
       if (!service) return res.status(404).json({ error: "Service not found" });
       return res.json(service);
     } catch (error) {
@@ -284,7 +292,9 @@ export async function registerRoutes(
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
 
     try {
-      return res.status(201).json(await storage.createService(parsed.data));
+      return res
+        .status(201)
+        .json(await storage.createService(ownerOf(req), parsed.data));
     } catch (error) {
       return res.status(500).json({ error: "Failed to create service" });
     }
@@ -300,7 +310,11 @@ export async function registerRoutes(
     }
 
     try {
-      const service = await storage.updateService(id, parsed.data);
+      const service = await storage.updateService(
+        ownerOf(req),
+        id,
+        parsed.data,
+      );
       if (!service) return res.status(404).json({ error: "Service not found" });
       return res.json(service);
     } catch (error) {
@@ -313,7 +327,7 @@ export async function registerRoutes(
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
-      if (!(await storage.deleteService(id))) {
+      if (!(await storage.deleteService(ownerOf(req), id))) {
         return res.status(404).json({ error: "Service not found" });
       }
       return res.status(204).send();
@@ -333,6 +347,7 @@ export async function registerRoutes(
 
     try {
       const rows = await storage.listMetrics(
+        ownerOf(req),
         undefined,
         startDateForDays(days),
         new Date().toISOString(),
@@ -362,6 +377,7 @@ export async function registerRoutes(
 
     try {
       const rows = await storage.listMetrics(
+        ownerOf(req),
         type as MetricType | undefined,
         days ? startDateForDays(days) : undefined,
         days ? new Date().toISOString() : undefined,
@@ -377,7 +393,9 @@ export async function registerRoutes(
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
 
     try {
-      return res.status(201).json(await storage.createMetric(parsed.data));
+      return res
+        .status(201)
+        .json(await storage.createMetric(ownerOf(req), parsed.data));
     } catch (error) {
       return res.status(500).json({ error: "Failed to create metric" });
     }
@@ -395,7 +413,7 @@ export async function registerRoutes(
     }
 
     try {
-      return res.json(await storage.listActivity(limit));
+      return res.json(await storage.listActivity(ownerOf(req), limit));
     } catch (error) {
       return res.status(500).json({ error: "Failed to list activity" });
     }
@@ -406,7 +424,9 @@ export async function registerRoutes(
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
 
     try {
-      return res.status(201).json(await storage.createActivity(parsed.data));
+      return res
+        .status(201)
+        .json(await storage.createActivity(ownerOf(req), parsed.data));
     } catch (error) {
       return res.status(500).json({ error: "Failed to create activity" });
     }
@@ -520,15 +540,16 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard", async (_req, res) => {
+  app.get("/api/dashboard", async (req, res) => {
     try {
+      const owner = ownerOf(req);
       const startDate = startDateForDays(30);
       const [metricRows, deploymentRows, activityRows, serviceRows] =
         await Promise.all([
-          storage.listMetrics(undefined, startDate, new Date().toISOString()),
-          storage.listDeployments(),
-          storage.listActivity(8),
-          storage.listServices(),
+          storage.listMetrics(owner, undefined, startDate, new Date().toISOString()),
+          storage.listDeployments(owner),
+          storage.listActivity(owner, 8),
+          storage.listServices(owner),
         ]);
       const serviceStatus = serviceRows.reduce(
         (counts, service) => {

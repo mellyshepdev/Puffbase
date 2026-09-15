@@ -139,7 +139,7 @@ export function registerAuthRoutes(app: Express) {
         email: typeof claims.email === "string" ? claims.email : undefined,
         name: typeof claims.name === "string" ? claims.name : undefined,
       };
-      trackActivity("auth", `${claims.name || claims.email || claims.sub} signed in`, "success");
+      trackActivity(claims.sub, "auth", `${claims.name || claims.email || claims.sub} signed in`, "success");
       // `/` is the public landing page now; the console SPA lives at /console.
       res.redirect("/console");
     } catch (err) {
