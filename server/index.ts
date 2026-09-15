@@ -73,22 +73,29 @@ app.use((req, res, next) => {
 
 usageTracker(app);
 
-// Published builder sites: requests whose Host is a <PUFFBASE_DEPLOY_DOMAIN>
-// subdomain get the generated document served straight from the project row -
-// public by design (these are customer-facing pages), so this runs before the
+// Builder sites: requests whose Host is a <PUFFBASE_DEPLOY_DOMAIN> subdomain
+// resolve to the project row - live projects serve the generated document,
+// reserved-but-unpublished space shows a placeholder, unclaimed subdomains
+// 404. Public by design (customer-facing pages), so this runs before the
 // /api auth gate and never touches it.
+const SITE_PLACEHOLDER = `<!doctype html><html><head><meta charset="utf-8"><title>Site under construction</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:hsl(270 22% 6%);color:#d8cfe8;font-family:system-ui,sans-serif;text-align:center}h1{font-size:1.4rem;font-weight:600}p{color:#8a80a0;font-size:.9rem}</style></head><body><div><h1>This space is being built</h1><p>A Puffbase site is generating here. Check back shortly.</p></div></body></html>`;
+
 app.use((req, res, next) => {
   const domain = process.env.PUFFBASE_DEPLOY_DOMAIN ?? "";
   const host = req.hostname.toLowerCase();
   if (!domain || !host.endsWith(`.${domain}`)) return next();
   const subdomain = host.slice(0, -(domain.length + 1));
   void storage
-    .findPublishedSite(subdomain)
-    .then((html) => {
-      if (!html) return res.status(404).send("No site published here");
+    .findBuilderSite(subdomain)
+    .then((site) => {
+      if (!site) return res.status(404).send("No site published here");
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "public, max-age=60");
-      return res.send(html);
+      if (site.status === "live" && site.html) {
+        res.setHeader("Cache-Control", "public, max-age=60");
+        return res.send(site.html);
+      }
+      res.setHeader("Cache-Control", "no-store");
+      return res.send(SITE_PLACEHOLDER);
     })
     .catch(() => res.status(500).send("Site unavailable"));
 });

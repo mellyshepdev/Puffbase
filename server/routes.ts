@@ -669,6 +669,35 @@ export async function registerRoutes(
     }
   });
 
+  /** The node locator routes builder sites to - where this app serves them.
+   *  If locator ever migrates puffbase elsewhere this is the only thing that
+   *  needs to change (or have the migration re-register). */
+  const SITE_NODE = process.env.PUFFBASE_NODE ?? "unit7";
+  const SITE_PORT = Number(process.env.PORT ?? 5000);
+
+  /** Reserve the edge space with locator: the subdomain route exists (and
+   *  serves the placeholder) before generation finishes. Publish re-registers
+   *  idempotently, so a failure here only delays the reservation. */
+  function reserveSiteSpace(
+    subdomain: string,
+    owner: string,
+    projectId: number,
+  ): void {
+    if (!deployDomain()) return;
+    void registerDeploymentRoute({
+      name: `site-${subdomain}`,
+      subdomain,
+      host: SITE_NODE,
+      port: SITE_PORT,
+    })
+      .then((url) =>
+        storage.updateBuilderProject(owner, projectId, { url }).then(() => {}),
+      )
+      .catch((error) => {
+        console.error(`[builder] space reservation failed for ${subdomain}`, error);
+      });
+  }
+
   app.post("/api/builder/projects", async (req, res) => {
     const parsed = createProjectSchema.safeParse(req.body);
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
@@ -677,15 +706,32 @@ export async function registerRoutes(
     }
     const owner = ownerOf(req);
     try {
+      if (parsed.data.subdomain) {
+        const claimed = await storage.findBuilderSite(parsed.data.subdomain);
+        if (claimed) {
+          return res.status(409).json({ error: "Subdomain already taken" });
+        }
+      }
       const project = await storage.createBuilderProject(owner, {
         name: parsed.data.name,
         status: "generating",
         survey: JSON.stringify(parsed.data.survey),
         subdomain: parsed.data.subdomain ?? null,
       });
+      const subdomain =
+        project.subdomain ??
+        `site-${owner.replace(/[^a-z0-9]/g, "").slice(0, 8)}-${project.id}`;
+      let current = project;
+      if (!project.subdomain) {
+        current =
+          (await storage.updateBuilderProject(owner, project.id, {
+            subdomain,
+          })) ?? project;
+      }
+      reserveSiteSpace(subdomain, owner, project.id);
       void notify(`Puffbase: new site survey "${project.name}" submitted`);
       void runGeneration(project.id, owner);
-      return res.status(201).json(project);
+      return res.status(201).json(current);
     } catch {
       return res.status(500).json({ error: "Failed to create project" });
     }
@@ -794,8 +840,8 @@ export async function registerRoutes(
       const url = await registerDeploymentRoute({
         name: `site-${subdomain}`,
         subdomain,
-        host: "unit7",
-        port: Number(process.env.PORT ?? 5000),
+        host: SITE_NODE,
+        port: SITE_PORT,
       });
       const updated = await storage.updateBuilderProject(owner, id, {
         status: "live",
@@ -856,9 +902,10 @@ export async function registerRoutes(
       const project = await storage.getBuilderProject(owner, id);
       if (!project) return res.status(404).json({ error: "Project not found" });
       if (project.subdomain) {
-        await withdrawDeploymentRoute(`site-${project.subdomain}`, "unit7").catch(
-          () => {},
-        );
+        await withdrawDeploymentRoute(
+          `site-${project.subdomain}`,
+          SITE_NODE,
+        ).catch(() => {});
       }
       await storage.deleteBuilderProject(owner, id);
       return res.status(204).send();

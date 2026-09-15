@@ -116,10 +116,13 @@ export interface IStorage {
   ): Promise<BuilderRevision>;
   listBuilderRevisions(projectId: number): Promise<BuilderRevision[]>;
   deleteBuilderProject(owner: string, id: number): Promise<boolean>;
-  /** Public path: resolve a deploy-domain subdomain to its live generated
-   *  site. Deliberately unscoped - the visitor has no session. Only rows in
-   *  status "live" resolve. */
-  findPublishedSite(subdomain: string): Promise<string | undefined>;
+  /** Public path: resolve a deploy-domain subdomain to its project.
+   *  Deliberately unscoped - the visitor has no session. Returns any status
+   *  so the vhost can show a placeholder on reserved-but-unpublished space;
+   *  only "live" rows serve generated html. */
+  findBuilderSite(
+    subdomain: string,
+  ): Promise<{ status: string; html: string | null } | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -366,18 +369,15 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async findPublishedSite(subdomain: string): Promise<string | undefined> {
+  async findBuilderSite(
+    subdomain: string,
+  ): Promise<{ status: string; html: string | null } | undefined> {
     const rows = await db
-      .select({ html: builderProjects.html })
+      .select({ status: builderProjects.status, html: builderProjects.html })
       .from(builderProjects)
-      .where(
-        and(
-          eq(builderProjects.subdomain, subdomain),
-          eq(builderProjects.status, "live"),
-        ),
-      )
+      .where(eq(builderProjects.subdomain, subdomain))
       .limit(1);
-    return rows[0]?.html ?? undefined;
+    return rows[0];
   }
 }
 
