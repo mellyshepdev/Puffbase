@@ -26,21 +26,27 @@ export function serveStatic(app: Express) {
     res.sendFile(path.resolve(distPath, "landing.html"));
   });
 
-  app.use(
-    express.static(distPath, {
-      setHeaders(res, filePath) {
-        // Vite fingerprints everything under /assets/, so those are safe to
-        // cache forever. HTML is not: a cached index.html from the last deploy
-        // references hashed assets that no longer exist and the page renders
-        // as raw, unstyled markup.
-        if (/\.html?$/.test(filePath)) {
-          res.setHeader("Cache-Control", "no-cache");
-        } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        }
-      },
-    }),
-  );
+  const staticOpts: Parameters<typeof express.static>[1] = {
+    setHeaders(res, filePath) {
+      // Vite fingerprints everything under /assets/, so those are safe to
+      // cache forever. HTML is not: a cached index.html from the last deploy
+      // references hashed assets that no longer exist and the page renders
+      // as raw, unstyled markup.
+      if (/\.html?$/.test(filePath)) {
+        res.setHeader("Cache-Control", "no-cache");
+      } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      }
+    },
+  };
+
+  app.use(express.static(distPath, staticOpts));
+
+  // index.html references assets with relative "./assets/..." URLs, so a
+  // visit to /console/ (trailing slash) makes the browser request
+  // /console/assets/* - mount the same tree there too or the console
+  // renders a blank page.
+  app.use("/console", express.static(distPath, staticOpts));
 
   // fall through to index.html if the file doesn't exist
   app.use("/*path", (_req, res) => {
