@@ -40,7 +40,7 @@ interface Stats {
 }
 
 interface Repo {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   language: string | null;
@@ -48,10 +48,12 @@ interface Repo {
   forks: number;
   lastCommitMessage: string | null;
   lastCommitAt: string | null;
+  createdAt: string;
 }
 
 interface Pipeline {
   id: number;
+  repoId: number;
   repoName: string;
   branch: string;
   status: string;
@@ -63,6 +65,7 @@ interface Pipeline {
 
 interface Issue {
   id: number;
+  repoId: number;
   repoName: string;
   title: string;
   status: string;
@@ -107,6 +110,26 @@ export default function DashboardPage() {
   const [newProjectName, setNewProjectName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
+  // Real activity feed: recent repos, pipeline runs and issues for this
+  // account, merged and sorted by recency.
+  const activity = [
+    ...pipelineData.map((p) => ({
+      action: `Pipeline ${p.status}`, target: p.repoName ?? `repo #${p.repoId}`,
+      detail: `${p.commitMessage ?? p.branch ?? "run"} - ${p.status}`, time: timeAgo(p.createdAt), at: p.createdAt,
+      type: p.status === "failed" ? "issue" : p.status === "success" ? "deploy" : "pipeline",
+    })),
+    ...issueData.map((i) => ({
+      action: `Issue ${i.status === "open" ? "opened" : i.status}`, target: i.repoName ?? `repo #${i.repoId}`,
+      detail: i.title, time: timeAgo(i.createdAt), at: i.createdAt, type: "issue",
+    })),
+    ...repos.map((r) => ({
+      action: "Repository", target: r.name,
+      detail: r.description || "added to your account", time: timeAgo(r.createdAt), at: r.createdAt, type: "push",
+    })),
+  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 5);
+  const [accountName, setAccountName] = useState<string>("");
+  const [repoMenu, setRepoMenu] = useState<string | null>(null);
+
   const notify = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2600);
@@ -116,15 +139,36 @@ export default function DashboardPage() {
     e.preventDefault();
     const name = newProjectName.trim();
     if (!name) return;
-    await fetch("/api/repos", {
+    const res = await fetch("/api/repos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
-    }).catch(() => {});
+    }).catch(() => null);
     setCreateOpen(false);
     setNewProjectName("");
-    notify(`${name} created`);
+    if (res?.ok) {
+      notify(`${name} created`);
+      loadRepos();
+    } else {
+      const data = await res?.json().catch(() => ({}));
+      notify(data?.error ?? `Could not create ${name}`);
+    }
   };
+
+  const deleteRepo = async (repo: Repo) => {
+    setRepoMenu(null);
+    if (!window.confirm(`Delete ${repo.name}? The repository is removed permanently.`)) return;
+    const res = await fetch(`/api/repos?id=${repo.id}`, { method: "DELETE" });
+    if (res.ok) {
+      notify(`${repo.name} deleted`);
+      loadRepos();
+    } else {
+      notify(`Could not delete ${repo.name}`);
+    }
+  };
+
+  const loadRepos = () =>
+    fetch("/api/repos").then((r) => r.json()).then((r) => setRepos((r ?? []).slice(0, 5)));
 
   useEffect(() => {
     Promise.all([
@@ -132,13 +176,16 @@ export default function DashboardPage() {
       fetch("/api/repos").then((r) => r.json()),
       fetch("/api/pipelines").then((r) => r.json()),
       fetch("/api/issues").then((r) => r.json()),
-    ]).then(([s, r, p, i]) => {
+      fetch("/api/accounts").then((r) => r.json()),
+    ]).then(([s, r, p, i, a]) => {
       setStats(s);
-      setRepos(r.slice(0, 5));
-      setPipelineData(p.slice(0, 5));
-      setIssueData(i.slice(0, 5));
+      setRepos((r ?? []).slice(0, 5));
+      setPipelineData((p ?? []).slice(0, 5));
+      setIssueData((i ?? []).slice(0, 5));
+      setAccountName(a.active?.name ?? "");
       setLoading(false);
     });
+    if (new URLSearchParams(window.location.search).has("new")) setCreateOpen(true);
   }, []);
 
   if (loading) {
@@ -181,15 +228,15 @@ export default function DashboardPage() {
         <div>
           <div className="eyebrow"><span className="pulse-dot" /> ALL SYSTEMS OPERATIONAL</div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3 mt-1.5">
-            <span className="glow-text">Good morning, slime_dev</span>
+            <span className="glow-text">Good morning, {accountName || "there"}</span>
             <span className="wave">✦</span>
           </h1>
           <p className="text-sm text-[#7a6b9d] mt-1">Here&apos;s what&apos;s moving across your workspace today.</p>
         </div>
         <div className="heading-actions">
-          <button className="button secondary" onClick={() => notify("Import flow opened")}>
+          <Link className="button secondary" href="/integrations">
             <FolderGit2 className="w-4 h-4" /> Import repo
-          </button>
+          </Link>
           <button className="button primary" onClick={() => setCreateOpen(true)}>
             <Plus className="w-4 h-4" /> New project
           </button>
@@ -246,7 +293,25 @@ export default function DashboardPage() {
               <article className="project-card" key={repo.id}>
                 <div className="project-card-top">
                   <div className="large-favicon">{repo.name.slice(0, 2).toUpperCase()}</div>
-                  <button className="dots-button" onClick={() => notify(`${repo.name} actions opened`)} aria-label={`More actions for ${repo.name}`}>⋯</button>
+                  <div className="relative">
+                    <button
+                      className="dots-button"
+                      onClick={() => setRepoMenu(repoMenu === repo.id ? null : repo.id)}
+                      aria-label={`More actions for ${repo.name}`}
+                    >⋯</button>
+                    {repoMenu === repo.id && (
+                      <div className="absolute right-0 mt-1 w-32 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] shadow-xl overflow-hidden z-50">
+                        <Link
+                          href={`/repos/${repo.id}`}
+                          className="block px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white"
+                        >Open</Link>
+                        <button
+                          onClick={() => deleteRepo(repo)}
+                          className="block w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-[var(--color-dark-hover)]"
+                        >Delete</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="project-title-row">
                   <h3><Link href={`/repos/${repo.id}`}>{repo.name}</Link></h3>
@@ -280,9 +345,9 @@ export default function DashboardPage() {
               <strong>Ship your next idea.</strong>
               <p>Connect a repo and go live in minutes.</p>
             </div>
-            <button onClick={() => notify("Deployment flow opened")} className="button primary workspace-open">
+            <Link href="/deploy" className="button primary workspace-open">
               Deploy <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
           </section>
 
           {/* Activity Feed */}
@@ -292,13 +357,10 @@ export default function DashboardPage() {
             Latest Activity
           </h2>
           <div className="space-y-4">
-            {[
-              { action: "Pushed to", target: "slime-ui/main", detail: "feat: dripping animation variants", time: "15m ago", type: "push" },
-              { action: "Pipeline started", target: "slime-ui/feat/glow-props", detail: "Running tests...", time: "3m ago", type: "pipeline" },
-              { action: "Deployed", target: "purple-api", detail: "api.slimegit.dev → production", time: "45m ago", type: "deploy" },
-              { action: "Issue opened", target: "ooze-auth", detail: "Session tokens not expiring", time: "1h ago", type: "issue" },
-              { action: "PR merged", target: "blob-storage", detail: "Optimize chunk deduplication", time: "2h ago", type: "merge" },
-            ].map((event, i) => (
+            {activity.length === 0 && !loading && (
+              <p className="text-xs text-[#5a4d7a]">No activity yet — create or import a repository to get started.</p>
+            )}
+            {activity.map((event, i) => (
               <div key={i} className="flex gap-3">
                 <div className="flex flex-col items-center">
                   <div
@@ -310,7 +372,7 @@ export default function DashboardPage() {
                       "bg-purple-400"
                     }`}
                   />
-                  {i < 4 && <div className="w-px flex-1 bg-[var(--color-dark-border)] mt-1" />}
+                  {i < activity.length - 1 && <div className="w-px flex-1 bg-[var(--color-dark-border)] mt-1" />}
                 </div>
                 <div className="pb-4 min-w-0">
                   <p className="text-xs">
@@ -335,9 +397,9 @@ export default function DashboardPage() {
             <h2>Keep your hands in the code.</h2>
           </div>
           <div className="code-card-actions">
-            <button className="button secondary" onClick={() => notify("Preview opened in a new tab")}>
+            <Link className="button secondary" href="/deploy">
               <ExternalLink className="w-3.5 h-3.5" /> Preview
-            </button>
+            </Link>
             <a className="button primary" href="https://puff.dashboard.prime-quality.online">
               <Code2 className="w-3.5 h-3.5" /> Open editor
             </a>

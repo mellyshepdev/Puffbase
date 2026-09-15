@@ -6,6 +6,8 @@ import {
   Search,
   Plus,
   Filter,
+  X,
+  Loader2,
   CheckCircle2,
   CircleDot,
   XCircle,
@@ -61,18 +63,50 @@ export default function IssuesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [repos, setRepos] = useState<{ id: string; name: string }[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newRepo, setNewRepo] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [newPriority, setNewPriority] = useState("medium");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
-  useEffect(() => {
+  const loadIssues = () => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (statusFilter !== "all") params.set("status", statusFilter);
-    fetch(`/api/issues?${params}`)
+    return fetch(`/api/issues?${params}`)
       .then((r) => r.json())
       .then((data) => {
-        setIssues(data);
+        setIssues(Array.isArray(data) ? data : []);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadIssues();
+    fetch("/api/repos").then((r) => r.json()).then((d) => setRepos(Array.isArray(d) ? d : []));
   }, [search, statusFilter]);
+
+  const createIssue = async () => {
+    setCreating(true);
+    setCreateError("");
+    const res = await fetch("/api/issues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repoId: newRepo, title: newTitle, body: newBody, priority: newPriority }),
+    });
+    setCreating(false);
+    if (res.ok) {
+      setCreateOpen(false);
+      setNewTitle(""); setNewBody(""); setNewRepo("");
+      loadIssues();
+    } else {
+      const d = await res.json();
+      setCreateError(d?.error ?? "Could not create issue");
+    }
+  };
 
   const openCount = issues.filter((i) => i.status === "open").length;
   const closedCount = issues.filter((i) => i.status === "closed").length;
@@ -90,7 +124,7 @@ export default function IssuesPage() {
             {openCount} open · {closedCount} closed
           </p>
         </div>
-        <button className="slime-btn flex items-center gap-2">
+        <button className="slime-btn flex items-center gap-2" onClick={() => { setCreateOpen(true); setNewRepo(repos[0]?.id ?? ""); }}>
           <Plus className="w-4 h-4" />
           New Issue
         </button>
@@ -204,6 +238,55 @@ export default function IssuesPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {createOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCreateOpen(false)}>
+          <div className="slime-card p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">New issue</h3>
+              <button onClick={() => setCreateOpen(false)} className="text-[#5a4d7a] hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            {repos.length === 0 ? (
+              <p className="text-sm text-[#7a6b9d]">Create a repository first — issues live on repos.</p>
+            ) : (
+              <div className="space-y-3">
+                <select
+                  value={newRepo}
+                  onChange={(e) => setNewRepo(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white outline-none"
+                >
+                  {repos.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+                <input
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Issue title"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white placeholder-[#5a4d7a] outline-none"
+                />
+                <textarea
+                  value={newBody}
+                  onChange={(e) => setNewBody(e.target.value)}
+                  placeholder="Description (optional)"
+                  rows={3}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white placeholder-[#5a4d7a] outline-none resize-none"
+                />
+                <select
+                  value={newPriority}
+                  onChange={(e) => setNewPriority(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white outline-none"
+                >
+                  {["low", "medium", "high", "critical"].map((pr) => <option key={pr} value={pr}>{pr}</option>)}
+                </select>
+                {createError && <p className="text-xs text-red-400">{createError}</p>}
+                <button className="slime-btn w-full flex items-center justify-center gap-2" onClick={createIssue} disabled={creating || !newTitle.trim()}>
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Create issue
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

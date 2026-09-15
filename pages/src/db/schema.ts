@@ -21,6 +21,8 @@ export const repositories = pgTable("repositories", {
   defaultBranch: varchar("default_branch", { length: 100 }).default("main").notNull(),
   lastCommitMessage: text("last_commit_message"),
   lastCommitAt: timestamp("last_commit_at"),
+  /** Owning account - null on pre-account seed rows. */
+  accountId: uuid("account_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -80,4 +82,27 @@ export const accounts = pgTable("accounts", {
   businessUrl: varchar("business_url", { length: 500 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Third-party integrations (GitHub, GitLab, Linear, Notion) per account.
+// tokenEnc is AES-256-GCM with the SESSION_SECRET key - never returned by
+// the API, only decrypted server-side when calling the provider.
+export const integrations = pgTable("integrations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: uuid("account_id").notNull(),
+  provider: varchar("provider", { length: 20 }).notNull(),
+  tokenEnc: text("token_enc").notNull(),
+  externalName: varchar("external_name", { length: 255 }),
+  meta: jsonb("meta").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Groups = teams inside an account (business accounts especially).
+export const groups = pgTable("groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: uuid("account_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });

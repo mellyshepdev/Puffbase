@@ -1,41 +1,56 @@
 import { db } from "@/db";
 import { repositories, issues, pipelines, deployments } from "@/db/schema";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { currentAccount } from "@/lib/accounts";
 
+// Stats for the ACTIVE account only - joins through repositories so demo
+// rows (account_id null) and other accounts' data never leak in.
 export async function GET() {
+  const ctx = await currentAccount();
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const acct = ctx.account.id;
+
   try {
     const [repoCount] = await db
       .select({ count: sql<number>`count(*)::int` })
-      .from(repositories);
+      .from(repositories)
+      .where(eq(repositories.accountId, acct));
 
     const [openIssues] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(issues)
-      .where(eq(issues.status, "open"));
+      .leftJoin(repositories, eq(issues.repoId, repositories.id))
+      .where(and(eq(issues.status, "open"), eq(repositories.accountId, acct)));
 
     const [totalStars] = await db
       .select({ sum: sql<number>`coalesce(sum(${repositories.stars}), 0)::int` })
-      .from(repositories);
+      .from(repositories)
+      .where(eq(repositories.accountId, acct));
 
     const [activePipelines] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(pipelines)
-      .where(eq(pipelines.status, "running"));
+      .leftJoin(repositories, eq(pipelines.repoId, repositories.id))
+      .where(and(eq(pipelines.status, "running"), eq(repositories.accountId, acct)));
 
     const [totalPipelines] = await db
       .select({ count: sql<number>`count(*)::int` })
-      .from(pipelines);
+      .from(pipelines)
+      .leftJoin(repositories, eq(pipelines.repoId, repositories.id))
+      .where(eq(repositories.accountId, acct));
 
     const [successPipelines] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(pipelines)
-      .where(eq(pipelines.status, "success"));
+      .leftJoin(repositories, eq(pipelines.repoId, repositories.id))
+      .where(and(eq(pipelines.status, "success"), eq(repositories.accountId, acct)));
 
     const [activeDeployments] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(deployments)
-      .where(eq(deployments.status, "active"));
+      .leftJoin(repositories, eq(deployments.repoId, repositories.id))
+      .where(and(eq(deployments.status, "active"), eq(repositories.accountId, acct)));
 
     return NextResponse.json({
       repos: repoCount.count,

@@ -16,6 +16,7 @@ import {
   ArrowUpRight,
   Plus,
   RefreshCw,
+  X,
 } from "lucide-react";
 
 interface Deployment {
@@ -61,17 +62,47 @@ export default function DeployPage() {
   const [loading, setLoading] = useState(true);
   const [envFilter, setEnvFilter] = useState("all");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [repos, setRepos] = useState<{ id: string; name: string }[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newRepo, setNewRepo] = useState("");
+  const [newEnv, setNewEnv] = useState("production");
+  const [newBranch, setNewBranch] = useState("main");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
-  useEffect(() => {
+  const loadDeployments = () => {
     const params = new URLSearchParams();
     if (envFilter !== "all") params.set("environment", envFilter);
-    fetch(`/api/deployments?${params}`)
+    return fetch(`/api/deployments?${params}`)
       .then((r) => r.json())
       .then((data) => {
-        setDeployments(data);
+        setDeployments(Array.isArray(data) ? data : []);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadDeployments();
+    fetch("/api/repos").then((r) => r.json()).then((d) => setRepos(Array.isArray(d) ? d : []));
   }, [envFilter]);
+
+  const createDeployment = async () => {
+    setCreating(true);
+    setCreateError("");
+    const res = await fetch("/api/deployments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repoId: newRepo, environment: newEnv, branch: newBranch }),
+    });
+    setCreating(false);
+    if (res.ok) {
+      setCreateOpen(false);
+      loadDeployments();
+    } else {
+      const d = await res.json();
+      setCreateError(d?.error ?? "Could not create deployment");
+    }
+  };
 
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -96,11 +127,11 @@ export default function DeployPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-[#9d8ec2] hover:text-white border border-[var(--color-dark-border)] hover:border-slime-600/30 transition-all">
+          <button onClick={() => { setLoading(true); loadDeployments(); }} className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-[#9d8ec2] hover:text-white border border-[var(--color-dark-border)] hover:border-slime-600/30 transition-all">
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </button>
-          <button className="slime-btn flex items-center gap-2">
+          <button onClick={() => { setCreateOpen(true); setNewRepo(repos[0]?.id ?? ""); }} className="slime-btn flex items-center gap-2">
             <Plus className="w-4 h-4" />
             New Deployment
           </button>
@@ -142,6 +173,48 @@ export default function DeployPage() {
           </p>
         </div>
       </div>
+
+      {createOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCreateOpen(false)}>
+          <div className="slime-card p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">New deployment</h3>
+              <button onClick={() => setCreateOpen(false)} className="text-[#5a4d7a] hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            {repos.length === 0 ? (
+              <p className="text-sm text-[#7a6b9d]">Create a repository first — deployments attach to repos.</p>
+            ) : (
+              <div className="space-y-3">
+                <select
+                  value={newRepo}
+                  onChange={(e) => setNewRepo(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white outline-none"
+                >
+                  {repos.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+                <select
+                  value={newEnv}
+                  onChange={(e) => setNewEnv(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white outline-none"
+                >
+                  {["production", "staging", "preview"].map((env) => <option key={env} value={env}>{env}</option>)}
+                </select>
+                <input
+                  value={newBranch}
+                  onChange={(e) => setNewBranch(e.target.value)}
+                  placeholder="Branch"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white placeholder-[#5a4d7a] outline-none"
+                />
+                {createError && <p className="text-xs text-red-400">{createError}</p>}
+                <button className="slime-btn w-full flex items-center justify-center gap-2" onClick={createDeployment} disabled={creating || !newRepo}>
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                  Deploy
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Environment filter */}
       <div className="flex items-center gap-2">

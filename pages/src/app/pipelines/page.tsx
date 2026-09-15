@@ -15,6 +15,7 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 
 interface Pipeline {
@@ -92,6 +93,12 @@ export default function PipelinesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [repos, setRepos] = useState<{ id: string; name: string }[]>([]);
+  const [runOpen, setRunOpen] = useState(false);
+  const [runRepo, setRunRepo] = useState("");
+  const [runBranch, setRunBranch] = useState("main");
+  const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -99,10 +106,35 @@ export default function PipelinesPage() {
     fetch(`/api/pipelines?${params}`)
       .then((r) => r.json())
       .then((data) => {
-        setPipelines(data);
+        setPipelines(Array.isArray(data) ? data : []);
         setLoading(false);
       });
   }, [statusFilter]);
+
+  useEffect(() => {
+    fetch("/api/repos").then((r) => r.json()).then((d) => setRepos(Array.isArray(d) ? d : []));
+  }, []);
+
+  const runPipeline = async () => {
+    setRunning(true);
+    setRunError("");
+    const res = await fetch("/api/pipelines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repoId: runRepo, branch: runBranch }),
+    });
+    setRunning(false);
+    if (res.ok) {
+      setRunOpen(false);
+      setStatusFilter((f) => f); // retrigger list
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      fetch(`/api/pipelines?${params}`).then((r) => r.json()).then((d) => setPipelines(Array.isArray(d) ? d : []));
+    } else {
+      const d = await res.json();
+      setRunError(d?.error ?? "Could not start pipeline");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -119,7 +151,7 @@ export default function PipelinesPage() {
             {pipelines.filter((p) => p.status === "failed").length} failed
           </p>
         </div>
-        <button className="slime-btn flex items-center gap-2">
+        <button className="slime-btn flex items-center gap-2" onClick={() => { setRunOpen(true); setRunRepo(repos[0]?.id ?? ""); }}>
           <Zap className="w-4 h-4" />
           Run Pipeline
         </button>

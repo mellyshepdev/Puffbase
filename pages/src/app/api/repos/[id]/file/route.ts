@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "drizzle-orm";
+import { db } from "@/db";
+import { repositories } from "@/db/schema";
+import { currentAccount } from "@/lib/accounts";
+import { repoRead, repoWrite } from "@/lib/repostore";
+
+async function repoFor(id: string, accountId: string) {
+  const [row] = await db
+    .select()
+    .from(repositories)
+    .where(sql`${repositories.id}::text = ${id}`);
+  if (!row || row.accountId !== accountId) return null;
+  return row;
+}
+
+// GET /api/repos/[id]/file?path=x - read one file
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const ctx = await currentAccount();
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const row = await repoFor((await params).id, ctx.account.id);
+  if (!row) return NextResponse.json({ error: "Repo not found" }, { status: 404 });
+  const path = req.nextUrl.searchParams.get("path") ?? "";
+  try {
+    return NextResponse.json(await repoRead(ctx.account.id, row.name, path));
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 404 });
+  }
+}
+
+// PUT /api/repos/[id]/file { path, content, sha?, message? } - commit a write
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const ctx = await currentAccount();
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const row = await repoFor((await params).id, ctx.account.id);
+  if (!row) return NextResponse.json({ error: "Repo not found" }, { status: 404 });
+  const { path, content, sha, message } = await req.json().catch(() => ({}));
+  if (typeof path !== "string" || typeof content !== "string") {
+    return NextResponse.json({ error: "path and content required" }, { status: 400 });
+  }
+  try {
+    await repoWrite(ctx.account.id, row.name, path, { content, sha, message });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 400 });
+  }
+}

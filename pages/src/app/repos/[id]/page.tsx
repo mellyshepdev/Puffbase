@@ -40,216 +40,40 @@ interface Repo {
 interface FileNode {
   name: string;
   type: "file" | "folder";
+  path?: string;
+  sha?: string;
   children?: FileNode[];
   content?: string;
   language?: string;
 }
 
-const sampleFiles: FileNode[] = [
-  {
-    name: "src",
-    type: "folder",
-    children: [
-      {
-        name: "components",
-        type: "folder",
-        children: [
-          {
-            name: "Button.tsx",
-            type: "file",
-            language: "TypeScript",
-            content: `import React from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils';
-
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all',
-  {
-    variants: {
-      variant: {
-        default: 'bg-slime-600 text-white hover:bg-slime-500 shadow-lg shadow-slime-900/30',
-        outline: 'border border-slime-600 text-slime-300 hover:bg-slime-900/30',
-        ghost: 'text-slime-300 hover:bg-slime-900/20',
-      },
-      size: {
-        sm: 'h-8 px-3 text-xs',
-        md: 'h-10 px-4',
-        lg: 'h-12 px-6 text-base',
-      },
-      glow: {
-        none: '',
-        low: 'hover:shadow-slime-500/20',
-        medium: 'hover:shadow-slime-500/40',
-        high: 'shadow-slime-500/30 hover:shadow-slime-500/60',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'md',
-      glow: 'none',
-    },
+/** Build the nested file tree from the flat {path,type} list the API returns. */
+function buildTree(entries: { path: string; type: string }[]): FileNode[] {
+  const root: FileNode[] = [];
+  for (const e of entries) {
+    const parts = e.path.split("/");
+    let level = root;
+    for (let i = 0; i < parts.length; i++) {
+      const isLast = i === parts.length - 1;
+      const name = parts[i];
+      let node = level.find((n) => n.name === name);
+      if (!node) {
+        node = isLast && e.type === "file"
+          ? { name, type: "file", path: e.path }
+          : { name, type: "folder", children: [], path: parts.slice(0, i + 1).join("/") };
+        level.push(node);
+      }
+      if (node.children) level = node.children;
+    }
   }
-);
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-  VariantProps<typeof buttonVariants> {
-  isLoading?: boolean;
+  const sortLevel = (list: FileNode[]) => {
+    list.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === "folder" ? -1 : 1));
+    list.forEach((n) => n.children && sortLevel(n.children));
+  };
+  sortLevel(root);
+  return root;
 }
 
-export function Button({ className, variant, size, glow, isLoading, children, ...props }: ButtonProps) {
-  return (
-    <button
-      className={cn(buttonVariants({ variant, size, glow }), className)}
-      disabled={isLoading}
-      {...props}
-    >
-      {isLoading ? (
-        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-      ) : null}
-      {children}
-    </button>
-  );
-}`,
-          },
-          {
-            name: "SlimeCard.tsx",
-            type: "file",
-            language: "TypeScript",
-            content: `import React from 'react';
-
-interface SlimeCardProps {
-  children: React.ReactNode;
-  className?: string;
-  drip?: boolean;
-}
-
-export function SlimeCard({ children, className = '', drip = true }: SlimeCardProps) {
-  return (
-    <div className={\`relative overflow-hidden rounded-xl border border-slate-800
-      bg-gradient-to-br from-slate-900 to-purple-950/30
-      transition-all hover:border-purple-600/30 hover:shadow-xl
-      hover:shadow-purple-500/10 \${className}\`}>
-      {drip && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-700 via-purple-500 to-purple-700 animate-shimmer" />
-      )}
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}`,
-          },
-        ],
-      },
-      {
-        name: "lib",
-        type: "folder",
-        children: [
-          {
-            name: "utils.ts",
-            type: "file",
-            language: "TypeScript",
-            content: `import { type ClassValue, clsx } from 'clsx';
-
-export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
-}
-
-export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}`,
-          },
-        ],
-      },
-      {
-        name: "index.ts",
-        type: "file",
-        language: "TypeScript",
-        content: `export { Button } from './components/Button';
-export { SlimeCard } from './components/SlimeCard';
-export * from './lib/utils';`,
-      },
-    ],
-  },
-  {
-    name: "package.json",
-    type: "file",
-    language: "JSON",
-    content: `{
-  "name": "slime-ui",
-  "version": "2.4.0",
-  "description": "A gooey component library with purple slime aesthetics",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "test": "vitest",
-    "lint": "eslint src --ext .ts,.tsx"
-  },
-  "dependencies": {
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.0.0"
-  }
-}`,
-  },
-  {
-    name: "tsconfig.json",
-    type: "file",
-    language: "JSON",
-    content: `{
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "lib": ["ES2020", "DOM"],
-    "jsx": "react-jsx",
-    "strict": true,
-    "esModuleInterop": true,
-    "moduleResolution": "bundler",
-    "outDir": "dist",
-    "declaration": true
-  },
-  "include": ["src/**/*"]
-}`,
-  },
-  {
-    name: "README.md",
-    type: "file",
-    language: "Markdown",
-    content: `# 🟣 Slime UI
-
-A gooey component library with purple slime aesthetics and fluid animations.
-
-## Installation
-
-\`\`\`bash
-npm install slime-ui
-\`\`\`
-
-## Usage
-
-\`\`\`tsx
-import { Button, SlimeCard } from 'slime-ui';
-
-function App() {
-  return (
-    <SlimeCard>
-      <h2>Welcome to Slime UI</h2>
-      <Button variant="default" glow="high">
-        Click Me
-      </Button>
-    </SlimeCard>
-  );
-}
-\`\`\`
-
-## License
-
-MIT © SlimeGit`,
-  },
-];
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -305,7 +129,7 @@ function FileTreeItem({
     <button
       onClick={() => onSelect(node)}
       className={`flex items-center gap-1.5 w-full px-2 py-1 text-xs rounded transition-colors ${
-        selected === node.name
+        selected === node.path
           ? "text-slime-300 bg-slime-700/20 border border-slime-700/30"
           : "text-[#7a6b9d] hover:text-white hover:bg-[var(--color-dark-hover)] border border-transparent"
       }`}
@@ -326,27 +150,65 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
   const [editedContent, setEditedContent] = useState("");
   const [activeTab, setActiveTab] = useState<"code" | "commits">("code");
 
-  useEffect(() => {
-    fetch(`/api/repos?search=`)
+  const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [treeLoading, setTreeLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const loadTree = () => {
+    setTreeLoading(true);
+    fetch(`/api/repos/${id}/tree`)
       .then((r) => r.json())
+      .then((data) => setFileTree(buildTree(data.tree ?? [])))
+      .catch(() => {})
+      .finally(() => setTreeLoading(false));
+  };
+
+  useEffect(() => {
+    fetch(`/api/repos/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        const found = data.find((r: Repo) => r.id === parseInt(id));
-        setRepo(found || null);
+        setRepo(data);
         setLoading(false);
+        if (data) loadTree();
       });
   }, [id]);
 
   const handleSelectFile = (file: FileNode) => {
-    setSelectedFile(file);
-    setEditedContent(file.content || "");
+    setSaveError(null);
     setEditMode(false);
+    if (!file.path) return;
+    setSelectedFile({ ...file, content: undefined });
+    fetch(`/api/repos/${id}/file?path=${encodeURIComponent(file.path)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) {
+          setSelectedFile({ ...file, content: data.content, sha: data.sha });
+          setEditedContent(data.content);
+        }
+      })
+      .catch(() => {});
   };
 
-  const handleSave = () => {
-    if (selectedFile) {
-      selectedFile.content = editedContent;
+  const handleSave = async () => {
+    if (!selectedFile?.path) return;
+    setSaving(true);
+    setSaveError(null);
+    const res = await fetch(`/api/repos/${id}/file`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: selectedFile.path, content: editedContent, sha: selectedFile.sha }),
+    });
+    if (res.ok) {
+      const fresh = await fetch(
+        `/api/repos/${id}/file?path=${encodeURIComponent(selectedFile.path)}`,
+      ).then((r) => r.json());
+      setSelectedFile({ ...selectedFile, content: editedContent, sha: fresh.sha });
+      setEditMode(false);
+    } else {
+      setSaveError("Save failed - commit rejected");
     }
-    setEditMode(false);
+    setSaving(false);
   };
 
   if (loading) {
@@ -449,14 +311,20 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
             <p className="text-[10px] font-semibold text-[#5a4d7a] uppercase tracking-widest mb-2 px-2">
               Files
             </p>
-            {sampleFiles.map((node) => (
-              <FileTreeItem
-                key={node.name}
-                node={node}
-                onSelect={handleSelectFile}
-                selected={selectedFile?.name || null}
-              />
-            ))}
+            {treeLoading ? (
+              <p className="text-xs text-[#5a4d7a] px-2 py-2">Loading files…</p>
+            ) : fileTree.length === 0 ? (
+              <p className="text-xs text-[#5a4d7a] px-2 py-2">Empty repository.</p>
+            ) : (
+              fileTree.map((node) => (
+                <FileTreeItem
+                  key={node.path ?? node.name}
+                  node={node}
+                  onSelect={handleSelectFile}
+                  selected={selectedFile?.path || null}
+                />
+              ))
+            )}
           </div>
 
           {/* Editor/Viewer */}
@@ -479,9 +347,10 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                       <>
                         <button
                           onClick={handleSave}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-600/20 text-green-400 text-xs hover:bg-green-600/30 transition-colors"
+                          disabled={saving}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-600/20 text-green-400 text-xs hover:bg-green-600/30 transition-colors disabled:opacity-50"
                         >
-                          <Save className="w-3 h-3" /> Save
+                          <Save className="w-3 h-3" /> {saving ? "Saving…" : "Save"}
                         </button>
                         <button
                           onClick={() => setEditMode(false)}
@@ -502,6 +371,11 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 {/* Code content */}
+                {saveError && (
+                  <div className="px-4 py-1.5 text-xs text-red-400 bg-red-500/10 border-b border-red-500/20">
+                    {saveError}
+                  </div>
+                )}
                 {editMode ? (
                   <textarea
                     value={editedContent}

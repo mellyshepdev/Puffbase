@@ -78,10 +78,10 @@ export default function ReposPage() {
           </h1>
           <p className="text-sm text-[#7a6b9d] mt-1">{repos.length} repositories</p>
         </div>
-        <button className="slime-btn flex items-center gap-2">
+        <Link href="/?new=1" className="slime-btn flex items-center gap-2">
           <Plus className="w-4 h-4" />
           New Repository
-        </button>
+        </Link>
       </div>
 
       {/* Search and Filters */}

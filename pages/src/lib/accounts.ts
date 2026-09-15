@@ -52,3 +52,14 @@ export async function sessionWithAccount(
 ): Promise<string> {
   return sign({ ...session, accountId });
 }
+
+/** Route-handler helper: the signed-in user + their active account, or null. */
+export async function currentAccount(): Promise<{
+  user: SessionUser;
+  account: Account;
+} | null> {
+  const user = await sessionUser();
+  if (!user) return null;
+  const list = await getOrCreateAccounts(user.sub, user.name ?? user.email ?? "Personal");
+  return { user, account: activeAccount(list, user) };
+}

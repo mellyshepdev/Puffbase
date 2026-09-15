@@ -1,36 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { Users, Plus, X, ArrowRight, Crown, ShieldCheck, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Users, Plus, X, ArrowRight, Crown } from "lucide-react";
 
 interface Group {
+  id: string;
   name: string;
-  desc: string;
-  members: number;
-  repos: number;
-  role: "owner" | "admin" | "member";
+  description: string | null;
 }
 
-const initialGroups: Group[] = [
-  { name: "core-team", desc: "Platform engineers — full access to all repos and pipelines.", members: 6, repos: 14, role: "owner" },
-  { name: "frontend", desc: "UI squad — slime-ui, landing pages, design system.", members: 4, repos: 5, role: "admin" },
-  { name: "contractors", desc: "External contributors — scoped repo access only.", members: 9, repos: 3, role: "member" },
-];
-
-const roleIcon = { owner: Crown, admin: ShieldCheck, member: User };
-
 export default function GroupsPage() {
-  const [groups, setGroups] = useState<Group[]>(initialGroups);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const create = (e: React.FormEvent) => {
+  const load = () =>
+    fetch("/api/groups")
+      .then((r) => r.json())
+      .then((r) => setGroups(r.groups ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const create = async (e: React.FormEvent) => {
     e.preventDefault();
     const n = name.trim();
     if (!n) return;
-    setGroups((g) => [...g, { name: n, desc: "", members: 1, repos: 0, role: "owner" }]);
-    setOpen(false);
-    setName("");
+    const res = await fetch("/api/groups", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: n }),
+    });
+    if (res.ok) {
+      setOpen(false);
+      setName("");
+      setError(null);
+      load();
+    } else {
+      setError("Could not create group");
+    }
   };
 
   return (
@@ -39,7 +53,7 @@ export default function GroupsPage() {
         <div>
           <div className="eyebrow"><span className="pulse-dot" /> TEAMS & ACCESS</div>
           <h1 className="text-2xl font-bold text-white mt-1.5"><span className="glow-text">Groups</span></h1>
-          <p className="text-sm text-[#7a6b9d] mt-1">Teams map to Gitea organizations — members inherit repo and pipeline access.</p>
+          <p className="text-sm text-[#7a6b9d] mt-1">Teams share repo and pipeline access inside this account.</p>
         </div>
         <button className="button primary" onClick={() => setOpen(true)}>
           <Plus className="w-4 h-4" /> New group
@@ -47,28 +61,27 @@ export default function GroupsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {groups.map((g) => {
-          const RoleIcon = roleIcon[g.role];
-          return (
-            <article key={g.name} className="project-card">
+        {loading ? (
+          <p className="text-sm text-[#7a6b9d]">Loading…</p>
+        ) : groups.length === 0 ? (
+          <p className="text-sm text-[#7a6b9d] col-span-full">No groups yet — create one for your team.</p>
+        ) : (
+          groups.map((g) => (
+            <article key={g.id} className="project-card">
               <div className="project-card-top">
                 <div className="large-favicon"><Users className="w-4 h-4" /></div>
-                <span className="visibility public flex items-center gap-1"><RoleIcon className="w-3 h-3" />{g.role}</span>
+                <span className="visibility public flex items-center gap-1"><Crown className="w-3 h-3" />owner</span>
               </div>
               <div className="project-title-row"><h3>{g.name}</h3></div>
-              <p>{g.desc || "No description yet."}</p>
-              <div className="project-meta">
-                <span>{g.members} member{g.members !== 1 ? "s" : ""}</span>
-                <span>{g.repos} repo{g.repos !== 1 ? "s" : ""}</span>
-              </div>
+              <p>{g.description || "No description yet."}</p>
               <div className="project-divider" />
               <div className="project-footer">
                 <span className="deploy-state live"><i />Active</span>
-                <button className="open-project ml-auto" aria-label={`Open ${g.name}`}><ArrowRight className="w-4 h-4" /></button>
+                <Link href="/repos" className="open-project ml-auto" aria-label={`Open ${g.name} repositories`}><ArrowRight className="w-4 h-4" /></Link>
               </div>
             </article>
-          );
-        })}
+          ))
+        )}
       </div>
 
       {open && (
@@ -78,8 +91,9 @@ export default function GroupsPage() {
             <div className="modal-icon"><Users className="w-5 h-5" /></div>
             <div className="section-eyebrow">NEW TEAM</div>
             <h2>Create a group</h2>
-            <p>Groups become organizations in Gitea and clearance tiers in Keycloak.</p>
+            <p>Groups organize repo and pipeline access for this account.</p>
             <form onSubmit={create}>
+              {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
               <label>Group name
                 <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. data-team" />
               </label>

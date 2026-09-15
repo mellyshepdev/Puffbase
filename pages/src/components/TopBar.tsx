@@ -114,22 +114,22 @@ export function TopBar() {
       {/* Right section */}
       <div className="flex items-center gap-4 ml-6">
         {/* New button */}
-        <button className="slime-btn flex items-center gap-2 text-sm py-2 px-4">
+        <Link href="/?new=1" className="slime-btn flex items-center gap-2 text-sm py-2 px-4">
           <Plus className="w-4 h-4" />
           <span>New</span>
-        </button>
+        </Link>
 
-        {/* Notifications */}
-        <button className="relative p-2 rounded-lg text-[#9d8ec2] hover:text-white hover:bg-[var(--color-dark-hover)] transition-all">
+        {/* Notifications -> status feed */}
+        <Link href="/status" className="relative p-2 rounded-lg text-[#9d8ec2] hover:text-white hover:bg-[var(--color-dark-hover)] transition-all">
           <Bell className="w-5 h-5" />
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-slime-500 rounded-full border-2 border-[var(--color-dark-surface)]" />
-        </button>
+        </Link>
 
-        {/* Branch indicator */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-dark-card)] border border-[var(--color-dark-border)] text-xs text-[#9d8ec2]">
+        {/* Branch indicator -> repos */}
+        <Link href="/repos" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-dark-card)] border border-[var(--color-dark-border)] text-xs text-[#9d8ec2] hover:text-white transition-all">
           <GitBranch className="w-3.5 h-3.5 text-slime-400" />
           <span>main</span>
-        </div>
+        </Link>
 
         {/* Divider */}
         <div className="w-px h-8 bg-[var(--color-dark-border)]" />

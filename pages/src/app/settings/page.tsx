@@ -79,6 +79,26 @@ export default function SettingsPage() {
     if (res.ok) load();
   };
 
+  const deleteWorkspace = async () => {
+    if (!active) return;
+    if (accounts.length <= 1) {
+      setError("You can't delete your only account");
+      return;
+    }
+    if (!window.confirm(`Delete ${active.name}? Its repositories and settings will be removed.`)) return;
+    const res = await fetch("/api/accounts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: active.id }),
+    });
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const d = await res.json();
+      setError(d?.error ?? "Could not delete workspace");
+    }
+  };
+
   const switchTo = async (id: string) => {
     if (id === active?.id) return;
     const res = await fetch("/api/accounts/switch", {
@@ -231,7 +251,9 @@ export default function SettingsPage() {
           {saved ? "Saved" : "Save changes"}
         </button>
         {error && <span className="text-xs text-red-400">{error}</span>}
-        <button className="button danger inline-flex items-center gap-2"><Trash2 className="w-4 h-4" /> Delete workspace</button>
+        <button className="button danger inline-flex items-center gap-2" onClick={deleteWorkspace} disabled={accounts.length <= 1}>
+          <Trash2 className="w-4 h-4" /> Delete workspace
+        </button>
       </div>
     </div>
   );
