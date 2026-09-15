@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/ThemeProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth, logoutUrl } from "@/lib/auth";
 import { StatusDot } from "@/components/kit";
 
 const NOTIFICATIONS = [
@@ -24,10 +25,17 @@ const NOTIFICATIONS = [
   { id: 3, text: "residue-analytics health check failed", tone: "failed", when: "1h" },
 ];
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   const { theme, toggle } = useTheme();
   const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
   const [query, setQuery] = useState("");
+  const userLabel = user?.name || user?.email || "Signed in";
 
   return (
     <header
@@ -141,11 +149,55 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
-        <Avatar className="h-8 w-8 border border-primary/40" data-testid="img-avatar">
-          <AvatarFallback className="bg-primary/20 font-mono text-[11px] text-primary">
-            MV
-          </AvatarFallback>
-        </Avatar>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="rounded-full hover-elevate"
+              data-testid="button-avatar-menu"
+              aria-label="Account menu"
+              title={userLabel}
+            >
+              <Avatar className="h-8 w-8 border border-primary/40" data-testid="img-avatar">
+                <AvatarFallback className="bg-primary/20 font-mono text-[11px] text-primary">
+                  {initials(userLabel)}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              {user?.email ?? userLabel}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => (window.location.hash = "#/account")}
+              data-testid="menu-item-dashboard"
+            >
+              User dashboard
+            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem
+                onSelect={() => (window.location.hash = "#/")}
+                data-testid="menu-item-admin"
+              >
+                Admin dashboard
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onSelect={() => (window.location.hash = "#/settings")}
+              data-testid="menu-item-settings"
+            >
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => (window.location.href = logoutUrl)}
+              data-testid="menu-item-sign-out"
+            >
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

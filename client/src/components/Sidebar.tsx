@@ -172,7 +172,7 @@ function initials(name: string) {
 }
 
 function UserCard() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [, navigate] = useLocation();
   const label = user?.name || user?.email || "Signed in";
 
@@ -205,8 +205,13 @@ function UserCard() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => navigate("/account")}>
-              My dashboard
+              User dashboard
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onSelect={() => navigate("/")}>
+                Admin dashboard
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={() => navigate("/settings")}>
               Settings
             </DropdownMenuItem>
