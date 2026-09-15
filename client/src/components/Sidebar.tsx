@@ -3,6 +3,7 @@ import {
   Activity as ActivityIcon,
   BarChart3,
   Boxes,
+  FileCode,
   LayoutDashboard,
   LogOut,
   Rocket,
@@ -34,6 +35,7 @@ export const NAV_ITEMS = [
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
   { title: "Site Builder", url: "/builder", icon: Sparkles },
+  { title: "Documents", url: "/documents", icon: FileCode },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;

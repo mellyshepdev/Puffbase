@@ -93,7 +93,7 @@ const STEPS: StepDef[] = [
     selector: '[data-testid="link-nav-overview"]',
     on: "right",
     title: "🧭 Navigation",
-    text: "Everything you just saw lives one click away in this sidebar — Overview, Deployments, Services, Site Builder, Analytics, Settings.",
+    text: "Everything you just saw lives one click away in this sidebar — Overview, Deployments, Services, Site Builder, Documents, Analytics, Settings.",
   },
   {
     id: "usage",

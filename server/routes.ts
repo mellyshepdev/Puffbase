@@ -14,6 +14,15 @@ import {
   type DeploymentStatus,
   type MetricType,
 } from "./storage";
+import {
+  createDocument,
+  deleteDocument,
+  docDeleteFile,
+  docRead,
+  docTree,
+  docWrite,
+  listDocuments,
+} from "./gitspace";
 import { linearConfigured, listLinearIssues } from "./linear";
 import { generateSite, reviseSite } from "./builder";
 import { llmConfigured, llmModel } from "./llm";
@@ -441,6 +450,112 @@ export async function registerRoutes(
         .json(await storage.createActivity(ownerOf(req), parsed.data));
     } catch (error) {
       return res.status(500).json({ error: "Failed to create activity" });
+    }
+  });
+
+  /* ---- documents: each account's private file space. Every call resolves
+   *  the document name through the caller's own prefix inside gitspace, so
+   *  these routes never hand a name straight through to storage. ---- */
+
+  const docName = (req: Request) => String(req.params.doc);
+  const docFilePath = (req: Request) =>
+    typeof req.query.path === "string" ? req.query.path : "";
+
+  app.get("/api/documents", async (req, res) => {
+    try {
+      return res.json(await listDocuments(ownerOf(req)));
+    } catch {
+      return res.status(502).json({ error: "Failed to list documents" });
+    }
+  });
+
+  app.post("/api/documents", async (req, res) => {
+    const parsed = z
+      .object({ name: z.string().min(1).max(51) })
+      .strict()
+      .safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    try {
+      return res
+        .status(201)
+        .json(await createDocument(ownerOf(req), parsed.data.name));
+    } catch {
+      return res.status(502).json({ error: "Failed to create document" });
+    }
+  });
+
+  app.delete("/api/documents/:doc", async (req, res) => {
+    try {
+      await deleteDocument(ownerOf(req), docName(req));
+      return res.status(204).send();
+    } catch {
+      return res.status(404).json({ error: "Document not found" });
+    }
+  });
+
+  app.get("/api/documents/:doc/tree", async (req, res) => {
+    try {
+      return res.json(await docTree(ownerOf(req), docName(req)));
+    } catch {
+      return res.status(404).json({ error: "Document not found" });
+    }
+  });
+
+  app.get("/api/documents/:doc/file", async (req, res) => {
+    const path = docFilePath(req);
+    if (!path || path.includes("..")) {
+      return sendValidationError(res, { path: "Required" });
+    }
+    try {
+      return res.json(await docRead(ownerOf(req), docName(req), path));
+    } catch {
+      return res.status(404).json({ error: "File not found" });
+    }
+  });
+
+  const docWriteSchema = z.object({
+    path: z
+      .string()
+      .min(1)
+      .refine((p) => !p.includes("..") && !p.startsWith("/")),
+    content: z.string(),
+    sha: z.string().optional(),
+    message: z.string().max(500).optional(),
+  });
+
+  app.put("/api/documents/:doc/file", async (req, res) => {
+    const parsed = docWriteSchema.safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    const { path, content, sha, message } = parsed.data;
+    try {
+      await docWrite(ownerOf(req), docName(req), path, { content, sha, message });
+      return res.status(sha ? 200 : 201).json({ path });
+    } catch {
+      return res.status(502).json({ error: "Failed to save file" });
+    }
+  });
+
+  app.delete("/api/documents/:doc/file", async (req, res) => {
+    const parsed = z
+      .object({
+        path: z
+          .string()
+          .min(1)
+          .refine((p) => !p.includes("..") && !p.startsWith("/")),
+        sha: z.string().min(1),
+      })
+      .safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    try {
+      await docDeleteFile(
+        ownerOf(req),
+        docName(req),
+        parsed.data.path,
+        parsed.data.sha,
+      );
+      return res.status(204).send();
+    } catch {
+      return res.status(502).json({ error: "Failed to delete file" });
     }
   });
 
