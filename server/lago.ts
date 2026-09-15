@@ -80,3 +80,26 @@ export async function getSubscription(
   );
   return data.subscriptions ?? [];
 }
+
+/** One usage event against the customer's subscription. `code` must match a
+ *  billable metric defined in Lago (e.g. api_calls, sum_agg over `count`).
+ *  Lago rejects events for unknown external_customer_ids, so callers must
+ *  only emit for owners that already have a Lago customer. */
+export async function emitUsageEvent(
+  externalCustomerId: string,
+  code: string,
+  properties: Record<string, string | number>,
+): Promise<void> {
+  await lagoFetch("/events", {
+    method: "POST",
+    body: JSON.stringify({
+      event: {
+        transaction_id: crypto.randomUUID(),
+        external_customer_id: externalCustomerId,
+        code,
+        timestamp: Math.floor(Date.now() / 1000),
+        properties,
+      },
+    }),
+  });
+}

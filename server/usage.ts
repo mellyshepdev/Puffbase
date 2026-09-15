@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
+import { emitUsageEvent, lagoConfigured } from "./lago";
 
 /** Usage tracking: the /api/metrics series (api_calls, latency, errors, uptime)
  *  exist but nothing wrote to them, so Analytics charted an empty store.
@@ -46,6 +47,7 @@ export function usageTracker(app: Express) {
   const timer = setInterval(async () => {
     const now = new Date().toISOString();
     const pending: { owner: string; type: string; value: number }[] = [];
+    const metered: { owner: string; count: number }[] = [];
 
     buckets.forEach((acc, owner) => {
       // `uptime` is a percent: summarizeMetrics averages the column /100, so a
@@ -60,6 +62,7 @@ export function usageTracker(app: Express) {
         { owner, type: "errors", value: acc.errors },
         { owner, type: "uptime", value: 100 },
       );
+      if (acc.apiCalls > 0) metered.push({ owner, count: acc.apiCalls });
     });
     buckets.clear();
     if (pending.length === 0) return;
@@ -77,6 +80,23 @@ export function usageTracker(app: Express) {
     } catch (e) {
       // metrics must never take the app down — a dead DB just skips the window
       console.error("usage flush failed:", e);
+    }
+
+    // Lago metering: one api_calls event per subscribed owner per window so
+    // invoices reflect real traffic. Owners without a Lago customer (never
+    // subscribed) are skipped — Lago rejects events for unknown customers.
+    if (lagoConfigured()) {
+      for (const m of metered) {
+        try {
+          if (await storage.hasLagoCustomer(m.owner)) {
+            emitUsageEvent(m.owner, "api_calls", { count: m.count }).catch(
+              (e) => console.error("lago event failed:", e),
+            );
+          }
+        } catch (e) {
+          console.error("lago customer check failed:", e);
+        }
+      }
     }
   }, FLUSH_MS);
   timer.unref();

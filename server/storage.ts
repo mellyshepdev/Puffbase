@@ -22,7 +22,7 @@ import type {
   Service,
   User,
 } from "@shared/schema";
-import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
@@ -100,6 +100,7 @@ export interface IStorage {
 
   listBuilderProjects(owner: string): Promise<BuilderProject[]>;
   getBuilderProject(owner: string, id: number): Promise<BuilderProject | undefined>;
+  hasLagoCustomer(owner: string): Promise<boolean>;
   createBuilderProject(
     owner: string,
     project: InsertBuilderProject,
@@ -314,6 +315,20 @@ export class DatabaseStorage implements IStorage {
       .from(builderProjects)
       .where(and(eq(builderProjects.owner, owner), eq(builderProjects.id, id)));
     return rows[0];
+  }
+
+  async hasLagoCustomer(owner: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: builderProjects.id })
+      .from(builderProjects)
+      .where(
+        and(
+          eq(builderProjects.owner, owner),
+          isNotNull(builderProjects.lagoCustomerId),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
   }
 
   async createBuilderProject(
