@@ -123,7 +123,6 @@ export const builderProjects = pgTable("builder_projects", {
   survey: text("survey").notNull().default("{}"),
   // Current generated single-file site. Revisions table holds history.
   html: text("html"),
-  repo: text("repo"),
   subdomain: text("subdomain"),
   url: text("url"),
   // Lago billing linkage, filled in when the subscription is created.

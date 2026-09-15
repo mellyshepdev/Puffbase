@@ -35,20 +35,6 @@ export type Dashboard = {
   };
 };
 
-/** A repo from the real Gitea instance (see server/gitea.ts). */
-export type GiteaRepo = {
-  id: number;
-  name: string;
-  fullName: string;
-  description: string | null;
-  private: boolean;
-  htmlUrl: string;
-  defaultBranch: string;
-  updatedAt: string;
-  starsCount: number;
-  forksCount: number;
-};
-
 const emptyDashboard: Dashboard = {
   kpis: { totalApiCalls: 0, totalRevenue: 0, averageLatency: 0, uptime: 0, totalErrors: 0, periodDays: 30 },
   recentDeployments: [],
@@ -78,7 +64,6 @@ export const useDeployments = () => useApi<Deployment[]>("/api/deployments", [])
 export const useServices = () => useApi<Service[]>("/api/services", []);
 export const useActivity = () => useApi<Activity[]>("/api/activity", []);
 export const useMetrics = () => useApi<Metric[]>("/api/metrics", []);
-export const useRepos = () => useApi<GiteaRepo[]>("/api/repos", []);
 
 /* -------------------------------------------------------------------------- *
  * Formatters

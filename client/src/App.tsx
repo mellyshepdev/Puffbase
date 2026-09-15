@@ -15,7 +15,6 @@ import Overview from "@/pages/Overview";
 import Deployments from "@/pages/Deployments";
 import Services from "@/pages/Services";
 import Builder from "@/pages/Builder";
-import Repositories from "@/pages/Repositories";
 import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
@@ -25,7 +24,6 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/deployments": { title: "Deployments", subtitle: "rollouts across all environments" },
   "/services": { title: "Services", subtitle: "runtime fleet health" },
   "/builder": { title: "Site Builder", subtitle: "survey · generate · publish" },
-  "/repositories": { title: "Repositories", subtitle: "live from Gitea" },
   "/analytics": { title: "Analytics", subtitle: "traffic · latency · errors" },
   "/settings": { title: "Settings", subtitle: "workspace configuration" },
 };
@@ -55,7 +53,6 @@ function Shell() {
             <Route path="/services" component={Services} />
             <Route path="/builder/:id" component={Builder} />
             <Route path="/builder" component={Builder} />
-            <Route path="/repositories" component={Repositories} />
             <Route path="/analytics" component={Analytics} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />

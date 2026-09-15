@@ -3,7 +3,6 @@ import {
   Activity as ActivityIcon,
   BarChart3,
   Boxes,
-  GitBranch,
   LayoutDashboard,
   LogOut,
   Rocket,
@@ -34,7 +33,6 @@ export const NAV_ITEMS = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
-  { title: "Repositories", url: "/repositories", icon: GitBranch, adminOnly: true },
   { title: "Site Builder", url: "/builder", icon: Sparkles },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
@@ -42,8 +40,7 @@ export const NAV_ITEMS = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { isAdmin } = useAuth();
-  const navItems = NAV_ITEMS.filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin);
+  const navItems = NAV_ITEMS;
 
   return (
     <Sidebar

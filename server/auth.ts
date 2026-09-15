@@ -61,11 +61,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 /* ------------------------------------------------------------------------- *
- * Admin gate. Puffbase talks to Gitea through one shared instance-admin
- * token, so repo browsing/editing is effectively "act as puffadmin". Until
- * per-user Gitea accounts exist, only allowlisted accounts may touch the
- * /api/repos* routes - otherwise every sign-in can read and commit to every
- * private repo on the instance. Fail closed: no env list = nobody is admin.
+ * Admin gate for routes that should only be reachable by the operator.
+ * Fail closed: no env list = nobody is admin.
  * ------------------------------------------------------------------------- */
 const adminEmails = new Set(
   (process.env.PUFFBASE_ADMIN_EMAILS ?? "")

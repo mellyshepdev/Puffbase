@@ -14,15 +14,6 @@ import {
   type DeploymentStatus,
   type MetricType,
 } from "./storage";
-import {
-  createRepo,
-  deleteRepoFile,
-  listRepos,
-  readRepoFile,
-  repoTree,
-  writeRepoFile,
-} from "./gitea";
-import { requireAdmin } from "./auth";
 import { linearConfigured, listLinearIssues } from "./linear";
 import { generateSite, reviseSite } from "./builder";
 import { llmConfigured, llmModel } from "./llm";
@@ -453,107 +444,6 @@ export async function registerRoutes(
     }
   });
 
-  /* ---- repositories: shared puffadmin Gitea token => admin-only until
-   * per-user Gitea accounts exist (see requireAdmin in auth.ts) ---- */
-  app.use("/api/repos", requireAdmin);
-
-  app.get("/api/repos", async (_req, res) => {
-    try {
-      return res.json(await listRepos());
-    } catch (error) {
-      return res.status(500).json({ error: "Failed to list Gitea repos" });
-    }
-  });
-
-  /* ---- code editor: browse + edit repo files through the contents API ---- */
-
-  const repoCoords = (req: Request) => ({
-    owner: String(req.params.owner),
-    repo: String(req.params.repo),
-  });
-
-  app.get("/api/repos/:owner/:repo/tree", async (req, res) => {
-    const ref = typeof req.query.ref === "string" ? req.query.ref : undefined;
-    const { owner, repo } = repoCoords(req);
-    try {
-      return res.json(await repoTree(owner, repo, ref));
-    } catch (error) {
-      return res.status(502).json({ error: "Failed to list repository tree" });
-    }
-  });
-
-  app.get("/api/repos/:owner/:repo/file", async (req, res) => {
-    const path = typeof req.query.path === "string" ? req.query.path : "";
-    const ref = typeof req.query.ref === "string" ? req.query.ref : undefined;
-    if (!path || path.includes("..")) {
-      return sendValidationError(res, { path: "Required" });
-    }
-    const { owner, repo } = repoCoords(req);
-    try {
-      return res.json(await readRepoFile(owner, repo, path, ref));
-    } catch (error) {
-      return res.status(502).json({ error: "Failed to read file" });
-    }
-  });
-
-  const fileWriteSchema = z.object({
-    path: z
-      .string()
-      .min(1)
-      .refine((p) => !p.includes("..") && !p.startsWith("/")),
-    content: z.string(),
-    sha: z.string().optional(),
-    message: z.string().max(500).optional(),
-    branch: z.string().max(200).optional(),
-  });
-
-  const handleFileWrite = async (req: Request, res: Response) => {
-    const parsed = fileWriteSchema.safeParse(req.body);
-    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
-    const { path, content, sha, message, branch } = parsed.data;
-    const { owner, repo } = repoCoords(req);
-    try {
-      await writeRepoFile(owner, repo, path, {
-        content,
-        sha,
-        branch,
-        message: message ?? `${sha ? "Update" : "Create"} ${path}`,
-      });
-      return res.status(sha ? 200 : 201).json({ path });
-    } catch (error) {
-      return res.status(502).json({ error: "Failed to commit file" });
-    }
-  };
-
-  app.put("/api/repos/:owner/:repo/file", handleFileWrite);
-  app.post("/api/repos/:owner/:repo/file", handleFileWrite);
-
-  app.delete("/api/repos/:owner/:repo/file", async (req, res) => {
-    const parsed = z
-      .object({
-        path: z
-          .string()
-          .min(1)
-          .refine((p) => !p.includes("..") && !p.startsWith("/")),
-        sha: z.string().min(1),
-        message: z.string().max(500).optional(),
-        branch: z.string().max(200).optional(),
-      })
-      .safeParse(req.body);
-    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
-    const { owner, repo } = repoCoords(req);
-    try {
-      await deleteRepoFile(owner, repo, parsed.data.path, {
-        sha: parsed.data.sha,
-        message: parsed.data.message ?? `Delete ${parsed.data.path}`,
-        branch: parsed.data.branch,
-      });
-      return res.status(204).send();
-    } catch (error) {
-      return res.status(502).json({ error: "Failed to delete file" });
-    }
-  });
-
   app.get("/api/linear/issues", async (_req, res) => {
     if (!linearConfigured()) {
       return res.json({ configured: false, issues: [] });
@@ -602,7 +492,6 @@ export async function registerRoutes(
 
   /* ---- site builder: survey -> generate -> iterate -> publish -> bill ---- */
 
-  const GITEA_OWNER = process.env.GITEA_OWNER ?? "puffadmin";
   const surveySchema = z.record(z.string(), z.string().max(2000));
   const createProjectSchema = z.object({
     name: z.string().min(1).max(200),
@@ -887,8 +776,8 @@ export async function registerRoutes(
     }
   });
 
-  /** Publish: commit the site to its Gitea repo and register the edge route.
-   *  The generated page is served by this app on <subdomain>.<deploy-domain>
+  /** Publish: register the edge route and flip the project live. The
+   *  generated page is served by this app on <subdomain>.<deploy-domain>
    *  via the site-vhost middleware mounted in index.ts. */
   app.post("/api/builder/projects/:id/publish", async (req, res) => {
     const id = parsePositiveInteger(req.params.id);
@@ -908,26 +797,6 @@ export async function registerRoutes(
       }
       await storage.updateBuilderProject(owner, id, { status: "deploying" });
 
-      let repoName = project.repo;
-      if (!repoName) {
-        repoName = `site-${subdomain}`;
-        const repo = await createRepo(repoName, `Puffbase site: ${project.name}`);
-        await writeRepoFile(GITEA_OWNER, repo.name, "index.html", {
-          content: project.html,
-          message: `Publish ${project.name}`,
-        });
-      } else {
-        let sha: string | undefined;
-        try {
-          sha = (await readRepoFile(GITEA_OWNER, repoName, "index.html")).sha;
-        } catch {}
-        await writeRepoFile(GITEA_OWNER, repoName, "index.html", {
-          content: project.html,
-          message: `Update ${project.name}`,
-          sha,
-        });
-      }
-
       const url = await registerDeploymentRoute({
         name: `site-${subdomain}`,
         subdomain,
@@ -936,7 +805,6 @@ export async function registerRoutes(
       });
       const updated = await storage.updateBuilderProject(owner, id, {
         status: "live",
-        repo: repoName,
         subdomain,
         url,
       });
