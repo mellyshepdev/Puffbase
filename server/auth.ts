@@ -60,6 +60,32 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   return res.status(401).json({ error: "Not signed in" });
 }
 
+/* ------------------------------------------------------------------------- *
+ * Admin gate. Puffbase talks to Gitea through one shared instance-admin
+ * token, so repo browsing/editing is effectively "act as puffadmin". Until
+ * per-user Gitea accounts exist, only allowlisted accounts may touch the
+ * /api/repos* routes - otherwise every sign-in can read and commit to every
+ * private repo on the instance. Fail closed: no env list = nobody is admin.
+ * ------------------------------------------------------------------------- */
+const adminEmails = new Set(
+  (process.env.PUFFBASE_ADMIN_EMAILS ?? "")
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+);
+const adminSubs = new Set(
+  (process.env.PUFFBASE_ADMIN_SUBS ?? "")
+    .split(",").map((s) => s.trim()).filter(Boolean),
+);
+
+export function isAdmin(user?: { sub: string; email?: string } | null): boolean {
+  if (!user) return false;
+  return adminSubs.has(user.sub) || (!!user.email && adminEmails.has(user.email.toLowerCase()));
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (isAdmin(req.session.user)) return next();
+  return res.status(403).json({ error: "Restricted to the instance admin" });
+}
+
 function appUrl(): string {
   return (process.env.APP_URL ?? "http://localhost:5000").replace(/\/$/, "");
 }
@@ -162,6 +188,6 @@ export function registerAuthRoutes(app: Express) {
   });
 
   app.get("/api/auth/me", (req, res) => {
-    res.json({ user: req.session.user ?? null });
+    res.json({ user: req.session.user ?? null, isAdmin: isAdmin(req.session.user) });
   });
 }

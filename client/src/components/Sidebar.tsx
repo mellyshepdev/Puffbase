@@ -33,13 +33,15 @@ export const NAV_ITEMS = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
-  { title: "Repositories", url: "/repositories", icon: GitBranch },
+  { title: "Repositories", url: "/repositories", icon: GitBranch, adminOnly: true },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { isAdmin } = useAuth();
+  const navItems = NAV_ITEMS.filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin);
 
   return (
     <Sidebar
@@ -83,7 +85,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const active = location === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>

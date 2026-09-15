@@ -21,6 +21,7 @@ import {
   repoTree,
   writeRepoFile,
 } from "./gitea";
+import { requireAdmin } from "./auth";
 import { linearConfigured, listLinearIssues } from "./linear";
 import {
   deployDomain,
@@ -431,6 +432,10 @@ export async function registerRoutes(
       return res.status(500).json({ error: "Failed to create activity" });
     }
   });
+
+  /* ---- repositories: shared puffadmin Gitea token => admin-only until
+   * per-user Gitea accounts exist (see requireAdmin in auth.ts) ---- */
+  app.use("/api/repos", requireAdmin);
 
   app.get("/api/repos", async (_req, res) => {
     try {
