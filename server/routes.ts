@@ -15,6 +15,15 @@ import {
   type MetricType,
 } from "./storage";
 import {
+  createRepo,
+  deleteRepoFile,
+  listRepos,
+  readRepoFile,
+  repoTree,
+  writeRepoFile,
+} from "./gitea";
+import { requireAdmin } from "./auth";
+import {
   createDocument,
   deleteDocument,
   docDeleteFile,
@@ -454,6 +463,107 @@ export async function registerRoutes(
     }
   });
 
+  /* ---- repositories: shared puffadmin Gitea token => admin-only until
+   * per-user Gitea accounts exist (see requireAdmin in auth.ts) ---- */
+  app.use("/api/repos", requireAdmin);
+
+  app.get("/api/repos", async (_req, res) => {
+    try {
+      return res.json(await listRepos());
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to list Gitea repos" });
+    }
+  });
+
+  /* ---- code editor: browse + edit repo files through the contents API ---- */
+
+  const repoCoords = (req: Request) => ({
+    owner: String(req.params.owner),
+    repo: String(req.params.repo),
+  });
+
+  app.get("/api/repos/:owner/:repo/tree", async (req, res) => {
+    const ref = typeof req.query.ref === "string" ? req.query.ref : undefined;
+    const { owner, repo } = repoCoords(req);
+    try {
+      return res.json(await repoTree(owner, repo, ref));
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to list repository tree" });
+    }
+  });
+
+  app.get("/api/repos/:owner/:repo/file", async (req, res) => {
+    const path = typeof req.query.path === "string" ? req.query.path : "";
+    const ref = typeof req.query.ref === "string" ? req.query.ref : undefined;
+    if (!path || path.includes("..")) {
+      return sendValidationError(res, { path: "Required" });
+    }
+    const { owner, repo } = repoCoords(req);
+    try {
+      return res.json(await readRepoFile(owner, repo, path, ref));
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to read file" });
+    }
+  });
+
+  const fileWriteSchema = z.object({
+    path: z
+      .string()
+      .min(1)
+      .refine((p) => !p.includes("..") && !p.startsWith("/")),
+    content: z.string(),
+    sha: z.string().optional(),
+    message: z.string().max(500).optional(),
+    branch: z.string().max(200).optional(),
+  });
+
+  const handleFileWrite = async (req: Request, res: Response) => {
+    const parsed = fileWriteSchema.safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    const { path, content, sha, message, branch } = parsed.data;
+    const { owner, repo } = repoCoords(req);
+    try {
+      await writeRepoFile(owner, repo, path, {
+        content,
+        sha,
+        branch,
+        message: message ?? `${sha ? "Update" : "Create"} ${path}`,
+      });
+      return res.status(sha ? 200 : 201).json({ path });
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to commit file" });
+    }
+  };
+
+  app.put("/api/repos/:owner/:repo/file", handleFileWrite);
+  app.post("/api/repos/:owner/:repo/file", handleFileWrite);
+
+  app.delete("/api/repos/:owner/:repo/file", async (req, res) => {
+    const parsed = z
+      .object({
+        path: z
+          .string()
+          .min(1)
+          .refine((p) => !p.includes("..") && !p.startsWith("/")),
+        sha: z.string().min(1),
+        message: z.string().max(500).optional(),
+        branch: z.string().max(200).optional(),
+      })
+      .safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    const { owner, repo } = repoCoords(req);
+    try {
+      await deleteRepoFile(owner, repo, parsed.data.path, {
+        sha: parsed.data.sha,
+        message: parsed.data.message ?? `Delete ${parsed.data.path}`,
+        branch: parsed.data.branch,
+      });
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(502).json({ error: "Failed to delete file" });
+    }
+  });
+
   /* ---- documents: each account's private file space. Every call resolves
    *  the document name through the caller's own prefix inside gitspace, so
    *  these routes never hand a name straight through to storage. ---- */
@@ -608,6 +718,7 @@ export async function registerRoutes(
 
   /* ---- site builder: survey -> generate -> iterate -> publish -> bill ---- */
 
+  const GITEA_OWNER = process.env.GITEA_OWNER ?? "puffadmin";
   const surveySchema = z.record(z.string(), z.string().max(2000));
   const createProjectSchema = z.object({
     name: z.string().min(1).max(200),
@@ -619,6 +730,8 @@ export async function registerRoutes(
       .optional(),
     // Free tier is invite-only - without a valid code the project is paid.
     inviteCode: z.string().max(100).optional(),
+    // Paid plan choice; ignored when a valid invite code is present.
+    plan: z.enum(["monthly", "yearly", "business"]).optional(),
   });
 
   // Comma-separated codes, e.g. PUFFBASE_INVITE_CODES=EARLYBIRD,VIP-2026.
@@ -633,7 +746,30 @@ export async function registerRoutes(
     .strict();
 
   /** Generation is async - local CPU inference takes minutes. The route marks
-   *  the project generating and returns; the client polls the project row. */
+   *  the project generating and returns; the client polls the project row.
+   *  Jobs run serially through a priority queue: concurrent requests would
+   *  only thrash the single local LLM, and business-plan jobs go first. */
+  const genQueue: { projectId: number; owner: string; priority: number }[] = [];
+  let genRunning = false;
+  function enqueueGeneration(projectId: number, owner: string, plan: string | null) {
+    genQueue.push({ projectId, owner, priority: plan === "business" ? 0 : 1 });
+    genQueue.sort((a, b) => a.priority - b.priority);
+    void drainGenQueue();
+  }
+  async function drainGenQueue() {
+    if (genRunning) return;
+    genRunning = true;
+    try {
+      let job: (typeof genQueue)[number] | undefined;
+      while ((job = genQueue.shift())) {
+        await runGeneration(job.projectId, job.owner).catch((e) =>
+          console.error("[builder] generation failed:", e),
+        );
+      }
+    } finally {
+      genRunning = false;
+    }
+  }
   async function runGeneration(projectId: number, owner: string) {
     const project = await storage.getBuilderProject(owner, projectId);
     if (!project) return;
@@ -763,6 +899,7 @@ export async function registerRoutes(
         survey: JSON.stringify(parsed.data.survey),
         subdomain: parsed.data.subdomain ?? null,
         tier,
+        plan: tier === "free" ? "free" : (parsed.data.plan ?? "monthly"),
       });
       const subdomain =
         project.subdomain ??
@@ -789,7 +926,7 @@ export async function registerRoutes(
         return res.status(201).json({ ...current, checkoutUrl });
       }
       sendSurveyReceived(parsed.data.email, project.name);
-      void runGeneration(project.id, owner);
+      enqueueGeneration(project.id, owner, project.plan);
       return res.status(201).json(current);
     } catch {
       return res.status(500).json({ error: "Failed to create project" });
@@ -846,7 +983,7 @@ export async function registerRoutes(
         status: "generating",
       });
       if (project.email) sendSurveyReceived(project.email, project.name);
-      void runGeneration(id, owner);
+      enqueueGeneration(id, owner, project.plan);
       return res.json(updated);
     } catch {
       return res.status(500).json({ error: "Failed to confirm card" });
@@ -956,17 +1093,31 @@ export async function registerRoutes(
       // tier's plan subscription.
       if (lagoConfigured() && !project.lagoSubscriptionId) {
         const user = req.session.user!;
-        const planCode = project.tier === "free" ? "free" : "builder";
+        const planCode =
+          project.tier === "free"
+            ? "free"
+            : project.plan === "yearly"
+              ? "builder-yearly"
+              : project.plan === "business"
+                ? "business"
+                : "builder";
         const customerId = await ensureCustomer(
           owner,
           user.email ?? project.email,
           user.name,
           project.stripeCustomerId ?? undefined,
         );
-        const subscriptionId = await createSubscription(owner, planCode);
+        // Business bills flat per account - one subscription covers every
+        // site the owner publishes. Per-site plans get one each.
+        const alreadyCovered =
+          project.plan === "business" &&
+          (await storage.ownerHasPlanSubscription(owner, "business"));
+        const subscriptionId = alreadyCovered
+          ? null
+          : await createSubscription(owner, planCode);
         await storage.updateBuilderProject(owner, id, {
           lagoCustomerId: customerId,
-          lagoSubscriptionId: subscriptionId,
+          lagoSubscriptionId: subscriptionId ?? "covered-by-business",
         });
       }
 
@@ -974,6 +1125,29 @@ export async function registerRoutes(
         project.subdomain ??
         `site-${owner.replace(/[^a-z0-9]/g, "").slice(0, 8)}-${id}`;
       await storage.updateBuilderProject(owner, id, { status: "deploying" });
+
+      /** Publish: commit the site to its Gitea repo and register the edge route.
+       *  The generated page is served by this app on <subdomain>.<deploy-domain>
+       *  - Gitea keeps the versioned copy. */
+      let repoName = project.repo;
+      if (!repoName) {
+        repoName = `site-${subdomain}`;
+        const repo = await createRepo(repoName, `Puffbase site: ${project.name}`);
+        await writeRepoFile(GITEA_OWNER, repo.name, "index.html", {
+          content: project.html,
+          message: `Publish ${project.name}`,
+        });
+      } else {
+        let sha: string | undefined;
+        try {
+          sha = (await readRepoFile(GITEA_OWNER, repoName, "index.html")).sha;
+        } catch {}
+        await writeRepoFile(GITEA_OWNER, repoName, "index.html", {
+          content: project.html,
+          message: `Update ${project.name}`,
+          sha,
+        });
+      }
 
       const url = await registerDeploymentRoute({
         name: `site-${subdomain}`,
@@ -983,6 +1157,7 @@ export async function registerRoutes(
       });
       const updated = await storage.updateBuilderProject(owner, id, {
         status: "live",
+        repo: repoName,
         subdomain,
         url,
       });

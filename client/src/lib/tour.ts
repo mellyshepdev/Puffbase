@@ -39,7 +39,7 @@ const STEPS: StepDef[] = [
     id: "welcome",
     route: "/",
     title: "🟣 Welcome to Puffbase",
-    text: "I'm your guide through the slime vat — deployments, service health, the site builder, analytics, all of it. Let's walk the whole place.",
+    text: "I'm your guide through the slime vat — deployments, service health, repositories, analytics, all of it. Let's walk the whole place.",
   },
   {
     id: "overview",
@@ -64,6 +64,14 @@ const STEPS: StepDef[] = [
     on: "bottom",
     title: "🧩 Services",
     text: "One card per running service with its status, region, and health — inspect one or open it straight from its card.",
+  },
+  {
+    id: "repositories",
+    route: "/repositories",
+    selector: '[data-testid="input-filter-repositories"]',
+    on: "bottom",
+    title: "🌿 Repositories",
+    text: "Your Gitea-backed repos, proxied in — code, activity, and a jump straight to the repo on the public git host.",
   },
   {
     id: "builder",
@@ -93,7 +101,7 @@ const STEPS: StepDef[] = [
     selector: '[data-testid="link-nav-overview"]',
     on: "right",
     title: "🧭 Navigation",
-    text: "Everything you just saw lives one click away in this sidebar — Overview, Deployments, Services, Site Builder, Documents, Analytics, Settings.",
+    text: "Everything you just saw lives one click away in this sidebar — Overview, Dashboard, Deployments, Services, Repositories, Site Builder, Documents, Analytics, Settings.",
   },
   {
     id: "usage",

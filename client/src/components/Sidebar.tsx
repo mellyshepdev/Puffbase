@@ -5,6 +5,7 @@ import {
   Boxes,
   CircleUser,
   FileCode,
+  GitBranch,
   LayoutDashboard,
   Rocket,
   Settings as SettingsIcon,
@@ -45,6 +46,7 @@ export const NAV_ITEMS = [
   { title: "Dashboard", url: "https://app.prime-quality.online", icon: CircleUser, external: true },
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
+  { title: "Repositories", url: "/repositories", icon: GitBranch, adminOnly: true },
   { title: "Site Builder", url: "/builder", icon: Sparkles },
   { title: "Documents", url: "/documents", icon: FileCode },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
@@ -53,7 +55,8 @@ export const NAV_ITEMS = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const navItems = NAV_ITEMS;
+  const { isAdmin } = useAuth();
+  const navItems = NAV_ITEMS.filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin);
 
   return (
     <Sidebar

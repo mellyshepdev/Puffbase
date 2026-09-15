@@ -17,6 +17,7 @@ import Services from "@/pages/Services";
 import Builder from "@/pages/Builder";
 import Documents from "@/pages/Documents";
 import Account from "@/pages/Account";
+import Repositories from "@/pages/Repositories";
 import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
@@ -28,6 +29,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/builder": { title: "Site Builder", subtitle: "survey · generate · publish" },
   "/documents": { title: "Documents", subtitle: "your private file space" },
   "/account": { title: "Account", subtitle: "profile · sites · billing" },
+  "/repositories": { title: "Repositories", subtitle: "live from Gitea" },
   "/analytics": { title: "Analytics", subtitle: "traffic · latency · errors" },
   "/settings": { title: "Settings", subtitle: "workspace configuration" },
 };
@@ -59,6 +61,7 @@ function Shell() {
             <Route path="/builder" component={Builder} />
             <Route path="/documents" component={Documents} />
             <Route path="/account" component={Account} />
+            <Route path="/repositories" component={Repositories} />
             <Route path="/analytics" component={Analytics} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />

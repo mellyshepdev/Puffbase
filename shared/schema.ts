@@ -123,6 +123,7 @@ export const builderProjects = pgTable("builder_projects", {
   survey: text("survey").notNull().default("{}"),
   // Current generated single-file site. Revisions table holds history.
   html: text("html"),
+  repo: text("repo"),
   subdomain: text("subdomain"),
   url: text("url"),
   // Lago billing linkage, filled in when the subscription is created.
@@ -134,6 +135,10 @@ export const builderProjects = pgTable("builder_projects", {
   // Billing tier: "free" = invited (caps enforced, $0 plan), "paid" = card on
   // file + metered builder plan. Null predates billing.
   tier: text("tier"),
+  // Plan choice for paid tiers: "monthly" ($5/mo per site), "yearly"
+  // ($50/yr per site), "business" ($25/mo flat per account, priority
+  // generation + 256MB site reservation). Free projects store "free".
+  plan: text("plan"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
