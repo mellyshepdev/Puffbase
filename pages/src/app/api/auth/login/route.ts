@@ -1,16 +1,16 @@
 import * as client from "openid-client";
-import { NextResponse } from "next/server";
-import { getOidcConfig, appUrl } from "@/lib/oidc";
+import { NextRequest, NextResponse } from "next/server";
+import { getOidcConfig, requestBase } from "@/lib/oidc";
 import { sign, OIDC_COOKIE } from "@/lib/session";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const config = await getOidcConfig();
   const codeVerifier = client.randomPKCECodeVerifier();
   const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
   const state = client.randomState();
 
   const url = client.buildAuthorizationUrl(config, {
-    redirect_uri: `${appUrl()}/api/auth/callback`,
+    redirect_uri: `${requestBase(req)}/api/auth/callback`,
     scope: "openid profile email",
     code_challenge: codeChallenge,
     code_challenge_method: "S256",

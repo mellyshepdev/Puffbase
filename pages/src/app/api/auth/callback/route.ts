@@ -1,6 +1,6 @@
 import * as client from "openid-client";
 import { NextRequest, NextResponse } from "next/server";
-import { getOidcConfig, appUrl } from "@/lib/oidc";
+import { getOidcConfig, requestBase } from "@/lib/oidc";
 import { sign, verify, SESSION_COOKIE, OIDC_COOKIE, type SessionUser } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   if (!pending) return new NextResponse("No login in progress", { status: 400 });
 
   const config = await getOidcConfig();
-  const currentUrl = new URL(req.nextUrl.pathname + req.nextUrl.search, appUrl());
+  const currentUrl = new URL(req.nextUrl.pathname + req.nextUrl.search, requestBase(req));
   const tokens = await client.authorizationCodeGrant(config, currentUrl, {
     pkceCodeVerifier: pending.codeVerifier,
     expectedState: pending.state,
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     name: typeof claims.name === "string" ? claims.name : undefined,
   };
 
-  const res = NextResponse.redirect(appUrl() + "/");
+  const res = NextResponse.redirect(requestBase(req) + "/");
   res.cookies.set(SESSION_COOKIE, await sign(user), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

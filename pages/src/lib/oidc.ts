@@ -27,3 +27,15 @@ export function getOidcConfig(): Promise<client.Configuration> {
 export function appUrl(): string {
   return requireEnv("APP_URL").replace(/\/$/, "");
 }
+
+/** Public base URL for the current request. The app is served on both
+ *  app.prime-quality.online and puff.dashboard.prime-quality.online, and the
+ *  session cookie is host-only - so the login redirect_uri must complete on
+ *  whichever host the user actually came from. */
+export function requestBase(req: { headers: Headers }): string {
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
+    .split(",")[0].trim();
+  if (!host) return appUrl();
+  const proto = (req.headers.get("x-forwarded-proto") ?? "https").split(",")[0].trim();
+  return `${proto}://${host}`;
+}

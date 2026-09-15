@@ -338,9 +338,9 @@ export default function DashboardPage() {
             <button className="button secondary" onClick={() => notify("Preview opened in a new tab")}>
               <ExternalLink className="w-3.5 h-3.5" /> Preview
             </button>
-            <button className="button primary" onClick={() => notify("Editor opened")}>
+            <a className="button primary" href="https://puff.dashboard.prime-quality.online">
               <Code2 className="w-3.5 h-3.5" /> Open editor
-            </button>
+            </a>
           </div>
         </div>
         <div className="editor-shell">

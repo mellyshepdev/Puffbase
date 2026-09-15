@@ -15,11 +15,23 @@ green theme. It is NOT the admin console:
 | `puffbase.prime-quality.online/` | landing page (`client/public/landing.html`) | — |
 | `puffbase.prime-quality.online/console` | admin dashboard (`client/`) | `puffbase` / `puffbase` |
 | **`app.prime-quality.online`** | **this app** | `puffbase-customers` / `slimegit` |
+| `puff.dashboard.prime-quality.online` | editor surface — same app, `/` rewrites to `/editor` | `puffbase-customers` / `slimegit` |
 | `git.prime-quality.online` | Gitea forge (git host) | `blacksheep` via OIDC |
 
 Auth: Keycloak OIDC, `puffbase-customers` realm, `slimegit` client.
 Middleware gates every route — unauthenticated requests bounce to
-`/api/auth/login` → Keycloak → `/api/auth/callback`.
+`/api/auth/login` → Keycloak → `/api/auth/callback`. The login
+`redirect_uri` is built from the request host (`requestBase()` in
+`src/lib/oidc.ts`) because the session cookie is host-only — both
+hostnames are registered as valid redirect URIs on the `slimegit` client.
+
+## Editor
+
+`/editor` (also `puff.dashboard.prime-quality.online`) is the customer
+code/document editor — backed by `src/lib/gitstore.ts`, the same per-user
+document space the admin console's Documents page uses (private repo per
+document, every save is a commit). API: `/api/editor*` (list/create docs,
+tree, read/write/delete files).
 
 ## Run it
 
