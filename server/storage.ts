@@ -22,7 +22,7 @@ import type {
   Service,
   User,
 } from "@shared/schema";
-import { and, desc, eq, gte, isNotNull, lte, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte, sql, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
@@ -100,7 +100,10 @@ export interface IStorage {
 
   listBuilderProjects(owner: string): Promise<BuilderProject[]>;
   getBuilderProject(owner: string, id: number): Promise<BuilderProject | undefined>;
-  hasLagoCustomer(owner: string): Promise<boolean>;
+  listLagoCustomerOwners(): Promise<string[]>;
+  getOwnerBillingStats(
+    owner: string,
+  ): Promise<{ storageBytes: number; liveDeployments: number }>;
   createBuilderProject(
     owner: string,
     project: InsertBuilderProject,
@@ -317,18 +320,25 @@ export class DatabaseStorage implements IStorage {
     return rows[0];
   }
 
-  async hasLagoCustomer(owner: string): Promise<boolean> {
+  async listLagoCustomerOwners(): Promise<string[]> {
     const rows = await db
-      .select({ id: builderProjects.id })
+      .selectDistinct({ owner: builderProjects.owner })
       .from(builderProjects)
-      .where(
-        and(
-          eq(builderProjects.owner, owner),
-          isNotNull(builderProjects.lagoCustomerId),
-        ),
-      )
-      .limit(1);
-    return rows.length > 0;
+      .where(isNotNull(builderProjects.lagoCustomerId));
+    return rows.map((r) => r.owner);
+  }
+
+  async getOwnerBillingStats(
+    owner: string,
+  ): Promise<{ storageBytes: number; liveDeployments: number }> {
+    const rows = await db
+      .select({
+        storageBytes: sql<number>`coalesce(sum(octet_length(${builderProjects.html})), 0)::int`,
+        liveDeployments: sql<number>`count(*) filter (where ${builderProjects.status} = 'live')::int`,
+      })
+      .from(builderProjects)
+      .where(eq(builderProjects.owner, owner));
+    return rows[0] ?? { storageBytes: 0, liveDeployments: 0 };
   }
 
   async createBuilderProject(

@@ -14,6 +14,12 @@ import { emitUsageEvent, lagoConfigured } from "./lago";
 
 const FLUSH_MS = 60_000;
 
+// Published sites share one static host (SITE_NODE) - there is no per-tenant
+// RSS to measure, so RAM is billed as a fixed reservation per live site, the
+// standard PaaS "allocated memory" model. Change this constant if the per-site
+// reservation changes; it is a pricing decision, not a measurement.
+const RAM_MB_PER_LIVE_SITE = 128;
+
 type Bucket = {
   apiCalls: number;
   errors: number;
@@ -65,37 +71,53 @@ export function usageTracker(app: Express) {
       if (acc.apiCalls > 0) metered.push({ owner, count: acc.apiCalls });
     });
     buckets.clear();
-    if (pending.length === 0) return;
 
-    try {
-      await Promise.all(
-        pending.map((r) =>
-          storage.createMetric(r.owner, {
-            type: r.type as "api_calls" | "latency" | "errors" | "uptime",
-            value: r.value,
-            timestamp: now,
-          }),
-        ),
-      );
-    } catch (e) {
-      // metrics must never take the app down — a dead DB just skips the window
-      console.error("usage flush failed:", e);
+    if (pending.length > 0) {
+      try {
+        await Promise.all(
+          pending.map((r) =>
+            storage.createMetric(r.owner, {
+              type: r.type as "api_calls" | "latency" | "errors" | "uptime",
+              value: r.value,
+              timestamp: now,
+            }),
+          ),
+        );
+      } catch (e) {
+        // metrics must never take the app down — a dead DB just skips the window
+        console.error("usage flush failed:", e);
+      }
     }
 
-    // Lago metering: one api_calls event per subscribed owner per window so
-    // invoices reflect real traffic. Owners without a Lago customer (never
-    // subscribed) are skipped — Lago rejects events for unknown customers.
+    // Lago metering, once per window for every owner with a Lago customer
+    // (i.e. subscribed a builder project). API calls only emit when nonzero,
+    // but storage and RAM keep emitting while the owner is idle - the
+    // reservation is consumed whether or not requests arrive. This runs
+    // unconditionally: an idle account still owes storage/RAM.
     if (lagoConfigured()) {
-      for (const m of metered) {
-        try {
-          if (await storage.hasLagoCustomer(m.owner)) {
-            emitUsageEvent(m.owner, "api_calls", { count: m.count }).catch(
-              (e) => console.error("lago event failed:", e),
+      try {
+        const callsBy = new Map(metered.map((m) => [m.owner, m.count]));
+        const mbHoursPerWindow =
+          RAM_MB_PER_LIVE_SITE * (FLUSH_MS / 3_600_000);
+        for (const owner of await storage.listLagoCustomerOwners()) {
+          const stats = await storage.getOwnerBillingStats(owner);
+          const calls = callsBy.get(owner) ?? 0;
+          if (calls > 0) {
+            emitUsageEvent(owner, "api_calls", { count: calls }).catch((e) =>
+              console.error("lago event failed:", e),
             );
           }
-        } catch (e) {
-          console.error("lago customer check failed:", e);
+          emitUsageEvent(owner, "storage_mb", {
+            mb: +(stats.storageBytes / 1048576).toFixed(3),
+          }).catch((e) => console.error("lago event failed:", e));
+          if (stats.liveDeployments > 0) {
+            emitUsageEvent(owner, "ram_mb_hours", {
+              mb_hours: +(stats.liveDeployments * mbHoursPerWindow).toFixed(4),
+            }).catch((e) => console.error("lago event failed:", e));
+          }
         }
+      } catch (e) {
+        console.error("lago metering failed:", e);
       }
     }
   }, FLUSH_MS);
