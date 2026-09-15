@@ -16,8 +16,8 @@
   --purple-dark: #32146f;
   --purple-light: #f2edff;
   --purple-soft: #faf8ff;
-  --yellow: #ffd84d;
-  --yellow-light: #fff7cb;
+  --slime: #b1f150;
+  --slime-light: #e1fabd;
   --white: #ffffff;
   --ink: #191523;
   --muted: #716b7c;
@@ -88,7 +88,7 @@ input {
 .eyebrow::before {
   width: 8px;
   height: 8px;
-  background: var(--yellow);
+  background: var(--slime);
   border: 2px solid var(--purple-dark);
   border-radius: 50%;
   content: "";
@@ -124,8 +124,8 @@ input {
 
 .button-yellow {
   color: var(--purple-dark);
-  background: var(--yellow);
-  box-shadow: 0 14px 30px rgba(255, 216, 77, 0.24);
+  background: var(--slime);
+  box-shadow: 0 14px 30px rgba(177, 241, 80, 0.24);
 }
 
 .button-outline {
@@ -142,7 +142,7 @@ input {
 .button-login {
   color: var(--white);
   background: linear-gradient(to right, var(--purple), var(--purple-dark), var(--ink));
-  border: 1px solid rgba(255, 216, 77, 0.35);
+  border: 1px solid rgba(177, 241, 80, 0.35);
   box-shadow: 0 10px 26px rgba(25, 21, 35, 0.28);
 }
 
@@ -192,7 +192,7 @@ input {
   top: -4px;
   width: 12px;
   height: 12px;
-  background: var(--yellow);
+  background: var(--slime);
   border: 3px solid white;
   border-radius: 50%;
   content: "";
@@ -279,7 +279,7 @@ input {
   bottom: 6px;
   left: -3px;
   height: 18%;
-  background: var(--yellow);
+  background: var(--slime);
   border-radius: 999px;
   content: "";
   transform: rotate(-1.5deg);
@@ -287,8 +287,8 @@ input {
 
 .hero h1 .outline-word {
   color: var(--purple-dark);
-  -webkit-text-stroke: 1.5px var(--yellow);
-  text-stroke: 1.5px var(--yellow);
+  -webkit-text-stroke: 1.5px var(--slime);
+  text-stroke: 1.5px var(--slime);
   paint-order: stroke fill;
 }
 
@@ -308,7 +308,7 @@ input {
   position: absolute;
   z-index: -1;
   inset: -22% -14%;
-  background: radial-gradient(circle, var(--yellow) 0%, rgba(255, 216, 77, 0.5) 45%, transparent 72%);
+  background: radial-gradient(circle, var(--slime) 0%, rgba(177, 241, 80, 0.5) 45%, transparent 72%);
   filter: blur(22px);
   border-radius: 50%;
   content: "";
@@ -406,7 +406,7 @@ input {
 }
 
 .terminal-dots i:nth-child(1) { background: #ff6d7e; }
-.terminal-dots i:nth-child(2) { background: var(--yellow); }
+.terminal-dots i:nth-child(2) { background: var(--slime); }
 .terminal-dots i:nth-child(3) { background: #5ee3a6; }
 
 .terminal-title {
@@ -425,7 +425,7 @@ input {
 
 .terminal-body .dim { color: #8970b7; }
 .terminal-body .purple { color: #bb93ff; }
-.terminal-body .yellow { color: var(--yellow); }
+.terminal-body .yellow { color: var(--slime); }
 .terminal-body .green { color: #70edb6; }
 
 .deployment-card {
@@ -479,7 +479,7 @@ input {
   left: -10px;
   padding: 14px 17px;
   color: var(--purple-dark);
-  background: var(--yellow);
+  background: var(--slime);
   border: 5px solid white;
   border-radius: 18px;
   box-shadow: 0 16px 35px rgba(85, 52, 0, 0.15);
@@ -558,7 +558,7 @@ section {
 
 .service-card:nth-child(2) .service-icon {
   color: #735800;
-  background: var(--yellow-light);
+  background: var(--slime-light);
 }
 
 .service-card h3 {
@@ -609,7 +609,7 @@ section {
   bottom: -25px;
   width: 70%;
   height: 70%;
-  background: var(--yellow);
+  background: var(--slime);
   border-radius: 34px;
   content: "";
 }
@@ -628,7 +628,7 @@ section {
   height: 44px;
   place-items: center;
   color: var(--purple-dark);
-  background: var(--yellow);
+  background: var(--slime);
   border-radius: 15px;
   font-weight: 900;
 }
@@ -795,7 +795,7 @@ section {
   bottom: -150px;
   width: 320px;
   height: 320px;
-  background: var(--yellow);
+  background: var(--slime);
   opacity: 0.95;
 }
 
@@ -1493,7 +1493,7 @@ footer {
   // Hidden until the page is scrolled to the bottom — see scroll handling in animate().
   var yellowWire = new THREE.Mesh(
     wireGeom,
-    new THREE.MeshBasicMaterial({ color: 0xffd84d, wireframe: true, transparent: true, opacity: 0 })
+    new THREE.MeshBasicMaterial({ color: 0xb1f150, wireframe: true, transparent: true, opacity: 0 })
   );
   var purpleWire = new THREE.Mesh(
     wireGeom,
