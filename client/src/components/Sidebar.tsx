@@ -8,6 +8,7 @@ import {
   LogOut,
   Rocket,
   Settings as SettingsIcon,
+  Sparkles,
   Waves,
 } from "lucide-react";
 import {
@@ -34,6 +35,7 @@ export const NAV_ITEMS = [
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
   { title: "Repositories", url: "/repositories", icon: GitBranch, adminOnly: true },
+  { title: "Site Builder", url: "/builder", icon: Sparkles },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;

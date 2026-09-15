@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Service } from "@shared/schema";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
-import { ExternalLink, Globe2, Search, Signal, Timer } from "lucide-react";
+import { ExternalLink, Globe2, HardDrive, Search, Server, Signal, Smartphone, Sparkles, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,42 @@ import {
   StatusPill,
 } from "@/components/kit";
 import { compact, useServices } from "@/lib/data";
+import { Link } from "wouter";
+
+const PRODUCTS = [
+  {
+    title: "Web Builder",
+    icon: Sparkles,
+    body: "Describe the site, the vat generates it, you refine and publish on your own subdomain.",
+    cta: "Start building",
+    href: "/builder",
+    internal: true,
+  },
+  {
+    title: "Cloud Storage",
+    icon: HardDrive,
+    body: "Encrypted personal vaults and team sync - billed monthly through your account.",
+    cta: "See plans",
+    href: "https://theofficialblacksheepco.com/html/tech-storage.html",
+    internal: false,
+  },
+  {
+    title: "VPS Hosting",
+    icon: Server,
+    body: "Deploy-and-monitor nodes with node health metrics and scaling.",
+    cta: "See tiers",
+    href: "https://theofficialblacksheepco.com/html/tech-vps.html",
+    internal: false,
+  },
+  {
+    title: "Device Repair",
+    icon: Smartphone,
+    body: "Apple & Samsung board-level repair - screens, batteries, microsoldering.",
+    cta: "Get a quote",
+    href: "https://theofficialblacksheepco.com/html/tech-repair.html",
+    internal: false,
+  },
+] as const;
 
 function sparkline(seed: number) {
   return Array.from({ length: 20 }, (_, i) => ({
@@ -61,6 +97,40 @@ export default function Services() {
               className="h-9 w-56 bg-card/60 pl-8 text-xs backdrop-blur"
             />
           </div>
+        </div>
+      </div>
+
+      {/* product catalog - the purchasable services. Web Builder runs the
+          survey->generate->publish pipeline in-app; the rest link out to the
+          public product pages on the main site. */}
+      <div className="mb-8">
+        <SectionTitle hint="catalog">Get a service</SectionTitle>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {PRODUCTS.map((p) => (
+            <Card
+              key={p.title}
+              className="group flex h-full flex-col border-card-border/80 bg-card/70 p-5 backdrop-blur-sm transition-colors hover:border-primary/50"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                  <p.icon className="h-4 w-4" />
+                </div>
+                <h3 className="font-mono text-sm font-semibold">{p.title}</h3>
+              </div>
+              <p className="mt-2.5 flex-1 text-xs leading-relaxed text-muted-foreground">
+                {p.body}
+              </p>
+              <Button variant="outline" size="sm" className="mt-4 h-8 text-xs" asChild>
+                {p.internal ? (
+                  <Link href={p.href}>{p.cta}</Link>
+                ) : (
+                  <a href={p.href} target="_blank" rel="noreferrer">
+                    {p.cta} <ExternalLink className="ml-1 h-3 w-3" />
+                  </a>
+                )}
+              </Button>
+            </Card>
+          ))}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { serveStatic } from "./static";
 import { createServer } from "node:http";
 import { sessionMiddleware, registerAuthRoutes, requireAuth } from "./auth";
 import { usageTracker } from "./usage";
+import { storage } from "./storage";
 
 const app = express();
 // Traefik terminates TLS and forwards to this container over plain HTTP, so
@@ -71,6 +72,27 @@ app.use((req, res, next) => {
 });
 
 usageTracker(app);
+
+// Published builder sites: requests whose Host is a <PUFFBASE_DEPLOY_DOMAIN>
+// subdomain get the generated document served straight from the project row -
+// public by design (these are customer-facing pages), so this runs before the
+// /api auth gate and never touches it.
+app.use((req, res, next) => {
+  const domain = process.env.PUFFBASE_DEPLOY_DOMAIN ?? "";
+  const host = req.hostname.toLowerCase();
+  if (!domain || !host.endsWith(`.${domain}`)) return next();
+  const subdomain = host.slice(0, -(domain.length + 1));
+  void storage
+    .findPublishedSite(subdomain)
+    .then((html) => {
+      if (!html) return res.status(404).send("No site published here");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=60");
+      return res.send(html);
+    })
+    .catch(() => res.status(500).send("Site unavailable"));
+});
+
 app.use(sessionMiddleware());
 registerAuthRoutes(app);
 // Everything under /api is real data now, not a public demo - gate it behind

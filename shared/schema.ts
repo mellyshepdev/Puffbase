@@ -106,6 +106,57 @@ export const insertMetricSchema = createInsertSchema(metrics, {
 export type InsertMetric = z.infer<typeof insertMetricSchema>;
 export type Metric = typeof metrics.$inferSelect;
 
+// Site-builder projects: a survey -> LLM-generated site -> preview/iterate ->
+// publish flow. The survey answers and every generated revision are kept so
+// the iterate loop has full history to work against.
+export const builderProjects = pgTable("builder_projects", {
+  id: serial("id").primaryKey(),
+  owner: text("owner").notNull().default(""),
+  name: text("name").notNull(),
+  status: text("status", {
+    enum: ["survey", "generating", "preview", "deploying", "live", "failed"],
+  }).notNull(),
+  // Intake survey answers (business name, vibe, sections, colors, ...) as JSON.
+  survey: text("survey").notNull().default("{}"),
+  // Current generated single-file site. Revisions table holds history.
+  html: text("html"),
+  repo: text("repo"),
+  subdomain: text("subdomain"),
+  url: text("url"),
+  // Lago billing linkage, filled in when the subscription is created.
+  lagoCustomerId: text("lago_customer_id"),
+  lagoSubscriptionId: text("lago_subscription_id"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const insertBuilderProjectSchema = createInsertSchema(builderProjects, {
+  status: z.enum(["survey", "generating", "preview", "deploying", "live", "failed"]),
+  name: z.string().min(1).max(200),
+  subdomain: z
+    .string()
+    .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/)
+    .nullable()
+    .optional(),
+}).omit({ id: true, owner: true, createdAt: true, updatedAt: true });
+
+export type InsertBuilderProject = z.infer<typeof insertBuilderProjectSchema>;
+export type BuilderProject = typeof builderProjects.$inferSelect;
+
+export const builderRevisions = pgTable("builder_revisions", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .references(() => builderProjects.id)
+    .notNull(),
+  // The instruction that produced this revision (survey digest for v1,
+  // the user's change request afterwards).
+  instruction: text("instruction").notNull(),
+  html: text("html").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export type BuilderRevision = typeof builderRevisions.$inferSelect;
+
 export const activity = pgTable("activity", {
   id: serial("id").primaryKey(),
   owner: text("owner").notNull().default(""),

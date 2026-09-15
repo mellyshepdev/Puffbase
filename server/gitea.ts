@@ -95,6 +95,19 @@ export async function listRepos(): Promise<GiteaRepo[]> {
   return (data.data ?? []).map(toRepo);
 }
 
+/** Creates a repo under the token's account (puffadmin). Used by the site
+ *  builder to give each published project a real repo. */
+export async function createRepo(
+  name: string,
+  description: string,
+): Promise<GiteaRepo> {
+  const data = await giteaFetch<GiteaRepoResponse>("/api/v1/user/repos", {
+    method: "POST",
+    body: JSON.stringify({ name, description, private: true, auto_init: true }),
+  });
+  return toRepo(data);
+}
+
 /* ------------------------------------------------------------------------- *
  * File browsing + editing - backs the console's code editor page. Gitea's
  * contents API is the write path; every save is a real commit on the branch.

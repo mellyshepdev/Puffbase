@@ -15,6 +15,7 @@ import {
   type MetricType,
 } from "./storage";
 import {
+  createRepo,
   deleteRepoFile,
   listRepos,
   readRepoFile,
@@ -23,6 +24,14 @@ import {
 } from "./gitea";
 import { requireAdmin } from "./auth";
 import { linearConfigured, listLinearIssues } from "./linear";
+import { generateSite, reviseSite } from "./builder";
+import { llmConfigured, llmModel } from "./llm";
+import {
+  createSubscription,
+  ensureCustomer,
+  lagoConfigured,
+} from "./lago";
+import { notify, notifyChannels } from "./notify";
 import {
   deployDomain,
   registerDeploymentRoute,
@@ -577,6 +586,284 @@ export async function registerRoutes(
       });
     } catch (error) {
       return res.status(500).json({ error: "Failed to load dashboard" });
+    }
+  });
+
+  /* ---- site builder: survey -> generate -> iterate -> publish -> bill ---- */
+
+  const GITEA_OWNER = process.env.GITEA_OWNER ?? "puffadmin";
+  const surveySchema = z.record(z.string(), z.string().max(2000));
+  const createProjectSchema = z.object({
+    name: z.string().min(1).max(200),
+    survey: surveySchema,
+    subdomain: z
+      .string()
+      .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/)
+      .optional(),
+  });
+  const reviseSchema = z
+    .object({ instruction: z.string().min(1).max(4000) })
+    .strict();
+
+  /** Generation is async - local CPU inference takes minutes. The route marks
+   *  the project generating and returns; the client polls the project row. */
+  async function runGeneration(projectId: number, owner: string) {
+    const project = await storage.getBuilderProject(owner, projectId);
+    if (!project) return;
+    try {
+      const survey = JSON.parse(project.survey) as Record<string, string>;
+      const html = await generateSite(project.name, survey);
+      await storage.addBuilderRevision(projectId, "initial generation", html);
+      await storage.updateBuilderProject(owner, projectId, {
+        status: "preview",
+        html,
+      });
+      void notify(`Puffbase: site generated for "${project.name}" (owner ${owner.slice(0, 8)}…)`);
+    } catch (error) {
+      await storage.updateBuilderProject(owner, projectId, { status: "failed" });
+      console.error("[builder] generation failed", error);
+    }
+  }
+
+  async function runRevision(
+    projectId: number,
+    owner: string,
+    instruction: string,
+  ) {
+    const project = await storage.getBuilderProject(owner, projectId);
+    if (!project?.html) return;
+    try {
+      const survey = JSON.parse(project.survey) as Record<string, string>;
+      const html = await reviseSite(
+        project.name,
+        survey,
+        project.html,
+        instruction,
+      );
+      await storage.addBuilderRevision(projectId, instruction, html);
+      await storage.updateBuilderProject(owner, projectId, {
+        status: "preview",
+        html,
+      });
+    } catch (error) {
+      await storage.updateBuilderProject(owner, projectId, { status: "preview" });
+      console.error("[builder] revision failed", error);
+    }
+  }
+
+  app.get("/api/builder/status", (_req, res) => {
+    res.json({
+      llm: llmConfigured(),
+      model: llmModel(),
+      lago: lagoConfigured(),
+      deployDomain: deployDomain() || null,
+      notify: notifyChannels(),
+    });
+  });
+
+  app.get("/api/builder/projects", async (req, res) => {
+    try {
+      return res.json(await storage.listBuilderProjects(ownerOf(req)));
+    } catch {
+      return res.status(500).json({ error: "Failed to list projects" });
+    }
+  });
+
+  app.post("/api/builder/projects", async (req, res) => {
+    const parsed = createProjectSchema.safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    if (!llmConfigured()) {
+      return res.status(503).json({ error: "LLM backend not configured" });
+    }
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.createBuilderProject(owner, {
+        name: parsed.data.name,
+        status: "generating",
+        survey: JSON.stringify(parsed.data.survey),
+        subdomain: parsed.data.subdomain ?? null,
+      });
+      void notify(`Puffbase: new site survey "${project.name}" submitted`);
+      void runGeneration(project.id, owner);
+      return res.status(201).json(project);
+    } catch {
+      return res.status(500).json({ error: "Failed to create project" });
+    }
+  });
+
+  app.get("/api/builder/projects/:id", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    try {
+      const project = await storage.getBuilderProject(ownerOf(req), id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      const revisions = await storage.listBuilderRevisions(id);
+      return res.json({
+        ...project,
+        revisions: revisions.map((r) => ({
+          id: r.id,
+          instruction: r.instruction,
+          createdAt: r.createdAt,
+        })),
+      });
+    } catch {
+      return res.status(500).json({ error: "Failed to get project" });
+    }
+  });
+
+  /** Serves the generated document for the iframe preview. Same-origin +
+   *  session cookie, so the console can embed it directly. */
+  app.get("/api/builder/projects/:id/preview", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    try {
+      const project = await storage.getBuilderProject(ownerOf(req), id);
+      if (!project?.html) return res.status(404).send("No generated site yet");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      return res.send(project.html);
+    } catch {
+      return res.status(500).send("Preview failed");
+    }
+  });
+
+  app.post("/api/builder/projects/:id/revise", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    const parsed = reviseSchema.safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.getBuilderProject(owner, id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      if (!project.html) {
+        return res.status(409).json({ error: "Nothing generated yet" });
+      }
+      if (project.status === "generating") {
+        return res.status(409).json({ error: "Generation already running" });
+      }
+      await storage.updateBuilderProject(owner, id, { status: "generating" });
+      void runRevision(id, owner, parsed.data.instruction);
+      return res.status(202).json({ status: "generating" });
+    } catch {
+      return res.status(500).json({ error: "Failed to revise" });
+    }
+  });
+
+  /** Publish: commit the site to its Gitea repo and register the edge route.
+   *  The generated page is served by this app on <subdomain>.<deploy-domain>
+   *  via the site-vhost middleware mounted in index.ts. */
+  app.post("/api/builder/projects/:id/publish", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.getBuilderProject(owner, id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      if (!project.html) {
+        return res.status(409).json({ error: "Nothing generated yet" });
+      }
+      const subdomain =
+        project.subdomain ??
+        `site-${owner.replace(/[^a-z0-9]/g, "").slice(0, 8)}-${id}`;
+      if (!deployDomain()) {
+        return res.status(503).json({ error: "Deploy domain not configured" });
+      }
+      await storage.updateBuilderProject(owner, id, { status: "deploying" });
+
+      let repoName = project.repo;
+      if (!repoName) {
+        repoName = `site-${subdomain}`;
+        const repo = await createRepo(repoName, `Puffbase site: ${project.name}`);
+        await writeRepoFile(GITEA_OWNER, repo.name, "index.html", {
+          content: project.html,
+          message: `Publish ${project.name}`,
+        });
+      } else {
+        let sha: string | undefined;
+        try {
+          sha = (await readRepoFile(GITEA_OWNER, repoName, "index.html")).sha;
+        } catch {}
+        await writeRepoFile(GITEA_OWNER, repoName, "index.html", {
+          content: project.html,
+          message: `Update ${project.name}`,
+          sha,
+        });
+      }
+
+      const url = await registerDeploymentRoute({
+        name: `site-${subdomain}`,
+        subdomain,
+        host: "unit7",
+        port: Number(process.env.PORT ?? 5000),
+      });
+      const updated = await storage.updateBuilderProject(owner, id, {
+        status: "live",
+        repo: repoName,
+        subdomain,
+        url,
+      });
+      void notify(`Puffbase: "${project.name}" published at ${url}`);
+      return res.json(updated);
+    } catch (error) {
+      await storage
+        .updateBuilderProject(owner, id, { status: "preview" })
+        .catch(() => {});
+      console.error("[builder] publish failed", error);
+      return res.status(502).json({ error: "Publish failed" });
+    }
+  });
+
+  /** Billing: attach a Lago subscription to the project. Lago customers are
+   *  keyed by the Keycloak sub so billing follows the account. */
+  app.post("/api/builder/projects/:id/subscribe", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    const parsed = z
+      .object({ planCode: z.string().min(1).max(100) })
+      .strict()
+      .safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    if (!lagoConfigured()) {
+      return res.status(503).json({ error: "Billing not configured" });
+    }
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.getBuilderProject(owner, id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      const user = req.session.user!;
+      const customerId = await ensureCustomer(owner, user.email ?? "", user.name);
+      const subscriptionId = await createSubscription(owner, parsed.data.planCode);
+      const updated = await storage.updateBuilderProject(owner, id, {
+        lagoCustomerId: customerId,
+        lagoSubscriptionId: subscriptionId,
+      });
+      void notify(
+        `Puffbase: "${project.name}" subscribed to ${parsed.data.planCode}`,
+      );
+      return res.json(updated);
+    } catch (error) {
+      console.error("[builder] subscribe failed", error);
+      return res.status(502).json({ error: "Subscription failed" });
+    }
+  });
+
+  app.delete("/api/builder/projects/:id", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.getBuilderProject(owner, id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      if (project.subdomain) {
+        await withdrawDeploymentRoute(`site-${project.subdomain}`, "unit7").catch(
+          () => {},
+        );
+      }
+      await storage.deleteBuilderProject(owner, id);
+      return res.status(204).send();
+    } catch {
+      return res.status(500).json({ error: "Failed to delete project" });
     }
   });
 

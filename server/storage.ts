@@ -1,5 +1,7 @@
 import {
   activity,
+  builderProjects,
+  builderRevisions,
   deployments,
   metrics,
   services,
@@ -7,8 +9,11 @@ import {
 } from "@shared/schema";
 import type {
   Activity,
+  BuilderProject,
+  BuilderRevision,
   Deployment,
   InsertActivity,
+  InsertBuilderProject,
   InsertDeployment,
   InsertMetric,
   InsertService,
@@ -92,6 +97,29 @@ export interface IStorage {
 
   listActivity(owner: string, limit?: number): Promise<Activity[]>;
   createActivity(owner: string, entry: InsertActivity): Promise<Activity>;
+
+  listBuilderProjects(owner: string): Promise<BuilderProject[]>;
+  getBuilderProject(owner: string, id: number): Promise<BuilderProject | undefined>;
+  createBuilderProject(
+    owner: string,
+    project: InsertBuilderProject,
+  ): Promise<BuilderProject>;
+  updateBuilderProject(
+    owner: string,
+    id: number,
+    patch: Partial<Omit<BuilderProject, "id" | "owner" | "createdAt">>,
+  ): Promise<BuilderProject | undefined>;
+  addBuilderRevision(
+    projectId: number,
+    instruction: string,
+    html: string,
+  ): Promise<BuilderRevision>;
+  listBuilderRevisions(projectId: number): Promise<BuilderRevision[]>;
+  deleteBuilderProject(owner: string, id: number): Promise<boolean>;
+  /** Public path: resolve a deploy-domain subdomain to its live generated
+   *  site. Deliberately unscoped - the visitor has no session. Only rows in
+   *  status "live" resolve. */
+  findPublishedSite(subdomain: string): Promise<string | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -264,6 +292,92 @@ export class DatabaseStorage implements IStorage {
       .values({ ...entry, owner })
       .returning();
     return rows[0];
+  }
+
+  async listBuilderProjects(owner: string): Promise<BuilderProject[]> {
+    return db
+      .select()
+      .from(builderProjects)
+      .where(eq(builderProjects.owner, owner))
+      .orderBy(desc(builderProjects.updatedAt));
+  }
+
+  async getBuilderProject(
+    owner: string,
+    id: number,
+  ): Promise<BuilderProject | undefined> {
+    const rows = await db
+      .select()
+      .from(builderProjects)
+      .where(and(eq(builderProjects.owner, owner), eq(builderProjects.id, id)));
+    return rows[0];
+  }
+
+  async createBuilderProject(
+    owner: string,
+    project: InsertBuilderProject,
+  ): Promise<BuilderProject> {
+    const now = new Date().toISOString();
+    const rows = await db
+      .insert(builderProjects)
+      .values({ ...project, owner, createdAt: now, updatedAt: now })
+      .returning();
+    return rows[0];
+  }
+
+  async updateBuilderProject(
+    owner: string,
+    id: number,
+    patch: Partial<Omit<BuilderProject, "id" | "owner" | "createdAt">>,
+  ): Promise<BuilderProject | undefined> {
+    const rows = await db
+      .update(builderProjects)
+      .set({ ...patch, updatedAt: new Date().toISOString() })
+      .where(and(eq(builderProjects.owner, owner), eq(builderProjects.id, id)))
+      .returning();
+    return rows[0];
+  }
+
+  async addBuilderRevision(
+    projectId: number,
+    instruction: string,
+    html: string,
+  ): Promise<BuilderRevision> {
+    const rows = await db
+      .insert(builderRevisions)
+      .values({ projectId, instruction, html, createdAt: new Date().toISOString() })
+      .returning();
+    return rows[0];
+  }
+
+  async listBuilderRevisions(projectId: number): Promise<BuilderRevision[]> {
+    return db
+      .select()
+      .from(builderRevisions)
+      .where(eq(builderRevisions.projectId, projectId))
+      .orderBy(builderRevisions.id);
+  }
+
+  async deleteBuilderProject(owner: string, id: number): Promise<boolean> {
+    await db.delete(builderRevisions).where(eq(builderRevisions.projectId, id));
+    const result = await db
+      .delete(builderProjects)
+      .where(and(eq(builderProjects.owner, owner), eq(builderProjects.id, id)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async findPublishedSite(subdomain: string): Promise<string | undefined> {
+    const rows = await db
+      .select({ html: builderProjects.html })
+      .from(builderProjects)
+      .where(
+        and(
+          eq(builderProjects.subdomain, subdomain),
+          eq(builderProjects.status, "live"),
+        ),
+      )
+      .limit(1);
+    return rows[0]?.html ?? undefined;
   }
 }
 
