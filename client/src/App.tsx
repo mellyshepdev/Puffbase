@@ -27,7 +27,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/services": { title: "Services", subtitle: "runtime fleet health" },
   "/builder": { title: "Site Builder", subtitle: "survey · generate · publish" },
   "/documents": { title: "Documents", subtitle: "your private file space" },
-  "/account": { title: "User Dashboard", subtitle: "your account · sites · billing" },
+  "/account": { title: "Account", subtitle: "profile · sites · billing" },
   "/analytics": { title: "Analytics", subtitle: "traffic · latency · errors" },
   "/settings": { title: "Settings", subtitle: "workspace configuration" },
 };

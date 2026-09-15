@@ -170,7 +170,9 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onSelect={() => (window.location.hash = "#/account")}
+              onSelect={() =>
+                (window.location.href = "https://app.prime-quality.online")
+              }
               data-testid="menu-item-dashboard"
             >
               User dashboard

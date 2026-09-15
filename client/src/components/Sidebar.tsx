@@ -3,6 +3,7 @@ import {
   Activity as ActivityIcon,
   BarChart3,
   Boxes,
+  CircleUser,
   FileCode,
   LayoutDashboard,
   Rocket,
@@ -39,6 +40,9 @@ import oozeRail from "@/assets/ooze-drip-rail.webp";
 
 export const NAV_ITEMS = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
+  // The user dashboard is the customer app (app.prime-quality.online), not a
+  // console route - external flag renders a plain anchor, not a hash Link.
+  { title: "Dashboard", url: "https://app.prime-quality.online", icon: CircleUser, external: true },
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
   { title: "Site Builder", url: "/builder", icon: Sparkles },
@@ -81,9 +85,11 @@ export function AppSidebar() {
       </div>
 
       <SidebarHeader className="px-3 pb-1 pt-4">
-        <Link href="/" data-testid="link-home-logo" className="block rounded-md p-1 hover-elevate">
+        {/* Real anchor, not the hash router - logo exits the console back to
+            the public landing page at /. Console home is "Overview" in nav. */}
+        <a href="/" data-testid="link-home-logo" className="block rounded-md p-1 hover-elevate">
           <PuffbaseLogo />
-        </Link>
+        </a>
       </SidebarHeader>
 
       <SidebarContent className="slime-scroll">
@@ -95,24 +101,31 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => {
                 const active = location === item.url;
+                const inner = (
+                  <>
+                    <item.icon />
+                    <span>{item.title}</span>
+                    {active && (
+                      <span
+                        aria-hidden="true"
+                        className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_2px_hsl(280_90%_62%/0.8)]"
+                      />
+                    )}
+                  </>
+                );
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       isActive={active}
                       tooltip={item.title}
-                      data-testid={`link-nav-${item.title.toLowerCase()}`}
+                      data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                     >
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                        {active && (
-                          <span
-                            aria-hidden="true"
-                            className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_2px_hsl(280_90%_62%/0.8)]"
-                          />
-                        )}
-                      </Link>
+                      {"external" in item && item.external ? (
+                        <a href={item.url}>{inner}</a>
+                      ) : (
+                        <Link href={item.url}>{inner}</Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -204,7 +217,11 @@ function UserCard() {
               {user?.email ?? "account"}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate("/account")}>
+            <DropdownMenuItem
+              onSelect={() =>
+                (window.location.href = "https://app.prime-quality.online")
+              }
+            >
               User dashboard
             </DropdownMenuItem>
             {isAdmin && (
@@ -214,6 +231,9 @@ function UserCard() {
             )}
             <DropdownMenuItem onSelect={() => navigate("/settings")}>
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => (window.location.href = "/")}>
+              Back to site
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => (window.location.href = logoutUrl)}>

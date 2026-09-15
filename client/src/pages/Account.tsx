@@ -55,7 +55,7 @@ export default function Account() {
   return (
     <PageShell>
       <SectionTitle hint="Your account, your stuff, your billing">
-        User Dashboard
+        Account
       </SectionTitle>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[20rem_1fr]">
