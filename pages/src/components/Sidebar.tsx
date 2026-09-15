@@ -39,11 +39,33 @@ export function Sidebar() {
   }, []);
 
   return (
-    <aside className="fixed top-0 left-0 w-64 h-screen flex flex-col bg-[var(--color-dark-surface)] border-r border-[var(--color-dark-border)] z-40">
+    <aside className="fixed top-0 left-0 w-64 h-screen flex flex-col bg-[var(--color-dark-surface)] border-r border-[var(--color-dark-border)] z-40 overflow-hidden">
+      {/* Ooze backdrop, matching the admin dashboard's sidebar treatment */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <img
+          src="/ooze-sidebar.webp"
+          alt=""
+          className="h-full w-full object-cover opacity-[0.22] saturate-150"
+        />
+        <div className="absolute inset-0 bg-[var(--color-dark-surface)]/[0.92]" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(190deg, hsl(280 70% 30% / 0.55), transparent 45%), linear-gradient(to top, hsl(275 80% 40% / 0.35), transparent 55%)",
+          }}
+        />
+        <img
+          src="/ooze-drip-rail.webp"
+          alt=""
+          className="absolute right-0 top-0 h-full w-8 object-cover opacity-40 mix-blend-screen"
+        />
+      </div>
+
       {/* Logo */}
-      <div className="p-5 border-b border-[var(--color-dark-border)]">
+      <div className="p-5 border-b border-[var(--color-dark-border)] relative">
         <Link href="/" className="flex items-center group">
-          <img src="/emblem.svg" alt="Puffbase" className="h-10 w-auto drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
+          <img src="/puffbase-emblem.png" alt="Puffbase" className="h-10 w-auto drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
         </Link>
       </div>
 

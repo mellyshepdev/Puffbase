@@ -742,3 +742,17 @@
 .puffbase-tour-progress-dot.is-done {
   background: hsl(var(--muted-foreground));
 }
+
+/* The tour guide's portrait, floated beside the step text so the card reads
+ * like a message from the mascot rather than a bare tooltip. */
+.puffbase-tour-guide {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 0 0.6rem;
+  border-radius: 999px;
+  border: 2px solid hsl(var(--primary) / 0.4);
+  background: hsl(280 60% 12%);
+  object-fit: cover;
+  box-shadow: 0 4px 14px hsl(280 70% 10% / 0.45);
+}

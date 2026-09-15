@@ -3,6 +3,14 @@
 // data-testid attributes already on those components is enough to cover
 // the whole app without page-specific wiring. Shepherd loads lazily from
 // CDN the first time the tour is opened.
+//
+// The tour physically walks every customer-facing page: each step carries
+// a `route`, and beforeShowPromise navigates the hash router there and
+// waits for the step's anchor to exist before the card shows. Anchors use
+// attribute-prefix selectors ([data-testid^="row-..."]) where ids are
+// per-row, so the first real record is the anchor.
+
+import guideDefault from "@/assets/puffbase-icon.png";
 
 const SHEPHERD_CSS = "https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/css/shepherd.css";
 const SHEPHERD_JS = "https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/js/shepherd.min.js";
@@ -15,24 +23,78 @@ declare global {
 
 type StepDef = {
   id: string;
+  /** Hash route to navigate to before showing (wouter hash router). */
+  route?: string;
   selector?: string;
   on?: "top" | "bottom" | "left" | "right";
   title: string;
   text: string;
+  /** Tour-guide image shown inside the card. Defaults to the mascot icon;
+   *  drop per-step art in src/assets and map it here. */
+  img?: string;
 };
 
 const STEPS: StepDef[] = [
   {
     id: "welcome",
+    route: "/",
     title: "🟣 Welcome to Puffbase",
-    text: "This is the ops dashboard for the whole slime vat — deployments, service health, analytics, all in one place.",
+    text: "I'm your guide through the slime vat — deployments, service health, repositories, analytics, all of it. Let's walk the whole place.",
+  },
+  {
+    id: "overview",
+    route: "/",
+    selector: '[data-testid="link-view-deployments"]',
+    on: "bottom",
+    title: "🏠 Overview",
+    text: "Home base. Fleet health, recent activity, and quick jumps into whatever needs you — this page answers 'is everything alive?' at a glance.",
+  },
+  {
+    id: "deployments",
+    route: "/deployments",
+    selector: '[data-testid="input-filter-deployments"]',
+    on: "bottom",
+    title: "🚀 Deployments",
+    text: "Every deploy that lands, by environment — filter them here, and use the row actions to redeploy, roll back, or promote without leaving the table.",
+  },
+  {
+    id: "services",
+    route: "/services",
+    selector: '[data-testid="input-filter-services"]',
+    on: "bottom",
+    title: "🧩 Services",
+    text: "One card per running service with its status, region, and health — inspect one or open it straight from its card.",
+  },
+  {
+    id: "repositories",
+    route: "/repositories",
+    selector: '[data-testid="input-filter-repositories"]',
+    on: "bottom",
+    title: "🌿 Repositories",
+    text: "Your Gitea-backed repos, proxied in — code, activity, and a jump straight to the repo on the public git host.",
+  },
+  {
+    id: "analytics",
+    route: "/analytics",
+    selector: '[data-testid="tabs-range"]',
+    on: "bottom",
+    title: "📈 Analytics",
+    text: "Traffic, latency, and error rates over whatever window you pick — 24h through 90d — so you can prove the vat is healthy, not just hope.",
+  },
+  {
+    id: "settings",
+    route: "/settings",
+    selector: '[data-testid="input-workspace-name"]',
+    on: "bottom",
+    title: "⚙️ Settings",
+    text: "Workspace identity, plan and region, notification switches, and API keys — the knobs you touch rarely but need fast when you do.",
   },
   {
     id: "nav",
     selector: '[data-testid="link-nav-overview"]',
     on: "right",
     title: "🧭 Navigation",
-    text: "Overview, Deployments, Services, Analytics, and Settings — everything lives one click away in this sidebar.",
+    text: "Everything you just saw lives one click away in this sidebar — Overview, Deployments, Services, Repositories, Analytics, Settings.",
   },
   {
     id: "usage",
@@ -62,6 +124,12 @@ const STEPS: StepDef[] = [
     title: "🌗 Light / Dark",
     text: "Prefer daylight over the vat's usual gloom? Toggle the theme right here.",
   },
+  {
+    id: "done",
+    route: "/",
+    title: "🟣 That's the vat",
+    text: "You know the whole floor now. This tour lives behind the compass button in the header if you ever want a rerun — go make something ooze.",
+  },
 ];
 
 function loadShepherd(callback: () => void) {
@@ -86,6 +154,33 @@ function loadShepherd(callback: () => void) {
   script.setAttribute("data-shepherd-js", "true");
   script.onload = callback;
   document.head.appendChild(script);
+}
+
+/** Navigate the hash router to a page, then poll until `selector` exists
+ *  (the route render is async) or ~2.5s passes. Returns whether the anchor
+ *  was found - steps fall back to a centered card when it wasn't. */
+function navigateAndWait(
+  route: string | undefined,
+  selector: string | undefined,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (route) {
+      const target = `#${route === "/" ? "/" : route}`;
+      if (window.location.hash !== target) window.location.hash = target;
+    }
+    if (!selector) {
+      // No anchor to wait on - still give the route a beat to render.
+      window.setTimeout(() => resolve(true), 350);
+      return;
+    }
+    const deadline = Date.now() + 2500;
+    const poll = () => {
+      if (document.querySelector(selector)) return resolve(true);
+      if (Date.now() >= deadline) return resolve(false);
+      window.setTimeout(poll, 40);
+    };
+    poll();
+  });
 }
 
 function renderProgress(el: HTMLElement | undefined, index: number, total: number) {
@@ -113,6 +208,19 @@ function renderProgress(el: HTMLElement | undefined, index: number, total: numbe
   footer.insertBefore(wrap, footer.firstChild);
 }
 
+/** The guide's portrait, stamped into the card's text block. One image per
+ *  step is overkill for most stops; `img` on a StepDef overrides the shared
+ *  default when a page wants its own art. */
+function renderGuide(el: HTMLElement | undefined, img: string) {
+  const text = el?.querySelector(".shepherd-text");
+  if (!text || text.querySelector(".puffbase-tour-guide")) return;
+  const portrait = document.createElement("img");
+  portrait.src = img;
+  portrait.alt = "";
+  portrait.className = "puffbase-tour-guide";
+  text.insertBefore(portrait, text.firstChild);
+}
+
 export function startPuffbaseTour() {
   loadShepherd(() => {
     const Shepherd = window.Shepherd;
@@ -123,7 +231,7 @@ export function startPuffbaseTour() {
       confirmCancelMessage: "Skip the rest of the tour?",
       defaultStepOptions: {
         classes: "puffbase-tour-step",
-        scrollTo: false,
+        scrollTo: { behavior: "smooth", block: "center" },
         cancelIcon: { enabled: true },
       },
     });
@@ -138,17 +246,29 @@ export function startPuffbaseTour() {
       }
       buttons.push({ text: isLast ? "Done" : "Next", action: isLast ? tour.complete : tour.next });
 
-      const el = step.selector ? document.querySelector(step.selector) : null;
-
       tour.addStep({
         id: step.id,
         title: step.title,
         text: step.text,
-        attachTo: el ? { element: step.selector, on: step.on || "bottom" } : undefined,
         buttons,
+        // Anchor resolution is deferred: beforeShowPromise navigates first,
+        // then updateStepOptions points the card at the element that just
+        // rendered. If the anchor never appears (e.g. empty page), the card
+        // shows centered rather than dying.
+        beforeShowPromise(this: any) {
+          return navigateAndWait(step.route, step.selector).then((found) => {
+            this.updateStepOptions({
+              attachTo:
+                found && step.selector
+                  ? { element: step.selector, on: step.on || "bottom" }
+                  : undefined,
+            });
+          });
+        },
         when: {
           show(this: any) {
             renderProgress(this.el, index, STEPS.length);
+            renderGuide(this.el, step.img ?? guideDefault);
           },
         },
       });
