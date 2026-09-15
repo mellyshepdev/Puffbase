@@ -11,6 +11,16 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (pathname.startsWith("/api/auth/")) return NextResponse.next();
 
+  // API routes accept `Authorization: Bearer pft_…` pufftokens - middleware
+  // is edge and can't reach OpenBao, so it passes them through and the route
+  // handler runs the exchange (and 401s on a bad token).
+  if (
+    pathname.startsWith("/api/") &&
+    req.headers.get("authorization")?.startsWith("Bearer pft_")
+  ) {
+    return NextResponse.next();
+  }
+
   // puff.dashboard.* is the editor surface - its root serves /editor and
   // internal paths stay valid on the editor host (assets, /api/editor/*).
   const isEditorHost = req.headers.get("host") === EDITOR_HOST;

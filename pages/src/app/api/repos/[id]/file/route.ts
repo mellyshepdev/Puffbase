@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { repositories } from "@/db/schema";
-import { currentAccount } from "@/lib/accounts";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 import { repoRead, repoWrite } from "@/lib/repostore";
 
 async function repoFor(id: string, accountId: string) {
@@ -19,8 +20,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:read")) return NextResponse.json({ error: "pufftoken lacks the repos:read scope" }, { status: 403 });
   const row = await repoFor((await params).id, ctx.account.id);
   if (!row) return NextResponse.json({ error: "Repo not found" }, { status: 404 });
   const path = req.nextUrl.searchParams.get("path") ?? "";
@@ -36,8 +38,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:write")) return NextResponse.json({ error: "pufftoken lacks the repos:write scope" }, { status: 403 });
   const row = await repoFor((await params).id, ctx.account.id);
   if (!row) return NextResponse.json({ error: "Repo not found" }, { status: 404 });
   const { path, content, sha, message } = await req.json().catch(() => ({}));

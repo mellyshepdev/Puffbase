@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { integrations } from "@/db/schema";
-import { currentAccount } from "@/lib/accounts";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 import { encryptToken, decryptToken } from "@/lib/secrets";
 import { verifyProvider, PROVIDERS, type Provider } from "@/lib/providers";
 
 // GET /api/integrations - the active account's connections (tokens stripped)
-export async function GET() {
-  const ctx = await currentAccount();
+export async function GET(req: NextRequest) {
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "integrations:read")) return NextResponse.json({ error: "pufftoken lacks the integrations:read scope" }, { status: 403 });
   const rows = await db
     .select()
     .from(integrations)
@@ -28,8 +30,9 @@ export async function GET() {
 // POST /api/integrations { provider, token } - verify with the provider, then
 // store encrypted. One connection per provider per account (re-upsert).
 export async function POST(req: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "integrations:write")) return NextResponse.json({ error: "pufftoken lacks the integrations:write scope" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const provider = body.provider as Provider;
   const token = typeof body.token === "string" ? body.token.trim() : "";
@@ -77,8 +80,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/integrations?id=… - disconnect (id must belong to active account)
 export async function DELETE(req: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "integrations:write")) return NextResponse.json({ error: "pufftoken lacks the integrations:write scope" }, { status: 403 });
   const id = req.nextUrl.searchParams.get("id") ?? "";
   await db
     .delete(integrations)

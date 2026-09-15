@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { groups } from "@/db/schema";
-import { currentAccount } from "@/lib/accounts";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 
 // GET /api/groups - the active account's groups
-export async function GET() {
-  const ctx = await currentAccount();
+export async function GET(req: NextRequest) {
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "groups:read")) return NextResponse.json({ error: "pufftoken lacks the groups:read scope" }, { status: 403 });
   const rows = await db
     .select()
     .from(groups)
@@ -18,8 +20,9 @@ export async function GET() {
 
 // POST /api/groups { name, description? }
 export async function POST(req: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "groups:write")) return NextResponse.json({ error: "pufftoken lacks the groups:write scope" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
   if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });

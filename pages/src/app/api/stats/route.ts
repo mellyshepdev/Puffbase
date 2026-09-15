@@ -1,14 +1,16 @@
 import { db } from "@/db";
 import { repositories, issues, pipelines, deployments } from "@/db/schema";
 import { sql, eq, and } from "drizzle-orm";
-import { NextResponse } from "next/server";
-import { currentAccount } from "@/lib/accounts";
+import { NextRequest, NextResponse } from "next/server";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 
 // Stats for the ACTIVE account only - joins through repositories so demo
 // rows (account_id null) and other accounts' data never leak in.
-export async function GET() {
-  const ctx = await currentAccount();
+export async function GET(request: NextRequest) {
+  const ctx = await requestAccount(request);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:read")) return NextResponse.json({ error: "pufftoken lacks the repos:read scope" }, { status: 403 });
   const acct = ctx.account.id;
 
   try {

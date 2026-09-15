@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts } from "@/db/schema";
 import { verify, sign, SESSION_COOKIE, SessionUser } from "@/lib/session";
+import { verifyPat, PAT_PREFIX } from "@/lib/pat";
 
 export type Account = typeof accounts.$inferSelect;
 
@@ -57,9 +58,36 @@ export async function sessionWithAccount(
 export async function currentAccount(): Promise<{
   user: SessionUser;
   account: Account;
+  scopes: string[];
 } | null> {
   const user = await sessionUser();
   if (!user) return null;
   const list = await getOrCreateAccounts(user.sub, user.name ?? user.email ?? "Personal");
-  return { user, account: activeAccount(list, user) };
+  return { user, account: activeAccount(list, user), scopes: ["*"] };
+}
+
+/** Route-handler helper that also accepts `Authorization: Bearer pft_...`
+ *  pufftokens - the token exchange resolves them via OpenBao and the ctx
+ *  carries the token's scopes instead of the session's implicit "*". */
+export async function requestAccount(req: Request): Promise<{
+  user: SessionUser;
+  account: Account;
+  scopes: string[];
+} | null> {
+  const auth = req.headers.get("authorization") ?? "";
+  if (auth.startsWith(`Bearer ${PAT_PREFIX}`)) {
+    const rec = await verifyPat(auth.slice(7).trim());
+    if (!rec) return null;
+    const [account] = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, rec.accountId));
+    if (!account) return null;
+    return {
+      user: { sub: rec.userSub, accountId: rec.accountId },
+      account,
+      scopes: rec.scopes,
+    };
+  }
+  return currentAccount();
 }

@@ -2,11 +2,13 @@ import { db } from "@/db";
 import { pipelines, repositories } from "@/db/schema";
 import { desc, eq, like, or, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { currentAccount } from "@/lib/accounts";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 
 export async function GET(request: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(request);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "pipelines:read")) return NextResponse.json({ error: "pufftoken lacks the pipelines:read scope" }, { status: 403 });
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get("status") || "";
 
@@ -48,8 +50,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/pipelines - record a pipeline run for one of the account's repos.
 export async function POST(request: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(request);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "pipelines:write")) return NextResponse.json({ error: "pufftoken lacks the pipelines:write scope" }, { status: 403 });
   try {
     const body = await request.json();
     // repo ids are int8 snowflakes - keep them as strings, compare as text

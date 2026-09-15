@@ -19,15 +19,13 @@ export type TreeEntry = { path: string; type: "file" | "dir"; size: number };
 
 export type DocFile = { path: string; content: string; sha: string };
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is required for the document store`);
-  return value;
-}
+import { puffToken, daemonUrl } from "./bao";
 
-async function storeFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const baseUrl = requireEnv("GIT_INTERNAL_URL");
-  const token = requireEnv("GIT_INTERNAL_TOKEN");
+// Every call exchanges for the owner's pufftoken via OpenBao - no static
+// daemon token lives in this process.
+async function storeFetch<T>(owner: string, path: string, init?: RequestInit): Promise<T> {
+  const baseUrl = await daemonUrl();
+  const token = await puffToken(owner);
   const res = await fetch(`${baseUrl}/api/v1${path}`, {
     ...init,
     headers: {
@@ -46,9 +44,9 @@ async function storeFetch<T>(path: string, init?: RequestInit): Promise<T> {
 /** Login name of the token's account - the physical owner of every space.
  *  Resolved once from the daemon rather than hardcoded. */
 let storeAccount: string | undefined;
-async function account(): Promise<string> {
+async function account(owner: string): Promise<string> {
   if (!storeAccount) {
-    const me = await storeFetch<{ login: string }>("/user");
+    const me = await storeFetch<{ login: string }>(owner, "/user");
     storeAccount = me.login;
   }
   return storeAccount;
@@ -72,6 +70,7 @@ type RepoResponse = { name: string; updated_at: string; default_branch: string }
 
 export async function listDocuments(owner: string): Promise<DocumentMeta[]> {
   const data = await storeFetch<{ ok: boolean; data: RepoResponse[] }>(
+    owner,
     "/repos/search?limit=200",
   );
   const pfx = `${prefix(owner)}-`;
@@ -86,7 +85,7 @@ export async function createDocument(
 ): Promise<DocumentMeta> {
   const repo = physical(owner, name);
   if (!repo) throw new Error("invalid document name");
-  const r = await storeFetch<RepoResponse>("/user/repos", {
+  const r = await storeFetch<RepoResponse>(owner, "/user/repos", {
     method: "POST",
     body: JSON.stringify({ name: repo, private: true, auto_init: true }),
   });
@@ -96,7 +95,7 @@ export async function createDocument(
 export async function deleteDocument(owner: string, name: string) {
   const repo = physical(owner, name);
   if (!repo) throw new Error("invalid document name");
-  await storeFetch(`/repos/${await account()}/${repo}`, { method: "DELETE" });
+  await storeFetch(owner, `/repos/${await account(owner)}/${repo}`, { method: "DELETE" });
 }
 
 /* ------------------------------------------------------------------------- *
@@ -108,9 +107,10 @@ function encodeFilePath(path: string): string {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
-async function defaultBranch(repo: string): Promise<string> {
+async function defaultBranch(owner: string, repo: string): Promise<string> {
   const r = await storeFetch<{ default_branch: string }>(
-    `/repos/${await account()}/${repo}`,
+    owner,
+    `/repos/${await account(owner)}/${repo}`,
   );
   return r.default_branch || "main";
 }
@@ -118,11 +118,12 @@ async function defaultBranch(repo: string): Promise<string> {
 export async function docTree(owner: string, name: string): Promise<TreeEntry[]> {
   const repo = physical(owner, name);
   if (!repo) throw new Error("invalid document name");
-  const branch = await defaultBranch(repo);
+  const branch = await defaultBranch(owner, repo);
   const data = await storeFetch<{
     tree: { path: string; type: string; size: number }[];
   }>(
-    `/repos/${await account()}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=true`,
+    owner,
+    `/repos/${await account(owner)}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=true`,
   );
   return (data.tree ?? []).map((e) => ({
     path: e.path,
@@ -139,7 +140,8 @@ export async function docRead(
   const repo = physical(owner, name);
   if (!repo) throw new Error("invalid document name");
   const data = await storeFetch<{ content: string; sha: string }>(
-    `/repos/${await account()}/${repo}/contents/${encodeFilePath(path)}`,
+    owner,
+    `/repos/${await account(owner)}/${repo}/contents/${encodeFilePath(path)}`,
   );
   return {
     path,
@@ -156,12 +158,12 @@ export async function docWrite(
 ): Promise<void> {
   const repo = physical(owner, name);
   if (!repo) throw new Error("invalid document name");
-  await storeFetch(`/repos/${await account()}/${repo}/contents/${encodeFilePath(path)}`, {
+  await storeFetch(owner, `/repos/${await account(owner)}/${repo}/contents/${encodeFilePath(path)}`, {
     method: "POST",
     body: JSON.stringify({
       content: Buffer.from(opts.content, "utf8").toString("base64"),
       sha: opts.sha,
-      branch: await defaultBranch(repo),
+      branch: await defaultBranch(owner, repo),
       message: opts.message ?? `${opts.sha ? "Update" : "Create"} ${path}`,
     }),
   });
@@ -175,11 +177,11 @@ export async function docDeleteFile(
 ): Promise<void> {
   const repo = physical(owner, name);
   if (!repo) throw new Error("invalid document name");
-  await storeFetch(`/repos/${await account()}/${repo}/contents/${encodeFilePath(path)}`, {
+  await storeFetch(owner, `/repos/${await account(owner)}/${repo}/contents/${encodeFilePath(path)}`, {
     method: "DELETE",
     body: JSON.stringify({
       sha,
-      branch: await defaultBranch(repo),
+      branch: await defaultBranch(owner, repo),
       message: `Delete ${path}`,
     }),
   });

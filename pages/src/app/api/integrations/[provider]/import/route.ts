@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { integrations, repositories } from "@/db/schema";
-import { currentAccount } from "@/lib/accounts";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 import { decryptToken } from "@/lib/secrets";
 import { migrateRepo } from "@/lib/repostore";
 import { PROVIDERS, type Provider } from "@/lib/providers";
@@ -14,8 +15,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ provider: string }> },
 ) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:write")) return NextResponse.json({ error: "pufftoken lacks the repos:write scope" }, { status: 403 });
   const provider = (await params).provider as Provider;
   if (provider !== "github" && provider !== "gitlab") {
     return NextResponse.json({ error: "unknown provider" }, { status: 404 });

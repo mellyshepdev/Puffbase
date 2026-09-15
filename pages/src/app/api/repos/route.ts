@@ -2,13 +2,15 @@ import { db } from "@/db";
 import { repositories } from "@/db/schema";
 import { like, or, and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { currentAccount } from "@/lib/accounts";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 import { createRepo, deleteRepo } from "@/lib/repostore";
 
 // GET /api/repos - the active account's repositories
 export async function GET(request: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(request);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:read")) return NextResponse.json({ error: "pufftoken lacks the repos:read scope" }, { status: 403 });
   const search = request.nextUrl.searchParams.get("search") || "";
 
   try {
@@ -39,8 +41,9 @@ export async function GET(request: NextRequest) {
 // POST /api/repos { name, description?, language? } - real repo in the
 // account's space on the internal store + a dashboard row.
 export async function POST(request: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(request);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:write")) return NextResponse.json({ error: "pufftoken lacks the repos:write scope" }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const name = String(body.name ?? "")
     .toLowerCase()
@@ -72,8 +75,9 @@ export async function POST(request: NextRequest) {
 // DELETE /api/repos?id=… - removes the store repo and the dashboard row.
 // repositories.id is crdb int8 (overflows JS numbers) so compare as text.
 export async function DELETE(request: NextRequest) {
-  const ctx = await currentAccount();
+  const ctx = await requestAccount(request);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:write")) return NextResponse.json({ error: "pufftoken lacks the repos:write scope" }, { status: 403 });
   const id = request.nextUrl.searchParams.get("id") ?? "";
 
   const [row] = await db

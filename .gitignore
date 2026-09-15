@@ -17,3 +17,4 @@ data.db-journal
 
 # Next.js build output
 .next/
+secrets/
