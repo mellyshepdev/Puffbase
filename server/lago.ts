@@ -34,11 +34,14 @@ async function lagoFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 type LagoCustomer = { lago_id: string; external_id: string };
 
-/** Idempotent: Lago treats create-with-same-external_id as an update. */
+/** Idempotent: Lago treats create-with-same-external_id as an update.
+ *  `stripeCustomerId` links the Lago customer to the saved Stripe card so
+ *  invoices auto-charge it (provider "stripe" is configured org-wide). */
 export async function ensureCustomer(
   externalId: string,
   email: string,
   name?: string,
+  stripeCustomerId?: string,
 ): Promise<string> {
   const data = await lagoFetch<{ customer: LagoCustomer }>("/customers", {
     method: "POST",
@@ -47,6 +50,13 @@ export async function ensureCustomer(
         external_id: externalId,
         email,
         name: name ?? email,
+        ...(stripeCustomerId
+          ? {
+              payment_provider: "stripe",
+              payment_provider_code: "stripe",
+              provider_customer: { provider_customer_id: stripeCustomerId },
+            }
+          : {}),
       },
     }),
   });

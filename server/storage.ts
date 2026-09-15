@@ -103,7 +103,17 @@ export interface IStorage {
   listLagoCustomerOwners(): Promise<string[]>;
   getOwnerBillingStats(
     owner: string,
-  ): Promise<{ storageBytes: number; liveDeployments: number }>;
+  ): Promise<{
+    storageBytes: number;
+    liveDeployments: number;
+    isFree: boolean;
+    isPaid: boolean;
+  }>;
+  getMonthlyApiCalls(owner: string): Promise<number>;
+  latestBillingAlert(owner: string): Promise<Activity | undefined>;
+  listLiveProjects(
+    owner: string,
+  ): Promise<{ id: number; subdomain: string | null }[]>;
   createBuilderProject(
     owner: string,
     project: InsertBuilderProject,
@@ -330,15 +340,80 @@ export class DatabaseStorage implements IStorage {
 
   async getOwnerBillingStats(
     owner: string,
-  ): Promise<{ storageBytes: number; liveDeployments: number }> {
+  ): Promise<{
+    storageBytes: number;
+    liveDeployments: number;
+    isFree: boolean;
+    isPaid: boolean;
+  }> {
     const rows = await db
       .select({
         storageBytes: sql<number>`coalesce(sum(octet_length(${builderProjects.html})), 0)::int`,
         liveDeployments: sql<number>`count(*) filter (where ${builderProjects.status} = 'live')::int`,
+        isFree: sql<boolean>`count(*) filter (where ${builderProjects.tier} = 'free') > 0`,
+        isPaid: sql<boolean>`count(*) filter (where ${builderProjects.tier} = 'paid') > 0`,
       })
       .from(builderProjects)
       .where(eq(builderProjects.owner, owner));
-    return rows[0] ?? { storageBytes: 0, liveDeployments: 0 };
+    return (
+      rows[0] ?? {
+        storageBytes: 0,
+        liveDeployments: 0,
+        isFree: false,
+        isPaid: false,
+      }
+    );
+  }
+
+  /** API calls recorded for the owner since the start of the UTC month. */
+  async getMonthlyApiCalls(owner: string): Promise<number> {
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+    const rows = await db
+      .select({
+        total: sql<number>`coalesce(sum(${metrics.value}), 0)::int`,
+      })
+      .from(metrics)
+      .where(
+        and(
+          eq(metrics.owner, owner),
+          eq(metrics.type, "api_calls"),
+          gte(metrics.timestamp, monthStart.toISOString()),
+        ),
+      );
+    return rows[0]?.total ?? 0;
+  }
+
+  /** Most recent over-limit warning ("billing:" prefix), for grace timing. */
+  async latestBillingAlert(owner: string): Promise<Activity | undefined> {
+    const rows = await db
+      .select()
+      .from(activity)
+      .where(
+        and(
+          eq(activity.owner, owner),
+          eq(activity.type, "alert"),
+          sql`${activity.message} like 'billing:%'`,
+        ),
+      )
+      .orderBy(desc(activity.timestamp))
+      .limit(1);
+    return rows[0];
+  }
+
+  async listLiveProjects(
+    owner: string,
+  ): Promise<{ id: number; subdomain: string | null }[]> {
+    return db
+      .select({ id: builderProjects.id, subdomain: builderProjects.subdomain })
+      .from(builderProjects)
+      .where(
+        and(
+          eq(builderProjects.owner, owner),
+          eq(builderProjects.status, "live"),
+        ),
+      );
   }
 
   async createBuilderProject(

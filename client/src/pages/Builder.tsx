@@ -163,6 +163,7 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
   const [email, setEmail] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [subdomain, setSubdomain] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const { data: status } = useBuilderStatus();
   const queryClient = useQueryClient();
 
@@ -175,6 +176,7 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
           email,
           survey: answers,
           subdomain: subdomain || undefined,
+          inviteCode: inviteCode.trim() || undefined,
         }),
       }),
     onSuccess: (project: ProjectDetail) => {
@@ -243,6 +245,21 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
           />
           <p className="mt-1 text-xs text-muted-foreground">
             Where it publishes on the deploy domain. Blank = auto-generated.
+          </p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            Invite code (optional)
+          </label>
+          <Input
+            data-testid="input-invite-code"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            placeholder="Have a free-tier code?"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            With a code: free tier, no card required, capped usage. Without:
+            $5/mo per site + metered usage, card on file.
           </p>
         </div>
         {create.error && (

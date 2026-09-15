@@ -114,7 +114,7 @@ export const builderProjects = pgTable("builder_projects", {
   owner: text("owner").notNull().default(""),
   name: text("name").notNull(),
   status: text("status", {
-    enum: ["survey", "generating", "preview", "deploying", "live", "failed"],
+    enum: ["survey", "generating", "preview", "deploying", "live", "failed", "suspended"],
   }).notNull(),
   // Contact for status mail - generation is slow, so the survey takes an
   // email up front and we notify rather than make them watch a spinner.
@@ -131,12 +131,15 @@ export const builderProjects = pgTable("builder_projects", {
   // Stripe customer with a card on file (Checkout setup mode). Set = card
   // collected; required before generation when Stripe is configured.
   stripeCustomerId: text("stripe_customer_id"),
+  // Billing tier: "free" = invited (caps enforced, $0 plan), "paid" = card on
+  // file + metered builder plan. Null predates billing.
+  tier: text("tier"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
 export const insertBuilderProjectSchema = createInsertSchema(builderProjects, {
-  status: z.enum(["survey", "generating", "preview", "deploying", "live", "failed"]),
+  status: z.enum(["survey", "generating", "preview", "deploying", "live", "failed", "suspended"]),
   name: z.string().min(1).max(200),
   subdomain: z
     .string()

@@ -31,6 +31,7 @@ import {
   ensureCustomer,
   lagoConfigured,
 } from "./lago";
+import { FREE_MAX_LIVE_SITES } from "./usage";
 import { notify, notifyChannels } from "./notify";
 import {
   mailConfigured,
@@ -616,7 +617,17 @@ export async function registerRoutes(
       .string()
       .regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/)
       .optional(),
+    // Free tier is invite-only - without a valid code the project is paid.
+    inviteCode: z.string().max(100).optional(),
   });
+
+  // Comma-separated codes, e.g. PUFFBASE_INVITE_CODES=EARLYBIRD,VIP-2026.
+  // Compared server-side only; never exposed to the client.
+  const inviteCodes = () =>
+    (process.env.PUFFBASE_INVITE_CODES ?? "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
   const reviseSchema = z
     .object({ instruction: z.string().min(1).max(4000) })
     .strict();
@@ -737,12 +748,21 @@ export async function registerRoutes(
           return res.status(409).json({ error: "Subdomain already taken" });
         }
       }
+      if (
+        parsed.data.inviteCode &&
+        !inviteCodes().includes(parsed.data.inviteCode)
+      ) {
+        return res.status(403).json({ error: "Invalid invite code" });
+      }
+      const tier = parsed.data.inviteCode ? "free" : "paid";
       const project = await storage.createBuilderProject(owner, {
         name: parsed.data.name,
         email: parsed.data.email,
-        status: stripeConfigured() ? "survey" : "generating",
+        status:
+          tier === "free" || !stripeConfigured() ? "generating" : "survey",
         survey: JSON.stringify(parsed.data.survey),
         subdomain: parsed.data.subdomain ?? null,
+        tier,
       });
       const subdomain =
         project.subdomain ??
@@ -759,8 +779,9 @@ export async function registerRoutes(
 
       // Card-first when Stripe is configured: park the project in "survey"
       // and hand back a hosted Checkout URL; generation starts on
-      // /confirm-card. Without Stripe (dev) generation starts immediately.
-      if (stripeConfigured()) {
+      // /confirm-card. Invite-code (free) and no-Stripe (dev) projects skip
+      // the card gate and start generating immediately.
+      if (tier === "paid" && stripeConfigured()) {
         const checkoutUrl = await createCardSetupSession(
           project.id,
           parsed.data.email,
@@ -880,6 +901,11 @@ export async function registerRoutes(
       if (!project.html) {
         return res.status(409).json({ error: "Nothing generated yet" });
       }
+      if (project.status === "suspended") {
+        return res.status(402).json({
+          error: "Project suspended - billing limits exceeded",
+        });
+      }
       if (project.status === "generating") {
         return res.status(409).json({ error: "Generation already running" });
       }
@@ -901,15 +927,52 @@ export async function registerRoutes(
     try {
       const project = await storage.getBuilderProject(owner, id);
       if (!project) return res.status(404).json({ error: "Project not found" });
+      if (project.status === "suspended") {
+        return res.status(402).json({
+          error: "Project suspended - billing limits exceeded",
+        });
+      }
       if (!project.html) {
         return res.status(409).json({ error: "Nothing generated yet" });
       }
-      const subdomain =
-        project.subdomain ??
-        `site-${owner.replace(/[^a-z0-9]/g, "").slice(0, 8)}-${id}`;
       if (!deployDomain()) {
         return res.status(503).json({ error: "Deploy domain not configured" });
       }
+
+      // Free-tier live-site cap is enforced at publish time so the account
+      // never exceeds it while inside the grace window.
+      if (project.tier === "free") {
+        const stats = await storage.getOwnerBillingStats(owner);
+        if (stats.liveDeployments >= FREE_MAX_LIVE_SITES) {
+          return res.status(402).json({
+            error: `Free tier allows ${FREE_MAX_LIVE_SITES} live site(s) - ` +
+              `upgrade to publish more`,
+          });
+        }
+      }
+
+      // Billing starts when the site goes live: Lago customer (Stripe-linked
+      // for paid accounts so invoices auto-charge the saved card) + the
+      // tier's plan subscription.
+      if (lagoConfigured() && !project.lagoSubscriptionId) {
+        const user = req.session.user!;
+        const planCode = project.tier === "free" ? "free" : "builder";
+        const customerId = await ensureCustomer(
+          owner,
+          user.email ?? project.email,
+          user.name,
+          project.stripeCustomerId ?? undefined,
+        );
+        const subscriptionId = await createSubscription(owner, planCode);
+        await storage.updateBuilderProject(owner, id, {
+          lagoCustomerId: customerId,
+          lagoSubscriptionId: subscriptionId,
+        });
+      }
+
+      const subdomain =
+        project.subdomain ??
+        `site-${owner.replace(/[^a-z0-9]/g, "").slice(0, 8)}-${id}`;
       await storage.updateBuilderProject(owner, id, { status: "deploying" });
 
       const url = await registerDeploymentRoute({
@@ -953,7 +1016,12 @@ export async function registerRoutes(
       const project = await storage.getBuilderProject(owner, id);
       if (!project) return res.status(404).json({ error: "Project not found" });
       const user = req.session.user!;
-      const customerId = await ensureCustomer(owner, user.email ?? "", user.name);
+      const customerId = await ensureCustomer(
+        owner,
+        user.email ?? "",
+        user.name,
+        project.stripeCustomerId ?? undefined,
+      );
       const subscriptionId = await createSubscription(owner, parsed.data.planCode);
       const updated = await storage.updateBuilderProject(owner, id, {
         lagoCustomerId: customerId,
