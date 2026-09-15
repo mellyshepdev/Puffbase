@@ -32,5 +32,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|emblem.svg|puffbase-emblem.png|puffbase-icon.png|ooze-sidebar.webp|ooze-drip-rail.webp).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|emblem.svg|puffbase-emblem.png|puffbase-icon.png|ooze-sidebar.webp|ooze-drip-rail.webp|avatars/).*)"],
 };

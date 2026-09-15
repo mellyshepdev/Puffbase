@@ -7,6 +7,8 @@ export interface SessionUser {
   sub: string;
   email?: string;
   name?: string;
+  /** Active account (personal or business) - see lib/accounts.ts. */
+  accountId?: string;
 }
 
 const encoder = new TextEncoder();

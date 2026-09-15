@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -7,18 +7,18 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is required");
 }
 
+// postgres.js instead of node-postgres: turbopack mangles `pg`'s external
+// module name so it cannot resolve at runtime (ERR_MODULE_NOT_FOUND on
+// every DB route). postgres.js is pure JS and bundles cleanly.
 const globalForDb = globalThis as typeof globalThis & {
-  __arenaNextJsPostgresqlPool?: Pool;
+  __puffbasePostgresClient?: postgres.Sql;
 };
 
-export const pool =
-  globalForDb.__arenaNextJsPostgresqlPool ??
-  new Pool({
-    connectionString: databaseUrl,
-  });
+export const sql =
+  globalForDb.__puffbasePostgresClient ?? postgres(databaseUrl);
 
 if (process.env.NODE_ENV !== "production") {
-  globalForDb.__arenaNextJsPostgresqlPool = pool;
+  globalForDb.__puffbasePostgresClient = sql;
 }
 
-export const db = drizzle(pool);
+export const db = drizzle(sql);

@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   jsonb,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 export const repositories = pgTable("repositories", {
@@ -61,6 +62,22 @@ export const deployments = pgTable("deployments", {
   domain: varchar("domain", { length: 255 }),
   branch: varchar("branch", { length: 255 }),
   commitSha: varchar("commit_sha", { length: 40 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// A Keycloak user (userSub) can own a personal account plus any number of
+// business accounts. The active one rides in the session cookie
+// (SessionUser.accountId) - switching accounts re-signs it.
+export const accounts = pgTable("accounts", {
+  // uuid, not serial: crdb SERIAL is int8/unique_rowid() which overflows
+  // JS numbers and breaks id round-trips through JSON.
+  id: uuid("id").primaryKey().defaultRandom(),
+  userSub: varchar("user_sub", { length: 255 }).notNull(),
+  kind: varchar("kind", { length: 20 }).default("personal").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  avatar: varchar("avatar", { length: 40 }).default("sheep-1").notNull(),
+  businessUrl: varchar("business_url", { length: 500 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
