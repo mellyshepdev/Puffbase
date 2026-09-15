@@ -5,7 +5,6 @@ import {
   Boxes,
   FileCode,
   LayoutDashboard,
-  LogOut,
   Rocket,
   Settings as SettingsIcon,
   Sparkles,
@@ -24,6 +23,14 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PuffbaseLogo } from "@/components/PuffbaseLogo";
 import { SlimeBar } from "@/components/kit";
 import { useAuth, logoutUrl } from "@/lib/auth";
@@ -166,30 +173,49 @@ function initials(name: string) {
 
 function UserCard() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const label = user?.name || user?.email || "Signed in";
 
   return (
     <div className="rounded-lg border border-sidebar-border/70 bg-sidebar-accent/40 p-2 backdrop-blur-sm group-data-[collapsible=icon]:hidden">
       <div className="flex items-center gap-2.5">
-        <Avatar className="h-8 w-8 border border-primary/40">
-          <AvatarFallback className="bg-primary/20 font-mono text-[11px] text-primary">
-            {initials(label)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-xs font-semibold">{label}</div>
-          <div className="truncate font-mono text-[10px] text-muted-foreground">
-            {user?.email && user?.name ? user.email : "blacksheep account"}
-          </div>
-        </div>
-        <a
-          href={logoutUrl}
-          data-testid="link-sign-out"
-          title="Sign out"
-          className="shrink-0 rounded p-1 text-muted-foreground hover-elevate"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-        </a>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-1 text-left hover-elevate"
+              data-testid="button-user-menu"
+              title="Account menu"
+            >
+              <Avatar className="h-8 w-8 border border-primary/40">
+                <AvatarFallback className="bg-primary/20 font-mono text-[11px] text-primary">
+                  {initials(label)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-semibold">{label}</div>
+                <div className="truncate font-mono text-[10px] text-muted-foreground">
+                  {user?.email && user?.name ? user.email : "blacksheep account"}
+                </div>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-52">
+            <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              {user?.email ?? "account"}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate("/account")}>
+              My dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => navigate("/settings")}>
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => (window.location.href = logoutUrl)}>
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
