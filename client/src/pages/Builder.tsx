@@ -31,11 +31,14 @@ type BuilderStatus = {
   llm: boolean;
   model: string;
   lago: boolean;
+  stripe: boolean;
+  mail: boolean;
   deployDomain: string | null;
   notify: string[];
 };
 
 type ProjectDetail = BuilderProject & {
+  checkoutUrl?: string;
   revisions: { id: number; instruction: string; createdAt: string }[];
 };
 
@@ -157,8 +160,10 @@ function ProjectList({ onNew }: { onNew: () => void }) {
 
 function Survey({ onDone }: { onDone: (id: number) => void }) {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [subdomain, setSubdomain] = useState("");
+  const { data: status } = useBuilderStatus();
   const queryClient = useQueryClient();
 
   const create = useMutation({
@@ -167,15 +172,22 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
         method: "POST",
         body: JSON.stringify({
           name,
+          email,
           survey: answers,
           subdomain: subdomain || undefined,
         }),
       }),
-    onSuccess: (project: BuilderProject) => {
+    onSuccess: (project: ProjectDetail) => {
       queryClient.invalidateQueries({ queryKey: ["/api/builder/projects"] });
+      if (project.checkoutUrl) {
+        window.location.href = project.checkoutUrl;
+        return;
+      }
       onDone(project.id);
     },
   });
+
+  const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
 
   return (
     <PageShell>
@@ -189,6 +201,23 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
             onChange={(e) => setName(e.target.value)}
             placeholder="Swoop's Repair Shop"
           />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            Email for updates
+          </label>
+          <Input
+            data-testid="input-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Generation runs on our own hardware and takes several minutes —
+            we&apos;ll email you when the preview is ready, so you don&apos;t
+            have to wait on this page.
+          </p>
         </div>
         {SURVEY_FIELDS.map((f) => (
           <div key={f.key}>
@@ -221,7 +250,7 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
         )}
         <Button
           data-testid="button-start-generation"
-          disabled={!name.trim() || create.isPending}
+          disabled={!name.trim() || !emailValid || create.isPending}
           onClick={() => create.mutate()}
         >
           {create.isPending ? (
@@ -229,8 +258,14 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
           ) : (
             <Sparkles className="mr-1.5 h-4 w-4" />
           )}
-          Generate my site
+          {status?.stripe ? "Add card & generate" : "Generate my site"}
         </Button>
+        {status?.stripe && (
+          <p className="text-xs text-muted-foreground">
+            You&apos;ll add a card on Stripe&apos;s secure page first — it
+            isn&apos;t charged until you subscribe.
+          </p>
+        )}
       </Card>
     </PageShell>
   );
@@ -269,6 +304,37 @@ function ProjectDetail({ id }: { id: number }) {
       window.location.hash = "#/builder";
     },
   });
+  const cardSetup = useMutation({
+    mutationFn: () =>
+      api(`/api/builder/projects/${id}/card-setup`, { method: "POST" }),
+    onSuccess: (data: { checkoutUrl: string }) => {
+      window.location.href = data.checkoutUrl;
+    },
+  });
+  const confirmCard = useMutation({
+    mutationFn: (sessionId: string) =>
+      api(`/api/builder/projects/${id}/confirm-card`, {
+        method: "POST",
+        body: JSON.stringify({ sessionId }),
+      }),
+    onSuccess: () => {
+      window.location.hash = `#/builder/${id}`;
+      invalidate();
+    },
+  });
+
+  // Return from Stripe Checkout: the session id rides back inside the hash
+  // query - verify it server-side, then generation kicks off there.
+  useEffect(() => {
+    const query = window.location.hash.split("?")[1];
+    if (!query) return;
+    const params = new URLSearchParams(query);
+    const sessionId = params.get("session_id");
+    if (params.get("card") === "ok" && sessionId && !confirmCard.isPending) {
+      confirmCard.mutate(sessionId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const generating = project?.status === "generating" || project?.status === "deploying";
 
@@ -344,7 +410,30 @@ function ProjectDetail({ id }: { id: number }) {
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_320px]">
         <Card className="overflow-hidden">
-          {generating ? (
+          {project.status === "survey" ? (
+            <div className="flex h-[560px] flex-col items-center justify-center gap-4 text-center">
+              <EmptyState
+                title="Add a card to start"
+                hint="Generation begins once a card is on file — it's collected on Stripe's secure page and isn't charged until you subscribe."
+              />
+              <Button
+                disabled={cardSetup.isPending || confirmCard.isPending}
+                onClick={() => cardSetup.mutate()}
+              >
+                {cardSetup.isPending || confirmCard.isPending ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-4 w-4" />
+                )}
+                {confirmCard.isPending ? "Confirming card…" : "Add card on Stripe"}
+              </Button>
+              {(cardSetup.error || confirmCard.error) && (
+                <p className="text-sm text-destructive">
+                  {cardSetup.error?.message ?? confirmCard.error?.message}
+                </p>
+              )}
+            </div>
+          ) : generating ? (
             <div className="flex h-[560px] flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm">
@@ -352,6 +441,11 @@ function ProjectDetail({ id }: { id: number }) {
                   ? "Publishing to the edge…"
                   : "The vat is generating your site — local models take a few minutes."}
               </p>
+              {project.email && (
+                <p className="text-xs text-muted-foreground/70">
+                  We&apos;ll email {project.email} when it&apos;s ready.
+                </p>
+              )}
             </div>
           ) : project.html ? (
             <iframe

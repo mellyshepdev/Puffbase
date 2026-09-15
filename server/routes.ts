@@ -33,6 +33,17 @@ import {
 } from "./lago";
 import { notify, notifyChannels } from "./notify";
 import {
+  mailConfigured,
+  sendSiteLive,
+  sendSiteReady,
+  sendSurveyReceived,
+} from "./mail";
+import {
+  confirmCardSetup,
+  createCardSetupSession,
+  stripeConfigured,
+} from "./stripe";
+import {
   deployDomain,
   registerDeploymentRoute,
   withdrawDeploymentRoute,
@@ -595,6 +606,7 @@ export async function registerRoutes(
   const surveySchema = z.record(z.string(), z.string().max(2000));
   const createProjectSchema = z.object({
     name: z.string().min(1).max(200),
+    email: z.string().email().max(320),
     survey: surveySchema,
     subdomain: z
       .string()
@@ -619,6 +631,13 @@ export async function registerRoutes(
         html,
       });
       void notify(`Puffbase: site generated for "${project.name}" (owner ${owner.slice(0, 8)}…)`);
+      if (project.email) {
+        sendSiteReady(
+          project.email,
+          project.name,
+          `${process.env.APP_URL ?? ""}/#/builder/${projectId}`,
+        );
+      }
     } catch (error) {
       await storage.updateBuilderProject(owner, projectId, { status: "failed" });
       console.error("[builder] generation failed", error);
@@ -656,6 +675,8 @@ export async function registerRoutes(
       llm: llmConfigured(),
       model: llmModel(),
       lago: lagoConfigured(),
+      stripe: stripeConfigured(),
+      mail: mailConfigured(),
       deployDomain: deployDomain() || null,
       notify: notifyChannels(),
     });
@@ -714,7 +735,8 @@ export async function registerRoutes(
       }
       const project = await storage.createBuilderProject(owner, {
         name: parsed.data.name,
-        status: "generating",
+        email: parsed.data.email,
+        status: stripeConfigured() ? "survey" : "generating",
         survey: JSON.stringify(parsed.data.survey),
         subdomain: parsed.data.subdomain ?? null,
       });
@@ -730,10 +752,79 @@ export async function registerRoutes(
       }
       reserveSiteSpace(subdomain, owner, project.id);
       void notify(`Puffbase: new site survey "${project.name}" submitted`);
+
+      // Card-first when Stripe is configured: park the project in "survey"
+      // and hand back a hosted Checkout URL; generation starts on
+      // /confirm-card. Without Stripe (dev) generation starts immediately.
+      if (stripeConfigured()) {
+        const checkoutUrl = await createCardSetupSession(
+          project.id,
+          parsed.data.email,
+        );
+        return res.status(201).json({ ...current, checkoutUrl });
+      }
+      sendSurveyReceived(parsed.data.email, project.name);
       void runGeneration(project.id, owner);
       return res.status(201).json(current);
     } catch {
       return res.status(500).json({ error: "Failed to create project" });
+    }
+  });
+
+  /** Hosted card collection for a project still waiting in "survey" - same
+   *  Checkout URL path as create, for users who left and came back. */
+  app.post("/api/builder/projects/:id/card-setup", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    if (!stripeConfigured()) {
+      return res.status(503).json({ error: "Payments not configured" });
+    }
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.getBuilderProject(owner, id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      if (project.stripeCustomerId) {
+        return res.status(409).json({ error: "Card already on file" });
+      }
+      const checkoutUrl = await createCardSetupSession(id, project.email);
+      return res.json({ checkoutUrl });
+    } catch {
+      return res.status(500).json({ error: "Failed to create checkout" });
+    }
+  });
+
+  /** Return from Stripe Checkout: verify the setup session, save the
+   *  customer, then kick off generation + the expectation email. */
+  app.post("/api/builder/projects/:id/confirm-card", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    const parsed = z
+      .object({ sessionId: z.string().min(1).max(200) })
+      .strict()
+      .safeParse(req.body);
+    if (!parsed.success) return sendValidationError(res, parsed.error.issues);
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.getBuilderProject(owner, id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      if (project.stripeCustomerId) {
+        return res.json(project);
+      }
+      const customerId = await confirmCardSetup(id, parsed.data.sessionId);
+      if (!customerId) {
+        return res
+          .status(402)
+          .json({ error: "Card setup not completed" });
+      }
+      const updated = await storage.updateBuilderProject(owner, id, {
+        stripeCustomerId: customerId,
+        status: "generating",
+      });
+      if (project.email) sendSurveyReceived(project.email, project.name);
+      void runGeneration(id, owner);
+      return res.json(updated);
+    } catch {
+      return res.status(500).json({ error: "Failed to confirm card" });
     }
   });
 
@@ -850,6 +941,7 @@ export async function registerRoutes(
         url,
       });
       void notify(`Puffbase: "${project.name}" published at ${url}`);
+      if (project.email) sendSiteLive(project.email, project.name, url);
       return res.json(updated);
     } catch (error) {
       await storage

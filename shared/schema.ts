@@ -116,6 +116,9 @@ export const builderProjects = pgTable("builder_projects", {
   status: text("status", {
     enum: ["survey", "generating", "preview", "deploying", "live", "failed"],
   }).notNull(),
+  // Contact for status mail - generation is slow, so the survey takes an
+  // email up front and we notify rather than make them watch a spinner.
+  email: text("email").notNull().default(""),
   // Intake survey answers (business name, vibe, sections, colors, ...) as JSON.
   survey: text("survey").notNull().default("{}"),
   // Current generated single-file site. Revisions table holds history.
@@ -126,6 +129,9 @@ export const builderProjects = pgTable("builder_projects", {
   // Lago billing linkage, filled in when the subscription is created.
   lagoCustomerId: text("lago_customer_id"),
   lagoSubscriptionId: text("lago_subscription_id"),
+  // Stripe customer with a card on file (Checkout setup mode). Set = card
+  // collected; required before generation when Stripe is configured.
+  stripeCustomerId: text("stripe_customer_id"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
