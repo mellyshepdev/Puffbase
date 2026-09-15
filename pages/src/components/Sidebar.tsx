@@ -64,8 +64,15 @@ export function Sidebar() {
 
       {/* Logo */}
       <div className="p-5 border-b border-[var(--color-dark-border)] relative">
-        <Link href="/" className="flex items-center group">
-          <img src="/puffbase-emblem.png" alt="Puffbase" className="h-10 w-auto drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
+        <Link href="/" className="flex items-center gap-2.5 group">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/puffbase-icon.png" alt="" className="h-9 w-9 shrink-0 object-contain drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
+          <div className="min-w-0">
+            <div className="truncate text-base font-bold tracking-tight text-white">Puffbase</div>
+            <div className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-[#5a4d7a]">
+              slime infra cloud
+            </div>
+          </div>
         </Link>
       </div>
 
