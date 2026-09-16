@@ -158,6 +158,7 @@ function ReposPage() {
               key={repo.id}
               href={`/repos/${repo.id}`}
               className="slime-card p-5 group cursor-pointer"
+              style={{ overflow: "visible" }}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">

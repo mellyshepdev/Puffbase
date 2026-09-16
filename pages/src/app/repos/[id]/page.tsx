@@ -346,8 +346,8 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
         <span className="text-slime-300">{repo.name}</span>
       </div>
 
-      {/* Repo header card */}
-      <div className="slime-card p-5">
+      {/* Repo header card - overflow visible so the Code clone dropdown isn't clipped */}
+      <div className="slime-card p-5" style={{ overflow: "visible" }}>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slime-500/30 to-goo-700/30 flex items-center justify-center glow-purple">
