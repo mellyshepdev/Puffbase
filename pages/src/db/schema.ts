@@ -24,6 +24,9 @@ export const repositories = pgTable("repositories", {
   /** Owning account - null on pre-account seed rows. */
   accountId: uuid("account_id"),
   isFavorite: boolean("is_favorite").default(false).notNull(),
+  ciEnabled: boolean("ci_enabled").default(false).notNull(),
+  sastEnabled: boolean("sast_enabled").default(false).notNull(),
+  secretScanEnabled: boolean("secret_scan_enabled").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -9,10 +9,11 @@ import {
 } from "lucide-react";
 
 type Field =
-  | { key: string; label: string; kind: "text"; placeholder?: string; help: string; required?: boolean }
-  | { key: string; label: string; kind: "textarea"; placeholder?: string; help: string; required?: boolean }
-  | { key: string; label: string; kind: "select"; options: { value: string; label: string }[]; help: string; required?: boolean }
-  | { key: string; label: string; kind: "repo"; help: string; required?: boolean };
+  | { key: string; label: string; kind: "text"; placeholder?: string; help: string; required?: boolean; show?: (v: Record<string, string>) => boolean }
+  | { key: string; label: string; kind: "textarea"; placeholder?: string; help: string; required?: boolean; show?: (v: Record<string, string>) => boolean }
+  | { key: string; label: string; kind: "select"; options: { value: string; label: string }[]; help: string; required?: boolean; show?: (v: Record<string, string>) => boolean }
+  | { key: string; label: string; kind: "checkbox"; help: string; default?: string; show?: (v: Record<string, string>) => boolean }
+  | { key: string; label: string; kind: "repo"; help: string; required?: boolean; show?: (v: Record<string, string>) => boolean };
 
 interface KindConfig {
   title: string;
@@ -33,20 +34,52 @@ const KINDS: Record<string, KindConfig> = {
     icon: FolderGit2,
     blurb: "A repository holds your code, files, and full revision history. It gets its own space in this workspace's store.",
     fields: [
+      { key: "source", label: "Start from", kind: "select", options: [
+        { value: "blank", label: "Blank project" },
+        { value: "template", label: "A template" },
+        { value: "import", label: "Import an existing project" },
+      ], help: "Blank gives you an empty repo. A template seeds starter files. Import clones a repo from GitHub/GitLab by URL." },
       { key: "name", label: "Repository name", kind: "text", placeholder: "my-project", required: true, help: "Great repository names are short and memorable. Lowercase letters, numbers, and dashes." },
+      { key: "cloneUrl", label: "Clone URL", kind: "text", placeholder: "https://github.com/you/project.git", required: true, show: (v) => v.source === "import", help: "The HTTPS URL of the repo to copy in - including all history and branches." },
+      { key: "service", label: "Source host", kind: "select", options: [
+        { value: "github", label: "GitHub" }, { value: "gitlab", label: "GitLab" },
+      ], show: (v) => v.source === "import", help: "Where the project lives now. Other git hosts work too - pick the closest match." },
+      { key: "authToken", label: "Access token (if private)", kind: "text", placeholder: "Optional - only for private repos", show: (v) => v.source === "import", help: "A personal access token with repo read on the source host. Leave blank for public repos." },
+      { key: "template", label: "Template", kind: "select", options: [
+        { value: "node-app", label: "Node.js app" },
+        { value: "python-app", label: "Python app" },
+        { value: "static-site", label: "Static site" },
+      ], show: (v) => v.source === "template", help: "Starter files are committed to main when the repo is created." },
       { key: "description", label: "Description", kind: "textarea", placeholder: "What is this project?", help: "Shown on the repo list and in search. Optional but recommended." },
+      { key: "visibility", label: "Visibility", kind: "select", options: [
+        { value: "private", label: "Private - only you" },
+        { value: "public", label: "Public - anyone on Puffbase" },
+      ], help: "Private repos are only visible to you and your groups. Public repos show up for everyone." },
       { key: "language", label: "Primary language", kind: "select", options: [
         { value: "", label: "—" },
         { value: "TypeScript", label: "TypeScript" }, { value: "JavaScript", label: "JavaScript" },
         { value: "Python", label: "Python" }, { value: "Go", label: "Go" },
         { value: "Rust", label: "Rust" }, { value: "Other", label: "Other" },
       ], help: "Used for the language badge on the repo card. You can change it later." },
+      { key: "readme", label: "Initialize with a README", kind: "checkbox", default: "on", show: (v) => v.source !== "import", help: "Adds a README.md with the repo name - the first thing visitors see." },
+      { key: "ci", label: "Enable CI/CD", kind: "checkbox", show: (v) => v.source !== "import", help: "Commits a .puffbase/pipeline.yml with build, test and deploy stages - edit it to fit your project." },
+      { key: "sast", label: "Enable SAST", kind: "checkbox", show: (v) => v.source !== "import", help: "Static application security testing - adds a sast stage to the pipeline that scans your code for vulnerabilities on every run." },
+      { key: "secretScan", label: "Enable secret detection", kind: "checkbox", show: (v) => v.source !== "import", help: "Scans commits for accidentally committed keys, tokens, and passwords - adds a secret-detection stage to the pipeline." },
     ],
     endpoint: "/api/repos",
     dest: "/repos",
     submit: "Create repository",
-    build: (v) => ({ name: v.name, description: v.description, language: v.language || undefined }),
-    valid: (v) => (v.name ?? "").trim().length > 0,
+    build: (v) => ({
+      name: v.name, description: v.description, language: v.language || undefined,
+      source: v.source || "blank",
+      cloneUrl: v.cloneUrl || undefined, service: v.service || undefined,
+      authToken: v.authToken || undefined, template: v.template || undefined,
+      visibility: v.visibility || "private",
+      readme: v.readme !== "off", ci: v.ci === "on",
+      sast: v.sast === "on", secretScan: v.secretScan === "on",
+    }),
+    valid: (v) => (v.name ?? "").trim().length > 0
+      && (v.source !== "import" || /^https?:\/\/\S+$/.test((v.cloneUrl ?? "").trim())),
   },
   issue: {
     title: "New issue",
@@ -206,11 +239,13 @@ function NewItemPage() {
       <p className="text-sm text-[#9d8ec2] mb-8">{cfg.blurb}</p>
 
       <div className="slime-card p-6 space-y-6">
-        {cfg.fields.map((f) => (
+        {cfg.fields.filter((f) => !f.show || f.show(values)).map((f) => (
           <div key={f.key}>
-            <label className="block text-sm font-medium text-white mb-1">
-              {f.label} {f.required && <span className="text-slime-400">*</span>}
-            </label>
+            {f.kind !== "checkbox" && (
+              <label className="block text-sm font-medium text-white mb-1">
+                {f.label} {f.required && <span className="text-slime-400">*</span>}
+              </label>
+            )}
             {f.kind === "text" && (
               <input
                 value={values[f.key] ?? ""}
@@ -236,6 +271,17 @@ function NewItemPage() {
               >
                 {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
+            )}
+            {f.kind === "checkbox" && (
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={(values[f.key] ?? f.default ?? "") === "on"}
+                  onChange={(e) => set(f.key, e.target.checked ? "on" : "off")}
+                  className="mt-0.5 w-4 h-4 rounded accent-slime-500"
+                />
+                <span className="text-sm font-medium text-white">{f.label}</span>
+              </label>
             )}
             {f.kind === "repo" && (
               repos.length === 0 ? (

@@ -74,12 +74,19 @@ export async function createRepo(
   accountId: string,
   name: string,
   description = "",
+  opts: { readme?: boolean } = {},
 ): Promise<RepoMeta> {
   const repo = physical(accountId, name);
   if (!repo) throw new Error("invalid repo name");
   const r = await storeFetch<RepoResponse>(accountId, "/user/repos", {
     method: "POST",
-    body: JSON.stringify({ name: repo, private: true, auto_init: true, description }),
+    body: JSON.stringify({
+      name: repo,
+      private: true,
+      auto_init: true,
+      readme: opts.readme === false ? "" : "Default",
+      description,
+    }),
   });
   return { name, description, defaultBranch: r.default_branch, updatedAt: r.updated_at };
 }
