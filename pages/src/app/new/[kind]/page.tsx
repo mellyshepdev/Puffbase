@@ -46,7 +46,7 @@ const KINDS: Record<string, KindConfig> = {
     dest: "/repos",
     submit: "Create repository",
     build: (v) => ({ name: v.name, description: v.description, language: v.language || undefined }),
-    valid: (v) => v.name.trim().length > 0,
+    valid: (v) => (v.name ?? "").trim().length > 0,
   },
   issue: {
     title: "New issue",
@@ -66,7 +66,7 @@ const KINDS: Record<string, KindConfig> = {
     dest: "/issues",
     submit: "Create issue",
     build: (v) => ({ repoId: v.repoId, title: v.title, body: v.body, priority: v.priority, assignee: v.assignee }),
-    valid: (v) => Boolean(v.repoId) && v.title.trim().length > 0,
+    valid: (v) => Boolean(v.repoId) && (v.title ?? "").trim().length > 0,
   },
   "merge-request": {
     title: "New merge request",
@@ -83,7 +83,7 @@ const KINDS: Record<string, KindConfig> = {
     dest: "/merge-requests",
     submit: "Open merge request",
     build: (v) => ({ repo: v.repo, title: v.title, head: v.head, base: v.base, body: v.body }),
-    valid: (v) => Boolean(v.repo) && v.title.trim().length > 0 && v.head.trim().length > 0,
+    valid: (v) => Boolean(v.repo) && (v.title ?? "").trim().length > 0 && (v.head ?? "").trim().length > 0,
   },
   pipeline: {
     title: "New pipeline run",
@@ -131,7 +131,7 @@ const KINDS: Record<string, KindConfig> = {
     dest: "/groups",
     submit: "Create group",
     build: (v) => ({ name: v.name, description: v.description }),
-    valid: (v) => v.name.trim().length > 0,
+    valid: (v) => (v.name ?? "").trim().length > 0,
   },
   document: {
     title: "New document",
@@ -144,7 +144,7 @@ const KINDS: Record<string, KindConfig> = {
     dest: "/editor",
     submit: "Create document",
     build: (v) => ({ name: v.name }),
-    valid: (v) => v.name.trim().length > 0,
+    valid: (v) => (v.name ?? "").trim().length > 0,
   },
 };
 

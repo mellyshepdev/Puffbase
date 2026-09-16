@@ -36,6 +36,8 @@ interface Account {
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchRepos, setSearchRepos] = useState<{ id: string; name: string; description?: string | null }[]>([]);
+  const [searchIssues, setSearchIssues] = useState<{ id: number; title: string; repoName?: string }[]>([]);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -65,6 +67,28 @@ export function TopBar() {
       })
       .catch(() => {});
   }, []);
+
+  // Live search - debounced fan-out over the account's repos + issues.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchRepos([]);
+      setSearchIssues([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      const enc = encodeURIComponent(q);
+      fetch(`/api/repos?search=${enc}`)
+        .then((r) => r.json())
+        .then((d) => setSearchRepos(Array.isArray(d) ? d.slice(0, 5) : []))
+        .catch(() => {});
+      fetch(`/api/issues?search=${enc}`)
+        .then((r) => r.json())
+        .then((d) => setSearchIssues(Array.isArray(d) ? d.slice(0, 5) : []))
+        .catch(() => {});
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (!menuOpen && !newOpen) return;
@@ -130,7 +154,13 @@ export function TopBar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && searchQuery.trim()) {
+                const first = searchRepos[0];
+                window.location.href = first ? `/repos/${first.id}` : `/repos?search=${encodeURIComponent(searchQuery.trim())}`;
+              }
+            }}
             className="flex-1 bg-transparent text-sm text-white placeholder-[#5a4d7a] outline-none"
           />
           <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] text-[#5a4d7a] border border-[var(--color-dark-border)] rounded-md bg-[var(--color-dark-bg)]">
@@ -138,8 +168,68 @@ export function TopBar() {
           </kbd>
         </div>
 
+        {/* Live results */}
+        {searchFocused && searchQuery.trim() && (
+          <div className="absolute left-0 right-0 mt-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] shadow-xl overflow-hidden z-50 py-1">
+            {/* Brand hit - searching "puffbase" surfaces the emblem */}
+            {/puff|sheep|slime|logo|emblem|brand/i.test(searchQuery) && (
+              <Link
+                href="/"
+                className="flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--color-dark-hover)] transition-all"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/puffbase-icon.png"
+                  alt="Puffbase"
+                  className="w-9 h-9 rounded-lg object-cover shrink-0"
+                  style={{ boxShadow: "0 0 14px rgba(139,61,255,.4)" }}
+                />
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-white">Puffbase</span>
+                  <span className="block text-[10px] text-[#5a4d7a]">Slime infra cloud — your dashboard</span>
+                </span>
+              </Link>
+            )}
+            {searchRepos.length === 0 && searchIssues.length === 0 && (
+              <p className="px-3 py-2.5 text-xs text-[#5a4d7a]">No matches in this workspace.</p>
+            )}
+            {searchRepos.length > 0 && (
+              <>
+                <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-[#5a4d7a]">Repositories</p>
+                {searchRepos.map((r) => (
+                  <Link
+                    key={r.id}
+                    href={`/repos/${r.id}`}
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+                  >
+                    <FolderGit2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate font-medium">{r.name}</span>
+                    {r.description && <span className="truncate text-[#5a4d7a]">{r.description}</span>}
+                  </Link>
+                ))}
+              </>
+            )}
+            {searchIssues.length > 0 && (
+              <>
+                <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-[#5a4d7a]">Issues</p>
+                {searchIssues.map((i) => (
+                  <Link
+                    key={i.id}
+                    href="/issues"
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate font-medium">{i.title}</span>
+                    {i.repoName && <span className="truncate text-[#5a4d7a]">{i.repoName}</span>}
+                  </Link>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
         {/* Drip from search bar */}
-        {searchFocused && (
+        {searchFocused && !searchQuery.trim() && (
           <div className="absolute -bottom-2 left-8 w-1 h-3 bg-slime-500 rounded-b-full animate-pulse" />
         )}
       </div>
