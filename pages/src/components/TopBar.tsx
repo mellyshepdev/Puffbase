@@ -238,9 +238,8 @@ export function TopBar() {
       <div className="flex items-center gap-4 ml-6">
         {/* New button -> what to create? */}
         <div className="relative" ref={newRef}>
-          <button onClick={() => setNewOpen((v) => !v)} className="slime-btn flex items-center gap-2 text-sm py-2 px-4">
+          <button onClick={() => setNewOpen((v) => !v)} className="slime-btn flex items-center gap-1 text-sm py-2 px-3" aria-label="New" title="New">
             <Plus className="w-4 h-4" />
-            <span>New</span>
             <ChevronDown className={`w-3 h-3 transition-transform ${newOpen ? "rotate-180" : ""}`} />
           </button>
           {newOpen && (

@@ -12,7 +12,6 @@ import {
   Clock,
   ArrowRight,
   Zap,
-  Plus,
   X,
   Sparkles,
   Rocket,
@@ -233,14 +232,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-sm text-[#7a6b9d] mt-1">Here&apos;s what&apos;s moving across your workspace today.</p>
         </div>
-        <div className="heading-actions">
-          <Link className="button secondary" href="/integrations">
-            <FolderGit2 className="w-4 h-4" /> Import repo
-          </Link>
-          <button className="button primary" onClick={() => setCreateOpen(true)}>
-            <Plus className="w-4 h-4" /> New project
-          </button>
-        </div>
+        <div className="heading-actions" />
       </div>
 
       {/* Slime Status hero banner */}
