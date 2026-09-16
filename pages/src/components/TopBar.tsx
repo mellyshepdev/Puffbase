@@ -4,16 +4,15 @@ import { Search, Bell, ChevronDown, Plus, GitBranch, GitMerge, LogOut, Check, Bu
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-// "+ New" dropdown - each item lands on the page that owns the create flow
-// and auto-opens its modal via ?new=1.
+// "+ New" dropdown - each item lands on a full setup page (/new/<kind>).
 const NEW_ITEMS = [
-  { href: "/?new=1", label: "Repository", icon: FolderGit2 },
-  { href: "/issues?new=1", label: "Issue", icon: AlertCircle },
-  { href: "/merge-requests?new=1", label: "Merge request", icon: GitMerge },
-  { href: "/pipelines?new=1", label: "Pipeline run", icon: GitPullRequest },
-  { href: "/deploy?new=1", label: "Deployment", icon: Rocket },
-  { href: "/groups?new=1", label: "Group", icon: Users },
-  { href: "/editor?new=1", label: "Document", icon: FileText },
+  { href: "/new/repository", label: "Repository", icon: FolderGit2 },
+  { href: "/new/issue", label: "Issue", icon: AlertCircle },
+  { href: "/new/merge-request", label: "Merge request", icon: GitMerge },
+  { href: "/new/pipeline", label: "Pipeline run", icon: GitPullRequest },
+  { href: "/new/deployment", label: "Deployment", icon: Rocket },
+  { href: "/new/group", label: "Group", icon: Users },
+  { href: "/new/document", label: "Document", icon: FileText },
 ];
 
 interface SessionUser {

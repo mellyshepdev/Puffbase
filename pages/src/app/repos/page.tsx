@@ -104,7 +104,7 @@ function ReposPage() {
             {favOnly && <> · <Link href="/repos" className="text-slime-400 hover:underline">view all</Link></>}
           </p>
         </div>
-        <Link href="/?new=1" className="slime-btn flex items-center gap-2">
+        <Link href="/new/repository" className="slime-btn flex items-center gap-2">
           <Plus className="w-4 h-4" />
           New Repository
         </Link>
