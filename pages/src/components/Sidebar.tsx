@@ -135,7 +135,7 @@ export function Sidebar() {
           </div>
           <p className="text-xs font-bold text-white">Unlock the whole slime</p>
           <p className="text-[10px] text-[#9d8ec2] mt-1 mb-2.5">Unlimited builds, private repos, and more.</p>
-          <Link href="/status" className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#b6f34c] hover:text-white transition-colors">
+          <Link href="/plan" className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#b6f34c] hover:text-white transition-colors">
             Explore Pro <ArrowRight className="w-3 h-3" />
           </Link>
         </div>

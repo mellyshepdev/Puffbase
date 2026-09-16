@@ -80,6 +80,11 @@ export const accounts = pgTable("accounts", {
   name: varchar("name", { length: 255 }).notNull(),
   avatar: varchar("avatar", { length: 40 }).default("sheep-1").notNull(),
   businessUrl: varchar("business_url", { length: 500 }),
+  // Membership tier: "free" | "pro-monthly" | "pro-yearly" | "business".
+  // stripeCustomerId = card on file (Checkout setup mode); invoicing rides
+  // the platform's Lago pipeline, same as builder projects.
+  plan: varchar("plan", { length: 20 }).default("free").notNull(),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 80 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
