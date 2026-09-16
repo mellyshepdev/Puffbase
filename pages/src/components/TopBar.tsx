@@ -1,8 +1,10 @@
 "use client";
 
-import { Search, Bell, ChevronDown, Plus, GitBranch, GitMerge, LogOut, Check, Building2, User as UserIcon, Settings as SettingsIcon, Star, ListTodo, Smile, Pencil, FolderGit2, AlertCircle, GitPullRequest, Rocket, Users, FileText } from "lucide-react";
+import { Search, Bell, ChevronDown, Plus, GitBranch, GitMerge, LogOut, Check, Building2, User as UserIcon, Settings as SettingsIcon, Star, ListTodo, Smile, Pencil, FolderGit2, AlertCircle, GitPullRequest, Rocket, Users, FileText, Shield } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
+import NewAccountDialog from "@/components/NewAccountDialog";
 
 // "+ New" dropdown - each item lands on a full setup page (/new/<kind>).
 const NEW_ITEMS = [
@@ -35,6 +37,7 @@ export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [active, setActive] = useState<Account | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -42,13 +45,17 @@ export function TopBar() {
   const [statusEmoji, setStatusEmoji] = useState("");
   const [statusText, setStatusText] = useState("");
   const [newOpen, setNewOpen] = useState(false);
+  const [newAcctOpen, setNewAcctOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const newRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((r) => setUser(r.user))
+      .then((r) => {
+        setUser(r.user);
+        setIsAdmin(!!r.isAdmin);
+      })
       .catch(() => {});
     fetch("/api/accounts")
       .then((r) => r.json())
@@ -79,21 +86,13 @@ export function TopBar() {
     if (res.ok) window.location.reload();
   };
 
-  const addBusiness = async () => {
-    const res = await fetch("/api/accounts", {
+  const onAccountCreated = async (acct: { id: string }) => {
+    await fetch("/api/accounts/switch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "business", name: "Business" }),
+      body: JSON.stringify({ id: acct.id }),
     });
-    if (res.ok) {
-      const acct = await res.json();
-      await fetch("/api/accounts/switch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: acct.id }),
-      });
-      window.location.reload();
-    }
+    window.location.reload();
   };
 
   const label = active?.name || user?.name || user?.email || "Account";
@@ -196,7 +195,7 @@ export function TopBar() {
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slime-400 to-goo-700 flex items-center justify-center overflow-hidden ring-2 ring-slime-600/30 group-hover:ring-slime-400/50 transition-all">
                 {active?.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`/avatars/${active.avatar}.svg`} alt="" className="w-7 h-7" />
+                  <img src={avatarSrc(active.avatar)} alt="" className="w-7 h-7" style={{ objectFit: "cover" }} />
                 ) : (
                   <UserIcon className="w-4 h-4 text-white" />
                 )}
@@ -290,7 +289,7 @@ export function TopBar() {
                 >
                   <span className="w-7 h-7 rounded-full bg-gradient-to-br from-slime-400 to-goo-700 flex items-center justify-center shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/avatars/${a.avatar}.svg`} alt="" className="w-5 h-5" />
+                    <img src={avatarSrc(a.avatar)} alt="" className="w-5 h-5" style={{ objectFit: "cover", borderRadius: "50%" }} />
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block truncate font-medium">{a.name}</span>
@@ -300,7 +299,7 @@ export function TopBar() {
                 </button>
               ))}
               <button
-                onClick={addBusiness}
+                onClick={() => { setMenuOpen(false); setNewAcctOpen(true); }}
                 className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all border-t border-[var(--color-dark-border)]"
               >
                 <Building2 className="w-3.5 h-3.5" />
@@ -314,6 +313,15 @@ export function TopBar() {
                 <SettingsIcon className="w-3.5 h-3.5" />
                 Settings
               </Link>
+              {isAdmin && (
+                <a
+                  href="https://puffbase.prime-quality.online/console"
+                  className="flex items-center gap-2 px-3 py-2.5 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Admin console
+                </a>
+              )}
               <a
                 href="/api/auth/logout"
                 className="flex items-center gap-2 px-3 py-2.5 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all border-t border-[var(--color-dark-border)]"
@@ -325,6 +333,11 @@ export function TopBar() {
           )}
         </div>
       </div>
+
+      {/* Add business account - name + avatar image */}
+      {newAcctOpen && (
+        <NewAccountDialog kind="business" onClose={() => setNewAcctOpen(false)} onCreated={onAccountCreated} />
+      )}
 
       {/* Edit status modal */}
       {statusOpen && (

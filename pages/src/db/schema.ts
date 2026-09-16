@@ -79,7 +79,10 @@ export const accounts = pgTable("accounts", {
   userSub: varchar("user_sub", { length: 255 }).notNull(),
   kind: varchar("kind", { length: 20 }).default("personal").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  avatar: varchar("avatar", { length: 40 }).default("sheep-1").notNull(),
+  // "sheep-N" id, an http(s) avatar URL (e.g. synced from the BlackSheep
+  // account), or a data: URL from an uploaded image. Text, not varchar:
+  // data URLs blow past any sane length cap.
+  avatar: text("avatar").default("sheep-1").notNull(),
   businessUrl: varchar("business_url", { length: 500 }),
   // Membership tier: "free" | "pro-monthly" | "pro-yearly" | "business".
   // stripeCustomerId = card on file (Checkout setup mode); invoicing rides

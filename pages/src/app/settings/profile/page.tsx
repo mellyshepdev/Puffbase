@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, Save, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Save, Loader2, Upload, RefreshCw } from "lucide-react";
+import { avatarSrc, isCustomAvatar, readAvatarFile } from "@/lib/avatar";
 
 interface Account {
   id: string;
@@ -23,8 +24,14 @@ export default function ProfileSettings() {
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("sheep-1");
   const [businessUrl, setBusinessUrl] = useState("");
+  const [bsPicture, setBsPicture] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((r) => { if (r.user?.picture) setBsPicture(r.user.picture); })
+      .catch(() => {});
     fetch("/api/accounts")
       .then((r) => r.json())
       .then((r) => {
@@ -99,7 +106,45 @@ export default function ProfileSettings() {
       </div>
 
       <h3 className="text-sm font-semibold text-white mt-6 mb-1">Avatar</h3>
-      <p className="text-xs text-[#7a6b9d] mb-3">Pick your flock — each account keeps its own sheep.</p>
+      <p className="text-xs text-[#7a6b9d] mb-3">Upload a picture, sync your BlackSheep account photo, or pick a sheep.</p>
+      <div className="flex items-center gap-4 mb-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={avatarSrc(avatar)}
+          alt=""
+          className="w-16 h-16 rounded-full border border-[var(--color-dark-border)] bg-[var(--color-dark-card)]"
+          style={{ objectFit: "cover" }}
+        />
+        <div className="flex flex-col gap-2">
+          <button className="button secondary" type="button" onClick={() => fileRef.current?.click()}>
+            <Upload className="w-3.5 h-3.5" /> Upload a picture
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              if (!f) return;
+              try { setAvatar(await readAvatarFile(f)); }
+              catch { setError("Couldn't read that image"); }
+            }}
+          />
+          {bsPicture ? (
+            <button className="button secondary" type="button" onClick={() => setAvatar(bsPicture)}>
+              <RefreshCw className="w-3.5 h-3.5" /> Sync with BlackSheep account
+            </button>
+          ) : (
+            <span className="text-[11px] text-[#5a4d7a]">No photo on your BlackSheep account to sync.</span>
+          )}
+        </div>
+      </div>
+      {isCustomAvatar(avatar) && (
+        <p className="text-[11px] text-[#7a6b9d] mb-3">
+          Custom image set — pick a sheep below to switch back.
+        </p>
+      )}
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-6">
         {SHEEP.map((s) => (
           <button

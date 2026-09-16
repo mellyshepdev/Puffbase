@@ -12,6 +12,16 @@ export type Account = typeof accounts.$inferSelect;
 
 export const SHEEP_AVATARS = Array.from({ length: 8 }, (_, i) => `sheep-${i + 1}`);
 
+/** Allowed avatar values: a sheep id, an https URL (synced account picture),
+ *  or a data:image URL from an upload. Anything else is rejected. */
+export function validAvatar(v: unknown): v is string {
+  if (typeof v !== "string") return false;
+  if (SHEEP_AVATARS.includes(v)) return true;
+  if (/^https:\/\/\S{1,1000}$/.test(v)) return true;
+  if (/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]{10,400000}$/.test(v)) return true;
+  return false;
+}
+
 /** The signed-in Keycloak user, or null. Middleware already gates the
  *  routes, but route handlers still need the identity. */
 export async function sessionUser(): Promise<SessionUser | null> {

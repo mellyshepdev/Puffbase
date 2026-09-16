@@ -8,7 +8,7 @@ import {
   getOrCreateAccounts,
   activeAccount,
   sessionWithAccount,
-  SHEEP_AVATARS,
+  validAvatar,
 } from "@/lib/accounts";
 import { SESSION_COOKIE } from "@/lib/session";
 
@@ -46,7 +46,12 @@ export async function POST(req: NextRequest) {
 
   const [created] = await db
     .insert(accounts)
-    .values({ userSub: user.sub, kind, name })
+    .values({
+      userSub: user.sub,
+      kind,
+      name,
+      ...(validAvatar(body.avatar) ? { avatar: body.avatar } : {}),
+    })
     .returning();
   return NextResponse.json(created, { status: 201 });
 }
@@ -65,7 +70,7 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.name === "string" && body.name.trim()) {
     patch.name = body.name.trim().slice(0, 120);
   }
-  if (typeof body.avatar === "string" && SHEEP_AVATARS.includes(body.avatar)) {
+  if (typeof body.avatar === "string" && validAvatar(body.avatar)) {
     patch.avatar = body.avatar;
   }
   if (typeof body.businessUrl === "string") {

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Building2, Check, Plus, Loader2 } from "lucide-react";
+import { Check, Plus, Loader2 } from "lucide-react";
+import { avatarSrc } from "@/lib/avatar";
+import NewAccountDialog from "@/components/NewAccountDialog";
 
 interface Account {
   id: string;
@@ -14,6 +16,7 @@ export default function AccountsSettings() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [newOpen, setNewOpen] = useState(false);
 
   const load = () =>
     fetch("/api/accounts")
@@ -37,13 +40,9 @@ export default function AccountsSettings() {
     if (res.ok) window.location.reload();
   };
 
-  const addBusiness = async () => {
-    const res = await fetch("/api/accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "business", name: "Business" }),
-    });
-    if (res.ok) load();
+  const onCreated = () => {
+    setNewOpen(false);
+    load();
   };
 
   const personal = accounts.find((a) => a.kind === "personal");
@@ -70,7 +69,8 @@ export default function AccountsSettings() {
             className={`acct-type ${activeId === personal.id ? "selected" : ""}`}
             onClick={() => switchTo(personal.id)}
           >
-            <div className="acct-icon"><User className="w-5 h-5" /></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={avatarSrc(personal.avatar)} alt="" className="w-9 h-9 rounded-full shrink-0" style={{ objectFit: "cover" }} />
             <div className="text-left">
               <strong>{personal.name}</strong>
               <p>Personal · one workspace, community builds.</p>
@@ -84,7 +84,8 @@ export default function AccountsSettings() {
             className={`acct-type ${activeId === b.id ? "selected" : ""}`}
             onClick={() => switchTo(b.id)}
           >
-            <div className="acct-icon"><Building2 className="w-5 h-5" /></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={avatarSrc(b.avatar)} alt="" className="w-9 h-9 rounded-full shrink-0" style={{ objectFit: "cover" }} />
             <div className="text-left">
               <strong>{b.name}</strong>
               <p>Business · groups, metered usage, invoices.</p>
@@ -92,7 +93,7 @@ export default function AccountsSettings() {
             {activeId === b.id && <Check className="w-4 h-4 text-[#b6f34c] ml-auto" />}
           </button>
         ))}
-        <button className="acct-type" onClick={addBusiness}>
+        <button className="acct-type" onClick={() => setNewOpen(true)}>
           <div className="acct-icon"><Plus className="w-5 h-5" /></div>
           <div className="text-left">
             <strong>Add business account</strong>
@@ -100,6 +101,9 @@ export default function AccountsSettings() {
           </div>
         </button>
       </div>
+      {newOpen && (
+        <NewAccountDialog kind="business" onClose={() => setNewOpen(false)} onCreated={onCreated} />
+      )}
     </section>
   );
 }
