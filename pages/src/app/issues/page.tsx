@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Search,
@@ -58,17 +59,21 @@ function timeAgo(dateStr: string) {
   return `${days}d ago`;
 }
 
-export default function IssuesPage() {
+function IssuesPage() {
+  const searchParams = useSearchParams();
+  const mineOnly = searchParams.get("assignee") === "me";
   const [issues, setIssues] = useState<Issue[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [repos, setRepos] = useState<{ id: string; name: string }[]>([]);
+  const [me, setMe] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [newRepo, setNewRepo] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
   const [newPriority, setNewPriority] = useState("medium");
+  const [newAssignee, setNewAssignee] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
@@ -76,6 +81,7 @@ export default function IssuesPage() {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (statusFilter !== "all") params.set("status", statusFilter);
+    if (mineOnly) params.set("assignee", "me");
     return fetch(`/api/issues?${params}`)
       .then((r) => r.json())
       .then((data) => {
@@ -87,7 +93,8 @@ export default function IssuesPage() {
   useEffect(() => {
     loadIssues();
     fetch("/api/repos").then((r) => r.json()).then((d) => setRepos(Array.isArray(d) ? d : []));
-  }, [search, statusFilter]);
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => setMe(d.user?.name ?? d.user?.email ?? ""));
+  }, [search, statusFilter, mineOnly]);
 
   const createIssue = async () => {
     setCreating(true);
@@ -95,7 +102,7 @@ export default function IssuesPage() {
     const res = await fetch("/api/issues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repoId: newRepo, title: newTitle, body: newBody, priority: newPriority }),
+      body: JSON.stringify({ repoId: newRepo, title: newTitle, body: newBody, priority: newPriority, assignee: newAssignee }),
     });
     setCreating(false);
     if (res.ok) {
@@ -118,10 +125,11 @@ export default function IssuesPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3 glow-text">
             <AlertCircle className="w-6 h-6 text-slime-400" />
-            Issues
+            {mineOnly ? "My tasks" : "Issues"}
           </h1>
           <p className="text-sm text-[#7a6b9d] mt-1">
             {openCount} open · {closedCount} closed
+            {mineOnly && <> · assigned to {me || "you"} · <a href="/issues" className="text-slime-400 hover:underline">view all</a></>}
           </p>
         </div>
         <button className="slime-btn flex items-center gap-2" onClick={() => { setCreateOpen(true); setNewRepo(repos[0]?.id ?? ""); }}>
@@ -279,6 +287,12 @@ export default function IssuesPage() {
                 >
                   {["low", "medium", "high", "critical"].map((pr) => <option key={pr} value={pr}>{pr}</option>)}
                 </select>
+                <input
+                  value={newAssignee}
+                  onChange={(e) => setNewAssignee(e.target.value)}
+                  placeholder={`Assignee (optional) — ${me || "your name"}`}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white placeholder-[#5a4d7a] outline-none"
+                />
                 {createError && <p className="text-xs text-red-400">{createError}</p>}
                 <button className="slime-btn w-full flex items-center justify-center gap-2" onClick={createIssue} disabled={creating || !newTitle.trim()}>
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -298,5 +312,13 @@ export default function IssuesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-10 text-[#7a6b9d]">Loading…</div>}>
+      <IssuesPage />
+    </Suspense>
   );
 }

@@ -21,6 +21,10 @@ export async function GET(request: NextRequest) {
     if (status && status !== "all") {
       conditions.push(eq(issues.status, status));
     }
+    if (searchParams.get("assignee") === "me") {
+      const me = ctx.user.name ?? ctx.user.email ?? "";
+      conditions.push(eq(issues.assignee, me));
+    }
 
     const query = db
       .select({
@@ -72,6 +76,7 @@ export async function POST(request: NextRequest) {
       body: body.body || null,
       status: "open",
       priority: body.priority || "medium",
+      assignee: typeof body.assignee === "string" && body.assignee.trim() ? body.assignee.trim() : null,
       labels: body.labels || [],
     }).returning();
     return NextResponse.json(result[0], { status: 201 });

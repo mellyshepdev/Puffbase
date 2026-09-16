@@ -43,13 +43,15 @@ async function storeFetch<T>(owner: string, path: string, init?: RequestInit): P
 
 /** Login name of the token's account - the physical owner of every space.
  *  Resolved once from the daemon rather than hardcoded. */
-let storeAccount: string | undefined;
+const storeAccounts = new Map<string, string>();
 async function account(owner: string): Promise<string> {
-  if (!storeAccount) {
+  let login = storeAccounts.get(owner);
+  if (!login) {
     const me = await storeFetch<{ login: string }>(owner, "/user");
-    storeAccount = me.login;
+    login = me.login;
+    storeAccounts.set(owner, login);
   }
-  return storeAccount;
+  return login;
 }
 
 function prefix(owner: string): string {

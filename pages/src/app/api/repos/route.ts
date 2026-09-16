@@ -12,24 +12,24 @@ export async function GET(request: NextRequest) {
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   if (!hasScope(ctx.scopes, "repos:read")) return NextResponse.json({ error: "pufftoken lacks the repos:read scope" }, { status: 403 });
   const search = request.nextUrl.searchParams.get("search") || "";
+  const fav = request.nextUrl.searchParams.get("fav") === "1";
 
   try {
-    const scope = eq(repositories.accountId, ctx.account.id);
+    const scope = and(
+      eq(repositories.accountId, ctx.account.id),
+      ...(fav ? [eq(repositories.isFavorite, true)] : []),
+      ...(search
+        ? [or(
+            like(repositories.name, `%${search}%`),
+            like(repositories.description, `%${search}%`),
+            like(repositories.language, `%${search}%`),
+          )!]
+        : []),
+    );
     const results = await db
       .select()
       .from(repositories)
-      .where(
-        search
-          ? and(
-              scope,
-              or(
-                like(repositories.name, `%${search}%`),
-                like(repositories.description, `%${search}%`),
-                like(repositories.language, `%${search}%`),
-              ),
-            )
-          : scope,
-      );
+      .where(scope);
     results.sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0));
     return NextResponse.json(results);
   } catch (error) {

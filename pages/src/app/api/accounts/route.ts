@@ -71,6 +71,13 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.businessUrl === "string") {
     patch.businessUrl = body.businessUrl.trim().slice(0, 500) || null;
   }
+  // "Edit status" from the avatar menu - both optional, empty clears.
+  if (typeof body.statusEmoji === "string") {
+    patch.statusEmoji = body.statusEmoji.slice(0, 8) || null;
+  }
+  if (typeof body.statusText === "string") {
+    patch.statusText = body.statusText.trim().slice(0, 120) || null;
+  }
 
   const [updated] = await db
     .update(accounts)

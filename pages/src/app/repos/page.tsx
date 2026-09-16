@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   FolderGit2,
   Star,
@@ -24,6 +25,7 @@ interface Repo {
   visibility: string;
   stars: number;
   forks: number;
+  isFavorite: boolean;
   lastCommitMessage: string | null;
   lastCommitAt: string | null;
   createdAt: string;
@@ -48,7 +50,9 @@ function timeAgo(dateStr: string) {
   return `${days}d ago`;
 }
 
-export default function ReposPage() {
+function ReposPage() {
+  const searchParams = useSearchParams();
+  const favOnly = searchParams.get("fav") === "1";
   const [repos, setRepos] = useState<Repo[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,13 +61,32 @@ export default function ReposPage() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
+    if (favOnly) params.set("fav", "1");
     fetch(`/api/repos?${params}`)
       .then((r) => r.json())
       .then((data) => {
-        setRepos(data);
+        setRepos(Array.isArray(data) ? data : []);
         setLoading(false);
       });
-  }, [search]);
+  }, [search, favOnly]);
+
+  const toggleFav = async (e: React.MouseEvent, repo: Repo) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const res = await fetch(`/api/repos/${repo.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favorite: !repo.isFavorite }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      setRepos((cur) =>
+        favOnly && !d.isFavorite
+          ? cur.filter((r) => r.id !== repo.id)
+          : cur.map((r) => (r.id === repo.id ? { ...r, isFavorite: d.isFavorite } : r)),
+      );
+    }
+  };
 
   const filteredRepos = filter === "all" ? repos : repos.filter((r) => r.visibility === filter);
 
@@ -73,10 +96,13 @@ export default function ReposPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3 glow-text">
-            <FolderGit2 className="w-6 h-6 text-slime-400" />
-            Repositories
+            {favOnly ? <Star className="w-6 h-6 text-[#b6f34c] fill-[#b6f34c]" /> : <FolderGit2 className="w-6 h-6 text-slime-400" />}
+            {favOnly ? "Favorites" : "Repositories"}
           </h1>
-          <p className="text-sm text-[#7a6b9d] mt-1">{repos.length} repositories</p>
+          <p className="text-sm text-[#7a6b9d] mt-1">
+            {repos.length} {favOnly ? "favorites" : "repositories"}
+            {favOnly && <> · <Link href="/repos" className="text-slime-400 hover:underline">view all</Link></>}
+          </p>
         </div>
         <Link href="/?new=1" className="slime-btn flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -166,10 +192,16 @@ export default function ReposPage() {
                       <span className="text-xs text-[#9d8ec2]">{repo.language}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1 text-xs text-[#5a4d7a]">
-                    <Star className="w-3 h-3" />
+                  <button
+                    onClick={(e) => toggleFav(e, repo)}
+                    title={repo.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    className={`flex items-center gap-1 text-xs transition-colors ${
+                      repo.isFavorite ? "text-[#b6f34c]" : "text-[#5a4d7a] hover:text-[#b6f34c]"
+                    }`}
+                  >
+                    <Star className={`w-3 h-3 ${repo.isFavorite ? "fill-[#b6f34c]" : ""}`} />
                     <span>{repo.stars.toLocaleString()}</span>
-                  </div>
+                  </button>
                   <div className="flex items-center gap-1 text-xs text-[#5a4d7a]">
                     <GitFork className="w-3 h-3" />
                     <span>{repo.forks}</span>
@@ -192,9 +224,17 @@ export default function ReposPage() {
       {!loading && filteredRepos.length === 0 && (
         <div className="text-center py-16">
           <Code2 className="w-12 h-12 text-[#3a2d5a] mx-auto mb-4" />
-          <p className="text-[#7a6b9d]">No repositories found</p>
+          <p className="text-[#7a6b9d]">{favOnly ? "No favorites yet — star a repo to pin it here" : "No repositories found"}</p>
         </div>
       )}
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-10 text-[#7a6b9d]">Loading…</div>}>
+      <ReposPage />
+    </Suspense>
   );
 }

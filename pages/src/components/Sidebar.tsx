@@ -8,6 +8,7 @@ import {
   GitBranch,
   AlertCircle,
   GitPullRequest,
+  GitMerge,
   Rocket,
   Settings,
   FolderGit2,
@@ -16,13 +17,18 @@ import {
   ArrowRight,
   Users,
   Plug,
+  ChevronDown,
+  Milestone,
+  Code2,
 } from "lucide-react";
 import clsx from "clsx";
+import { useRef } from "react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/repos", label: "Repositories", icon: FolderGit2 },
   { href: "/issues", label: "Issues", icon: AlertCircle },
+  { href: "/merge-requests", label: "Merge requests", icon: GitMerge },
   { href: "/pipelines", label: "Pipelines", icon: GitPullRequest },
   { href: "/deploy", label: "Deployments", icon: Rocket },
   { href: "/groups", label: "Groups", icon: Users },
@@ -30,9 +36,34 @@ const navItems = [
   { href: "/status", label: "Status", icon: Activity },
 ];
 
+// The icon's dropdown - the full workspace menu, GitLab-style.
+const menuItems = [
+  { href: "/", label: "Home / Dashboard", icon: LayoutDashboard },
+  { href: "/repos", label: "Repositories", icon: FolderGit2 },
+  { href: "/issues", label: "Issues", icon: AlertCircle },
+  { href: "/issues?milestone=1", label: "Milestones", icon: Milestone },
+  { href: "/merge-requests", label: "Merge requests", icon: GitMerge },
+  { href: "/repos", label: "Branches", icon: GitBranch },
+  { href: "/pipelines", label: "Pipelines", icon: GitPullRequest },
+  { href: "/deploy", label: "Deployments", icon: Rocket },
+  { href: "/editor", label: "Editor", icon: Code2 },
+  { href: "/status", label: "Status", icon: Activity },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const [projects, setProjects] = useState<{ id: number; name: string }[]>([]);
+  const [logoMenuOpen, setLogoMenuOpen] = useState(false);
+  const logoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!logoMenuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (!logoRef.current?.contains(e.target as Node)) setLogoMenuOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [logoMenuOpen]);
 
   useEffect(() => {
     fetch("/api/repos").then((r) => r.json()).then((r) => setProjects(r.slice(0, 3))).catch(() => {});
@@ -62,18 +93,48 @@ export function Sidebar() {
         />
       </div>
 
-      {/* Logo */}
-      <div className="p-5 border-b border-[var(--color-dark-border)] relative">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/puffbase-icon.png" alt="" className="h-9 w-9 shrink-0 object-contain drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
-          <div className="min-w-0">
+      {/* Logo: icon opens the workspace menu, wordmark goes to the landing page */}
+      <div className="p-5 border-b border-[var(--color-dark-border)] relative" ref={logoRef}>
+        <div className="flex items-center gap-2.5 group">
+          <button
+            onClick={() => setLogoMenuOpen((v) => !v)}
+            className="flex items-center gap-1 rounded-lg p-1 -m-1 hover:bg-[var(--color-dark-hover)] transition-all"
+            title="Menu"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/puffbase-icon.png" alt="" className="h-9 w-9 shrink-0 object-contain drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
+            <ChevronDown className={clsx("w-3 h-3 text-[#5a4d7a] transition-transform", logoMenuOpen && "rotate-180")} />
+          </button>
+          <a href="https://puffbase.prime-quality.online" className="min-w-0">
             <div className="truncate text-base font-bold tracking-tight text-white">Puffbase</div>
             <div className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-[#5a4d7a]">
               slime infra cloud
             </div>
+          </a>
+        </div>
+        {logoMenuOpen && (
+          <div className="absolute left-3 right-3 top-full mt-1 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] shadow-xl z-50 py-1">
+            {menuItems.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={label}
+                href={href}
+                onClick={() => setLogoMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+              >
+                <Icon className="w-3.5 h-3.5 text-slime-400" />
+                {label}
+              </Link>
+            ))}
+            <Link
+              href="/plan"
+              onClick={() => setLogoMenuOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-xs text-[#b6f34c] hover:bg-[var(--color-dark-hover)] transition-all border-t border-[var(--color-dark-border)] mt-1 pt-2"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Upgrade subscription
+            </Link>
           </div>
-        </Link>
+        )}
       </div>
 
       {/* Navigation */}

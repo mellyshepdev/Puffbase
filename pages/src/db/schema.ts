@@ -23,6 +23,7 @@ export const repositories = pgTable("repositories", {
   lastCommitAt: timestamp("last_commit_at"),
   /** Owning account - null on pre-account seed rows. */
   accountId: uuid("account_id"),
+  isFavorite: boolean("is_favorite").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -85,6 +86,9 @@ export const accounts = pgTable("accounts", {
   // the platform's Lago pipeline, same as builder projects.
   plan: varchar("plan", { length: 20 }).default("free").notNull(),
   stripeCustomerId: varchar("stripe_customer_id", { length: 80 }),
+  // GitLab-style "set status" - an emoji + short line shown in the user menu.
+  statusEmoji: varchar("status_emoji", { length: 8 }),
+  statusText: varchar("status_text", { length: 120 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

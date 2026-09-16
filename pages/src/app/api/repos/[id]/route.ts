@@ -25,6 +25,31 @@ export async function GET(
   return NextResponse.json(row);
 }
 
+// PATCH /api/repos/[id] { favorite } - star/unstar a repo (favorites view).
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const ctx = await requestAccount(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:write")) return NextResponse.json({ error: "pufftoken lacks the repos:write scope" }, { status: 403 });
+  const id = (await params).id;
+  const body = await req.json().catch(() => ({}));
+  const [row] = await db
+    .select()
+    .from(repositories)
+    .where(sql`${repositories.id}::text = ${id}`);
+  if (!row || row.accountId !== ctx.account.id) {
+    return NextResponse.json({ error: "Repo not found" }, { status: 404 });
+  }
+  const favorite = typeof body.favorite === "boolean" ? body.favorite : !row.isFavorite;
+  await db
+    .update(repositories)
+    .set({ isFavorite: favorite, updatedAt: new Date() })
+    .where(sql`${repositories.id}::text = ${id}`);
+  return NextResponse.json({ ok: true, isFavorite: favorite });
+}
+
 // DELETE /api/repos/[id] - remove the backing repo + row, owner only.
 export async function DELETE(
   _req: Request,

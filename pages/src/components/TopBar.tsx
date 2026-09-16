@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Bell, ChevronDown, Plus, GitBranch, LogOut, Check, Building2, User as UserIcon, Settings as SettingsIcon } from "lucide-react";
+import { Search, Bell, ChevronDown, Plus, GitBranch, GitMerge, LogOut, Check, Building2, User as UserIcon, Settings as SettingsIcon, Star, ListTodo, Smile, Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
@@ -16,6 +16,8 @@ interface Account {
   name: string;
   avatar: string;
   businessUrl?: string | null;
+  statusEmoji?: string | null;
+  statusText?: string | null;
 }
 
 export function TopBar() {
@@ -25,6 +27,9 @@ export function TopBar() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [active, setActive] = useState<Account | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [statusEmoji, setStatusEmoji] = useState("");
+  const [statusText, setStatusText] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,6 +83,21 @@ export function TopBar() {
   };
 
   const label = active?.name || user?.name || user?.email || "Account";
+
+  const saveStatus = async () => {
+    if (!active) return;
+    const res = await fetch("/api/accounts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: active.id, statusEmoji, statusText }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setActive(updated);
+      setAccounts((cur) => cur.map((a) => (a.id === updated.id ? updated : a)));
+      setStatusOpen(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 h-16 border-b border-[var(--color-dark-border)] bg-[var(--color-dark-surface)]/80 backdrop-blur-xl flex items-center justify-between px-6">
@@ -149,11 +169,15 @@ export function TopBar() {
                   <UserIcon className="w-4 h-4 text-white" />
                 )}
               </div>
-              {active?.kind === "business" && (
+              {active?.statusEmoji ? (
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[var(--color-dark-card)] border-2 border-[var(--color-dark-surface)] flex items-center justify-center text-[8px] leading-none">
+                  {active.statusEmoji}
+                </div>
+              ) : active?.kind === "business" ? (
                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-slime-600 border-2 border-[var(--color-dark-surface)] flex items-center justify-center">
                   <Building2 className="w-2 h-2 text-white" />
                 </div>
-              )}
+              ) : null}
             </div>
             <div className="hidden md:block text-left">
               <p className="text-xs font-medium text-white truncate max-w-[10rem]">{label}</p>
@@ -164,9 +188,67 @@ export function TopBar() {
             <ChevronDown className="w-3.5 h-3.5 text-[#5a4d7a] hidden md:block" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] shadow-xl overflow-hidden z-50">
-              <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-[#5a4d7a] border-b border-[var(--color-dark-border)]">
-                Accounts
+            <div className="absolute right-0 mt-2 w-60 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] shadow-xl overflow-hidden z-50">
+              {/* user header w/ status */}
+              <div className="px-3 py-3 border-b border-[var(--color-dark-border)]">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.name ?? label}
+                </p>
+                <p className="text-[10px] text-[#5a4d7a] truncate">
+                  {active?.statusEmoji || active?.statusText
+                    ? `${active.statusEmoji ?? ""} ${active.statusText ?? ""}`.trim()
+                    : user?.email ?? `${active?.kind ?? ""} account`}
+                </p>
+              </div>
+
+              {/* profile items, GitLab-style */}
+              <Link
+                href="/settings/profile"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit profile
+              </Link>
+              <button
+                onClick={() => {
+                  setStatusEmoji(active?.statusEmoji ?? "");
+                  setStatusText(active?.statusText ?? "");
+                  setStatusOpen(true);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all text-left"
+              >
+                <Smile className="w-3.5 h-3.5" />
+                Edit status
+              </button>
+              <Link
+                href="/repos?fav=1"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+              >
+                <Star className="w-3.5 h-3.5" />
+                Favorites
+              </Link>
+              <Link
+                href="/merge-requests"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+              >
+                <GitMerge className="w-3.5 h-3.5" />
+                Merge requests
+              </Link>
+              <Link
+                href="/issues?assignee=me"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+              >
+                <ListTodo className="w-3.5 h-3.5" />
+                My tasks
+              </Link>
+
+              <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-[#5a4d7a] border-t border-b border-[var(--color-dark-border)] mt-1">
+                Switch workspace
               </div>
               {accounts.map((a) => (
                 <button
@@ -211,6 +293,39 @@ export function TopBar() {
           )}
         </div>
       </div>
+
+      {/* Edit status modal */}
+      {statusOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setStatusOpen(false)}>
+          <div className="w-80 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-white mb-4">Set status</h3>
+            <label className="block text-[10px] uppercase tracking-wider text-[#5a4d7a] mb-1.5">Emoji</label>
+            <input
+              value={statusEmoji}
+              onChange={(e) => setStatusEmoji(e.target.value)}
+              placeholder="🐑"
+              maxLength={4}
+              className="w-full mb-3 px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white outline-none"
+            />
+            <label className="block text-[10px] uppercase tracking-wider text-[#5a4d7a] mb-1.5">Status</label>
+            <input
+              value={statusText}
+              onChange={(e) => setStatusText(e.target.value)}
+              placeholder="In the pasture…"
+              maxLength={120}
+              className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white placeholder-[#5a4d7a] outline-none"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setStatusOpen(false)} className="px-3 py-1.5 rounded-lg text-xs text-[#9d8ec2] hover:text-white">
+                Cancel
+              </button>
+              <button onClick={saveStatus} className="slime-btn text-xs py-1.5 px-4">
+                Save status
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

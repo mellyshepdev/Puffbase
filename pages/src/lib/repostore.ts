@@ -40,13 +40,15 @@ async function storeFetch<T>(accountId: string, path: string, init?: RequestInit
   return res.json() as Promise<T>;
 }
 
-let storeAccount: string | undefined;
+const storeAccounts = new Map<string, string>();
 async function account(accountId: string): Promise<string> {
-  if (!storeAccount) {
+  let login = storeAccounts.get(accountId);
+  if (!login) {
     const me = await storeFetch<{ login: string }>(accountId, "/user");
-    storeAccount = me.login;
+    login = me.login;
+    storeAccounts.set(accountId, login);
   }
-  return storeAccount;
+  return login;
 }
 
 function prefix(accountId: string): string {
@@ -109,6 +111,40 @@ export async function migrateRepo(
     defaultBranch: r.default_branch,
     updatedAt: r.updated_at,
   };
+}
+
+export interface PullMeta {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  url: string;
+  headBranch: string;
+  baseBranch: string;
+  user: string;
+  createdAt: string;
+}
+
+/** Open pull requests on one of the account's repos (daemon-side). */
+export async function listPulls(accountId: string, name: string): Promise<PullMeta[]> {
+  const repo = physical(accountId, name);
+  if (!repo) return [];
+  const prs = await storeFetch<{
+    id: number; number: number; title: string; state: string; html_url: string;
+    head?: { ref?: string }; base?: { ref?: string };
+    user?: { login?: string }; created_at?: string;
+  }[]>(accountId, `/repos/${await account(accountId)}/${repo}/pulls?state=open&limit=50`);
+  return prs.map((p) => ({
+    id: p.id,
+    number: p.number,
+    title: p.title,
+    state: p.state,
+    url: p.html_url,
+    headBranch: p.head?.ref ?? "",
+    baseBranch: p.base?.ref ?? "",
+    user: p.user?.login ?? "",
+    createdAt: p.created_at ?? "",
+  }));
 }
 
 export async function deleteRepo(accountId: string, name: string) {
