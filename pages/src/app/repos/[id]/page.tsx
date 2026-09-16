@@ -185,9 +185,14 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
    * (wss://forge.../pad/<room>), the forge Code tab views /view/<room>. */
   const FORGE_ORIGIN = "https://forge.prime-quality.online";
   const syncWs = useRef<WebSocket | null>(null);
+  const syncViewWs = useRef<WebSocket | null>(null);
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectedFileRef = useRef<FileNode | null>(null);
   const [syncOn, setSyncOn] = useState(false);
   const [syncRoom, setSyncRoom] = useState("");
+  const [forgeEditAt, setForgeEditAt] = useState(0);
+
+  useEffect(() => { selectedFileRef.current = selectedFile; }, [selectedFile]);
 
   const sendCodeFrame = () => {
     if (syncWs.current?.readyState === WebSocket.OPEN && selectedFile?.path) {
@@ -211,8 +216,27 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
     syncWs.current = ws;
     setSyncRoom(room);
     ws.onopen = () => { setSyncOn(true); sendCodeFrame(); };
-    ws.onclose = () => { setSyncOn(false); setSyncRoom(""); syncWs.current = null; };
-    ws.onerror = () => { setSyncOn(false); setSyncRoom(""); syncWs.current = null; };
+    const closeAll = () => {
+      setSyncOn(false); setSyncRoom("");
+      syncWs.current = null;
+      syncViewWs.current?.close();
+      syncViewWs.current = null;
+    };
+    ws.onclose = closeAll;
+    ws.onerror = closeAll;
+    /* A second socket on the room's /view side carries edits back: the forge
+     * viewer publishes {t:"edit"} frames through its own pad socket. */
+    const vws = new WebSocket(`wss://forge.prime-quality.online/view/${room}`);
+    syncViewWs.current = vws;
+    vws.onmessage = (e) => {
+      try {
+        const m = JSON.parse(e.data);
+        if (m.t === "edit" && typeof m.content === "string" && m.path === selectedFileRef.current?.path) {
+          setEditedContent(m.content);
+          setForgeEditAt(Date.now());
+        }
+      } catch { /* malformed frame must not kill the socket */ }
+    };
   };
 
   /* Stream editor changes to forge, lightly debounced so a burst of typing
@@ -578,6 +602,11 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                     >
                       Copy link
                     </button>
+                    {forgeEditAt > 0 && (
+                      <span className="text-green-400/80 ml-auto">
+                        Forge edit applied {new Date(forgeEditAt).toLocaleTimeString()}
+                      </span>
+                    )}
                   </div>
                 )}
                 {saveError && (
