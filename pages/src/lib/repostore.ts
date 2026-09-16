@@ -176,6 +176,40 @@ export async function createPull(
   };
 }
 
+/** Patch daemon-side repo attributes (description / private flag). */
+export async function updateRepo(
+  accountId: string,
+  name: string,
+  patch: { description?: string; private?: boolean },
+): Promise<void> {
+  const repo = physical(accountId, name);
+  if (!repo) throw new Error("invalid repo name");
+  await storeFetch(accountId, `/repos/${await account(accountId)}/${repo}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+/** Register a push mirror on the daemon repo (best-effort - needs gitea >=1.21). */
+export async function addPushMirror(
+  accountId: string,
+  name: string,
+  remoteAddr: string,
+  opts: { authToken?: string; interval?: string } = {},
+): Promise<void> {
+  const repo = physical(accountId, name);
+  if (!repo) throw new Error("invalid repo name");
+  await storeFetch(accountId, `/repos/${await account(accountId)}/${repo}/push_mirrors`, {
+    method: "POST",
+    body: JSON.stringify({
+      remote_address: remoteAddr,
+      auth_token: opts.authToken,
+      interval: opts.interval ?? "8h",
+      sync_on_commit: true,
+    }),
+  });
+}
+
 export async function deleteRepo(accountId: string, name: string) {
   const repo = physical(accountId, name);
   if (!repo) throw new Error("invalid repo name");

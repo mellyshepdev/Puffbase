@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FolderGit2,
   Star,
@@ -22,6 +23,9 @@ import {
   Eye,
   Terminal,
   Sparkles,
+  Settings,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { CodeButton } from "@/components/CodeButton";
 
@@ -36,6 +40,8 @@ interface Repo {
   defaultBranch: string;
   lastCommitMessage: string | null;
   lastCommitAt: string | null;
+  mirrorUrl?: string | null;
+  mirrorDirection?: string | null;
 }
 
 interface FileNode {
@@ -149,7 +155,17 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editedContent, setEditedContent] = useState("");
-  const [activeTab, setActiveTab] = useState<"code" | "commits">("code");
+  const [activeTab, setActiveTab] = useState<"code" | "commits" | "settings">("code");
+  const router = useRouter();
+  const [settingsSection, setSettingsSection] = useState<"general" | "visibility" | "mirroring" | "danger">("general");
+  const [sDesc, setSDesc] = useState("");
+  const [sVisibility, setSVisibility] = useState("private");
+  const [sMirrorUrl, setSMirrorUrl] = useState("");
+  const [sMirrorDir, setSMirrorDir] = useState("push");
+  const [sMirrorToken, setSMirrorToken] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsMsg, setSettingsMsg] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [treeLoading, setTreeLoading] = useState(false);
@@ -178,7 +194,13 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
       .then((data) => {
         setRepo(data);
         setLoading(false);
-        if (data) loadTree();
+        if (data) {
+          loadTree();
+          setSDesc(data.description ?? "");
+          setSVisibility(data.visibility === "public" ? "public" : "private");
+          setSMirrorUrl(data.mirrorUrl ?? "");
+          setSMirrorDir(data.mirrorDirection ?? "push");
+        }
       });
   }, [id]);
 
@@ -242,6 +264,36 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
     if (r.ok && d.message) setCommitMsg(d.message);
     else setSaveError(d?.error ?? "Could not draft a commit message");
     setDrafting(false);
+  };
+
+  const saveSettings = async (patch: Record<string, unknown>) => {
+    setSavingSettings(true);
+    setSettingsMsg(null);
+    const res = await fetch(`/api/repos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    const d = await res.json().catch(() => ({}));
+    setSavingSettings(false);
+    if (res.ok) {
+      setRepo((r) => (r ? { ...r, ...(patch as Partial<Repo>) } : r));
+      setSettingsMsg(d.mirrorNote ?? "Saved.");
+    } else {
+      setSettingsMsg(d?.error ?? "Save failed");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!repo) return;
+    if (!window.confirm(`Delete ${repo.name}? This removes the repo and its history - no undo.`)) return;
+    setDeleting(true);
+    const res = await fetch(`/api/repos/${id}`, { method: "DELETE" });
+    if (res.ok) router.push("/repos");
+    else {
+      setDeleting(false);
+      setSettingsMsg("Delete failed");
+    }
   };
 
   if (loading) {
@@ -320,7 +372,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-[var(--color-dark-border)]">
-        {(["code", "commits"] as const).map((tab) => (
+        {(["code", "commits", "settings"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -330,7 +382,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                 : "border-transparent text-[#7a6b9d] hover:text-white"
             }`}
           >
-            {tab === "code" ? <Code2 className="w-4 h-4" /> : <Terminal className="w-4 h-4" />}
+            {tab === "code" ? <Code2 className="w-4 h-4" /> : tab === "commits" ? <Terminal className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
@@ -506,6 +558,121 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Settings tab - left section nav + panel, repo-scoped */}
+      {activeTab === "settings" && (
+        <div className="grid grid-cols-[200px_1fr] gap-0 border border-[var(--color-dark-border)] rounded-xl overflow-hidden min-h-[400px]">
+          <div className="bg-[var(--color-dark-surface)] border-r border-[var(--color-dark-border)] p-3 space-y-1">
+            {([
+              { key: "general", label: "General", icon: Settings },
+              { key: "visibility", label: "Visibility", icon: Lock },
+              { key: "mirroring", label: "Mirroring", icon: RefreshCw },
+              { key: "danger", label: "Danger zone", icon: Trash2 },
+            ] as const).map((s) => (
+              <button
+                key={s.key}
+                onClick={() => { setSettingsSection(s.key); setSettingsMsg(null); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
+                  settingsSection === s.key
+                    ? "bg-slime-600/20 text-slime-300"
+                    : "text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white"
+                }`}
+              >
+                <s.icon className="w-3.5 h-3.5" /> {s.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-[var(--color-dark-bg)] p-5 space-y-4">
+            {settingsMsg && (
+              <p className={`text-xs ${/fail|reject|error/i.test(settingsMsg) ? "text-red-400" : "text-slime-300"}`}>{settingsMsg}</p>
+            )}
+
+            {settingsSection === "general" && (
+              <>
+                <h3 className="text-sm font-semibold text-white">General</h3>
+                <div>
+                  <label className="block text-xs text-[#7a6b9d] mb-1">Repository name</label>
+                  <input value={repo.name} disabled className="w-full max-w-sm px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-[#5a4d7a] cursor-not-allowed" />
+                  <p className="text-[11px] text-[#5a4d7a] mt-1">Renames are not supported yet - the store path is fixed at creation.</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-[#7a6b9d] mb-1">Description</label>
+                  <textarea value={sDesc} onChange={(e) => setSDesc(e.target.value)} rows={3} className="w-full max-w-sm px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white outline-none resize-none focus:border-slime-500/50" />
+                </div>
+                <button onClick={() => saveSettings({ description: sDesc })} disabled={savingSettings} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
+                  {savingSettings ? "Saving…" : "Save"}
+                </button>
+              </>
+            )}
+
+            {settingsSection === "visibility" && (
+              <>
+                <h3 className="text-sm font-semibold text-white">Visibility</h3>
+                <div className="space-y-2 max-w-sm">
+                  {([
+                    { value: "private", label: "Private", desc: "Only you and your groups can see this repo." },
+                    { value: "public", label: "Public", desc: "Anyone on Puffbase can view this repo." },
+                  ] as const).map((o) => (
+                    <label key={o.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${sVisibility === o.value ? "border-slime-500/50 bg-slime-600/10" : "border-[var(--color-dark-border)] hover:border-[#4a3f6a]"}`}>
+                      <input type="radio" name="visibility" checked={sVisibility === o.value} onChange={() => setSVisibility(o.value)} className="mt-0.5 accent-slime-500" />
+                      <span>
+                        <span className="block text-sm text-white font-medium">{o.label}</span>
+                        <span className="block text-[11px] text-[#7a6b9d] mt-0.5">{o.desc}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <button onClick={() => saveSettings({ visibility: sVisibility })} disabled={savingSettings || sVisibility === repo.visibility} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
+                  {savingSettings ? "Saving…" : "Change visibility"}
+                </button>
+              </>
+            )}
+
+            {settingsSection === "mirroring" && (
+              <>
+                <h3 className="text-sm font-semibold text-white">Mirroring</h3>
+                <div className="max-w-sm space-y-3">
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Direction</label>
+                    <select value={sMirrorDir} onChange={(e) => setSMirrorDir(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white outline-none">
+                      <option value="push">Push - this repo mirrors out to a remote</option>
+                      <option value="pull">Pull - this repo syncs in from a remote</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Remote URL</label>
+                    <input value={sMirrorUrl} onChange={(e) => setSMirrorUrl(e.target.value)} placeholder="https://github.com/you/project.git" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Access token (optional)</label>
+                    <input type="password" value={sMirrorToken} onChange={(e) => setSMirrorToken(e.target.value)} placeholder="For private remotes" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50" />
+                  </div>
+                  <p className="text-[11px] text-[#5a4d7a]">
+                    Push mirrors sync on every commit and register on the store immediately. Pull mirrors save here and sync on the mirror job.
+                  </p>
+                </div>
+                <button onClick={() => saveSettings({ mirrorUrl: sMirrorUrl, mirrorDirection: sMirrorDir, mirrorToken: sMirrorToken || undefined })} disabled={savingSettings} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
+                  {savingSettings ? "Saving…" : sMirrorUrl ? "Save mirror" : "Clear mirror"}
+                </button>
+              </>
+            )}
+
+            {settingsSection === "danger" && (
+              <>
+                <h3 className="text-sm font-semibold text-red-400">Danger zone</h3>
+                <div className="max-w-md rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+                  <p className="text-sm text-white font-medium">Delete this repository</p>
+                  <p className="text-[11px] text-[#7a6b9d] mt-1 mb-3">Removes <span className="font-mono">{repo.name}</span> and its full history from the store. There is no undo.</p>
+                  <button onClick={handleDelete} disabled={deleting} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-600/20 text-red-400 text-xs hover:bg-red-600/30 transition-colors disabled:opacity-50">
+                    <Trash2 className="w-3.5 h-3.5" /> {deleting ? "Deleting…" : `Delete ${repo.name}`}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -27,6 +27,8 @@ export const repositories = pgTable("repositories", {
   ciEnabled: boolean("ci_enabled").default(false).notNull(),
   sastEnabled: boolean("sast_enabled").default(false).notNull(),
   secretScanEnabled: boolean("secret_scan_enabled").default(false).notNull(),
+  mirrorUrl: text("mirror_url"),
+  mirrorDirection: varchar("mirror_direction", { length: 10 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

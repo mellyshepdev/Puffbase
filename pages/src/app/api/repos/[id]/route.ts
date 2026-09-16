@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { repositories } from "@/db/schema";
 import { requestAccount } from "@/lib/accounts";
 import { hasScope } from "@/lib/pat";
-import { deleteRepo } from "@/lib/repostore";
+import { deleteRepo, updateRepo, addPushMirror } from "@/lib/repostore";
 
 // GET /api/repos/[id] - one repo row (int8 id compared as text)
 export async function GET(
@@ -25,7 +25,8 @@ export async function GET(
   return NextResponse.json(row);
 }
 
-// PATCH /api/repos/[id] { favorite } - star/unstar a repo (favorites view).
+// PATCH /api/repos/[id] - star/unstar (favorites view) or repo settings:
+// { favorite? , description?, visibility?, mirrorUrl?, mirrorDirection?, mirrorToken? }
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -42,12 +43,50 @@ export async function PATCH(
   if (!row || row.accountId !== ctx.account.id) {
     return NextResponse.json({ error: "Repo not found" }, { status: 404 });
   }
-  const favorite = typeof body.favorite === "boolean" ? body.favorite : !row.isFavorite;
+
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (typeof body.favorite === "boolean") patch.isFavorite = body.favorite;
+  if (typeof body.description === "string") patch.description = body.description.slice(0, 2000);
+  if (body.visibility === "public" || body.visibility === "private") patch.visibility = body.visibility;
+  if (typeof body.mirrorUrl === "string") patch.mirrorUrl = body.mirrorUrl.trim() || null;
+  if (body.mirrorDirection === "push" || body.mirrorDirection === "pull" || body.mirrorDirection === null) {
+    patch.mirrorDirection = body.mirrorDirection;
+  }
+
+  // daemon side: description + private flag; warn but don't fail the save
+  const daemonPatch: { description?: string; private?: boolean } = {};
+  if (patch.description !== undefined) daemonPatch.description = patch.description as string;
+  if (patch.visibility !== undefined) daemonPatch.private = patch.visibility === "private";
+  if (Object.keys(daemonPatch).length) {
+    try {
+      await updateRepo(ctx.account.id, row.name, daemonPatch);
+    } catch (e) {
+      console.warn("daemon repo patch failed:", e);
+    }
+  }
+
+  // push mirror: register on the daemon (needs gitea >=1.21); pull mirrors
+  // can't be retrofitted via API - stored for the sync job to honor.
+  let mirrorNote: string | undefined;
+  if (typeof body.mirrorUrl === "string" && body.mirrorUrl.trim() && body.mirrorDirection === "push") {
+    try {
+      await addPushMirror(ctx.account.id, row.name, body.mirrorUrl.trim(), {
+        authToken: body.mirrorToken ? String(body.mirrorToken) : undefined,
+      });
+      mirrorNote = "push mirror registered";
+    } catch (e) {
+      mirrorNote = `mirror saved but daemon rejected it: ${String(e).slice(0, 160)}`;
+      patch.mirrorUrl = body.mirrorUrl.trim();
+    }
+  } else if (body.mirrorDirection === "pull") {
+    mirrorNote = "pull mirror saved - syncs on the mirror job";
+  }
+
   await db
     .update(repositories)
-    .set({ isFavorite: favorite, updatedAt: new Date() })
+    .set(patch)
     .where(sql`${repositories.id}::text = ${id}`);
-  return NextResponse.json({ ok: true, isFavorite: favorite });
+  return NextResponse.json({ ok: true, ...(mirrorNote ? { mirrorNote } : {}) });
 }
 
 // DELETE /api/repos/[id] - remove the backing repo + row, owner only.
