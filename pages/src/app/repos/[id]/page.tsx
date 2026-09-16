@@ -21,6 +21,7 @@ import {
   Plus,
   Eye,
   Terminal,
+  Sparkles,
 } from "lucide-react";
 import { CodeButton } from "@/components/CodeButton";
 
@@ -154,6 +155,9 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
   const [treeLoading, setTreeLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [commitMsg, setCommitMsg] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [drafting, setDrafting] = useState(false);
 
   const loadTree = () => {
     setTreeLoading(true);
@@ -165,6 +169,10 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   useEffect(() => {
+    fetch("/api/plan")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setIsPro(Boolean(d?.plan && d.plan !== "free")))
+      .catch(() => {});
     fetch(`/api/repos/${id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -197,7 +205,12 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
     const res = await fetch(`/api/repos/${id}/file`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: selectedFile.path, content: editedContent, sha: selectedFile.sha }),
+      body: JSON.stringify({
+        path: selectedFile.path,
+        content: editedContent,
+        sha: selectedFile.sha,
+        message: commitMsg.trim() || `Update ${selectedFile.name ?? selectedFile.path}`,
+      }),
     });
     if (res.ok) {
       const fresh = await fetch(
@@ -206,9 +219,29 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
       setSelectedFile({ ...selectedFile, content: editedContent, sha: fresh.sha });
       setEditMode(false);
     } else {
-      setSaveError("Save failed - commit rejected");
+      const d = await res.json().catch(() => ({}));
+      setSaveError(d?.error ?? "Save failed - commit rejected");
     }
     setSaving(false);
+  };
+
+  const draftCommit = async () => {
+    if (!selectedFile?.path) return;
+    setDrafting(true);
+    setSaveError(null);
+    const r = await fetch("/api/commit-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: selectedFile.path,
+        before: selectedFile.content ?? "",
+        after: editedContent,
+      }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.message) setCommitMsg(d.message);
+    else setSaveError(d?.error ?? "Could not draft a commit message");
+    setDrafting(false);
   };
 
   if (loading) {
@@ -361,7 +394,10 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                       </>
                     ) : (
                       <button
-                        onClick={() => setEditMode(true)}
+                        onClick={() => {
+                          setEditMode(true);
+                          setCommitMsg(`Update ${selectedFile.name}`);
+                        }}
                         className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slime-600/20 text-slime-400 text-xs hover:bg-slime-600/30 transition-colors"
                       >
                         <Pencil className="w-3 h-3" /> Edit
@@ -377,12 +413,46 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                   </div>
                 )}
                 {editMode ? (
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full min-h-[460px] p-4 bg-transparent text-sm text-slate-200 font-mono leading-relaxed outline-none resize-none"
-                    spellCheck={false}
-                  />
+                  <div>
+                    <textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="w-full min-h-[400px] p-4 bg-transparent text-sm text-slate-200 font-mono leading-relaxed outline-none resize-none"
+                      spellCheck={false}
+                    />
+                    {/* Commit bar - message + commit button, GitHub-style */}
+                    <div className="border-t border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] p-4">
+                      <p className="text-xs font-semibold text-white mb-2">Commit changes</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={commitMsg}
+                          onChange={(e) => setCommitMsg(e.target.value)}
+                          placeholder={`Update ${selectedFile.name}`}
+                          className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-bg)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50"
+                        />
+                        {isPro && (
+                          <button
+                            onClick={draftCommit}
+                            disabled={drafting}
+                            title="Puff drafts a commit message from your changes (Pro)"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slime-600/20 text-slime-300 text-xs hover:bg-slime-600/30 transition-colors disabled:opacity-50"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" /> {drafting ? "Writing…" : "Write for me"}
+                          </button>
+                        )}
+                        <button
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="slime-btn flex items-center gap-1.5 text-xs py-2 px-4"
+                        >
+                          <Save className="w-3.5 h-3.5" /> {saving ? "Committing…" : "Commit"}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-[#5a4d7a] mt-2">
+                        Commits straight to <span className="font-mono text-slime-400/80">{repo.defaultBranch}</span>. Leave the message as-is for the generic one.
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="code-block rounded-none border-0">
                     <pre className="p-4 overflow-x-auto">
