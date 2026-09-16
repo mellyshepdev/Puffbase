@@ -118,7 +118,6 @@ export interface PullMeta {
   number: number;
   title: string;
   state: string;
-  url: string;
   headBranch: string;
   baseBranch: string;
   user: string;
@@ -139,12 +138,34 @@ export async function listPulls(accountId: string, name: string): Promise<PullMe
     number: p.number,
     title: p.title,
     state: p.state,
-    url: p.html_url,
     headBranch: p.head?.ref ?? "",
     baseBranch: p.base?.ref ?? "",
     user: p.user?.login ?? "",
     createdAt: p.created_at ?? "",
   }));
+}
+
+/** Open a merge request on one of the account's repos. */
+export async function createPull(
+  accountId: string,
+  name: string,
+  opts: { head: string; base: string; title: string; body?: string },
+): Promise<PullMeta> {
+  const repo = physical(accountId, name);
+  if (!repo) throw new Error("invalid repo name");
+  const p = await storeFetch<{
+    id: number; number: number; title: string; state: string; html_url: string;
+    head?: { ref?: string }; base?: { ref?: string };
+    user?: { login?: string }; created_at?: string;
+  }>(accountId, `/repos/${await account(accountId)}/${repo}/pulls`, {
+    method: "POST",
+    body: JSON.stringify({ head: opts.head, base: opts.base, title: opts.title, body: opts.body }),
+  });
+  return {
+    id: p.id, number: p.number, title: p.title, state: p.state,
+    headBranch: p.head?.ref ?? "", baseBranch: p.base?.ref ?? "",
+    user: p.user?.login ?? "", createdAt: p.created_at ?? "",
+  };
 }
 
 export async function deleteRepo(accountId: string, name: string) {

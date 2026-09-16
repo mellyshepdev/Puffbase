@@ -83,7 +83,14 @@ export default function DeployPage() {
 
   useEffect(() => {
     loadDeployments();
-    fetch("/api/repos").then((r) => r.json()).then((d) => setRepos(Array.isArray(d) ? d : []));
+    fetch("/api/repos").then((r) => r.json()).then((d) => {
+      const list = Array.isArray(d) ? d : [];
+      setRepos(list);
+      if (new URLSearchParams(window.location.search).has("new")) {
+        setNewRepo(list[0]?.id ?? "");
+        setCreateOpen(true);
+      }
+    });
   }, [envFilter]);
 
   const createDeployment = async () => {

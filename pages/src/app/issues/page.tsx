@@ -92,7 +92,14 @@ function IssuesPage() {
 
   useEffect(() => {
     loadIssues();
-    fetch("/api/repos").then((r) => r.json()).then((d) => setRepos(Array.isArray(d) ? d : []));
+    fetch("/api/repos").then((r) => r.json()).then((d) => {
+      const list = Array.isArray(d) ? d : [];
+      setRepos(list);
+      if (new URLSearchParams(window.location.search).has("new")) {
+        setNewRepo(list[0]?.id ?? "");
+        setCreateOpen(true);
+      }
+    });
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setMe(d.user?.name ?? d.user?.email ?? ""));
   }, [search, statusFilter, mineOnly]);
 

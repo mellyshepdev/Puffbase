@@ -112,7 +112,14 @@ export default function PipelinesPage() {
   }, [statusFilter]);
 
   useEffect(() => {
-    fetch("/api/repos").then((r) => r.json()).then((d) => setRepos(Array.isArray(d) ? d : []));
+    fetch("/api/repos").then((r) => r.json()).then((d) => {
+      const list = Array.isArray(d) ? d : [];
+      setRepos(list);
+      if (new URLSearchParams(window.location.search).has("new")) {
+        setRunRepo(list[0]?.id ?? "");
+        setRunOpen(true);
+      }
+    });
   }, []);
 
   const runPipeline = async () => {

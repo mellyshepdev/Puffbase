@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FileText,
   Folder,
@@ -59,8 +59,13 @@ export default function EditorPage() {
     setLoading(false);
   }, []);
 
+  const newDocRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     void loadDocs();
+    if (new URLSearchParams(window.location.search).has("new")) {
+      newDocRef.current?.focus();
+    }
   }, [loadDocs]);
 
   const openDoc = async (name: string) => {
@@ -231,6 +236,7 @@ export default function EditorPage() {
             <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">Documents</div>
             <div className="flex gap-1.5">
               <input
+                ref={newDocRef}
                 value={newDoc}
                 onChange={(e) => setNewDoc(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && createDoc()}

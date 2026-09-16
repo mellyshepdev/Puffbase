@@ -26,6 +26,7 @@ export default function GroupsPage() {
 
   useEffect(() => {
     load();
+    if (new URLSearchParams(window.location.search).has("new")) setOpen(true);
   }, []);
 
   const create = async (e: React.FormEvent) => {

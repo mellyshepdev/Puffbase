@@ -1,8 +1,20 @@
 "use client";
 
-import { Search, Bell, ChevronDown, Plus, GitBranch, GitMerge, LogOut, Check, Building2, User as UserIcon, Settings as SettingsIcon, Star, ListTodo, Smile, Pencil } from "lucide-react";
+import { Search, Bell, ChevronDown, Plus, GitBranch, GitMerge, LogOut, Check, Building2, User as UserIcon, Settings as SettingsIcon, Star, ListTodo, Smile, Pencil, FolderGit2, AlertCircle, GitPullRequest, Rocket, Users, FileText } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+
+// "+ New" dropdown - each item lands on the page that owns the create flow
+// and auto-opens its modal via ?new=1.
+const NEW_ITEMS = [
+  { href: "/?new=1", label: "Repository", icon: FolderGit2 },
+  { href: "/issues?new=1", label: "Issue", icon: AlertCircle },
+  { href: "/merge-requests?new=1", label: "Merge request", icon: GitMerge },
+  { href: "/pipelines?new=1", label: "Pipeline run", icon: GitPullRequest },
+  { href: "/deploy?new=1", label: "Deployment", icon: Rocket },
+  { href: "/groups?new=1", label: "Group", icon: Users },
+  { href: "/editor?new=1", label: "Document", icon: FileText },
+];
 
 interface SessionUser {
   sub: string;
@@ -30,7 +42,9 @@ export function TopBar() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [statusEmoji, setStatusEmoji] = useState("");
   const [statusText, setStatusText] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const newRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -47,13 +61,14 @@ export function TopBar() {
   }, []);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !newOpen) return;
     const close = (e: MouseEvent) => {
       if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      if (!newRef.current?.contains(e.target as Node)) setNewOpen(false);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
-  }, [menuOpen]);
+  }, [menuOpen, newOpen]);
 
   const switchAccount = async (id: string) => {
     if (id === active?.id) return setMenuOpen(false);
@@ -133,11 +148,29 @@ export function TopBar() {
 
       {/* Right section */}
       <div className="flex items-center gap-4 ml-6">
-        {/* New button */}
-        <Link href="/?new=1" className="slime-btn flex items-center gap-2 text-sm py-2 px-4">
-          <Plus className="w-4 h-4" />
-          <span>New</span>
-        </Link>
+        {/* New button -> what to create? */}
+        <div className="relative" ref={newRef}>
+          <button onClick={() => setNewOpen((v) => !v)} className="slime-btn flex items-center gap-2 text-sm py-2 px-4">
+            <Plus className="w-4 h-4" />
+            <span>New</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${newOpen ? "rotate-180" : ""}`} />
+          </button>
+          {newOpen && (
+            <div className="absolute right-0 mt-2 w-48 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] shadow-xl overflow-hidden z-50 py-1">
+              {NEW_ITEMS.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={() => setNewOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 text-xs text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white transition-all"
+                >
+                  <Icon className="w-3.5 h-3.5 text-slime-400" />
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Notifications -> status feed */}
         <Link href="/status" className="relative p-2 rounded-lg text-[#9d8ec2] hover:text-white hover:bg-[var(--color-dark-hover)] transition-all">
