@@ -117,7 +117,8 @@ code, pre, .font-mono {
   overflow: hidden;
 }
 
-/* ooze drip edge under every slime-card top border */
+/* real slime drip strip under every card's top border — same art as the
+ * gitea admin dashboard's puffbase-strip, tiled across the edge */
 .slime-card::after,
 .project-card::after,
 .code-card::after {
@@ -126,13 +127,9 @@ code, pre, .font-mono {
   top: 0;
   left: 0;
   right: 0;
-  height: 14px;
-  background: linear-gradient(180deg, #8fc93a 0%, #b1f150 55%, transparent 100%);
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 16'%3E%3Cpath d='M0,0 L200,0 L200,4 Q190,4 185,8 Q182,14 178,4 Q170,4 165,10 Q163,16 160,4 Q155,4 150,8 Q148,14 145,4 Q138,4 135,12 Q133,16 130,4 Q125,4 120,6 Q117,10 115,4 Q110,4 105,8 Q103,12 100,4 Q95,4 90,10 Q88,14 85,4 Q78,4 75,12 Q73,16 70,4 Q65,4 60,6 Q57,10 55,4 Q48,4 45,10 Q43,16 40,4 Q35,4 30,8 Q27,12 25,4 Q20,4 15,6 Q12,10 10,4 Q5,4 0,4 Z' fill='white'/%3E%3C/svg%3E");
-  mask-size: 100% 100%;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 16'%3E%3Cpath d='M0,0 L200,0 L200,4 Q190,4 185,8 Q182,14 178,4 Q170,4 165,10 Q163,16 160,4 Q155,4 150,8 Q148,14 145,4 Q138,4 135,12 Q133,16 130,4 Q125,4 120,6 Q117,10 115,4 Q110,4 105,8 Q103,12 100,4 Q95,4 90,10 Q88,14 85,4 Q78,4 75,12 Q73,16 70,4 Q65,4 60,6 Q57,10 55,4 Q48,4 45,10 Q43,16 40,4 Q35,4 30,8 Q27,12 25,4 Q20,4 15,6 Q12,10 10,4 Q5,4 0,4 Z' fill='white'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 100%;
-  opacity: .55;
+  height: 20px;
+  background: url("/ooze-drip-strip.webp") repeat-x left top / auto 100%;
+  opacity: .5;
   pointer-events: none;
 }
 
