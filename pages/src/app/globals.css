@@ -314,13 +314,13 @@ code, pre, .font-mono {
 .hero-orbit { position: absolute; width: 400px; height: 400px; border: 1px solid #e5bcff21; border-radius: 50%; }
 .orbit-one { right: 75px; top: -195px; }
 .orbit-two { right: -22px; top: -110px; width: 290px; height: 290px; border-color: #f0caff32; }
-.hero-blob { position: absolute; right: 148px; bottom: -27px; width: 100px; height: 103px; border-radius: 51% 49% 43% 57% / 47% 41% 59% 53%; background: linear-gradient(145deg, #c38dff, #8249d2); box-shadow: 0 15px 35px #1705265e, inset 12px 7px 18px #e2c4ff36; transform: rotate(12deg); }
-.hero-blob::before { position: absolute; top: 16px; left: 17px; width: 17px; height: 9px; border-radius: 50%; background: #f5e9ff40; transform: rotate(-23deg); content: ""; }
-.hero-blob span { position: absolute; bottom: -30px; width: 21px; border-radius: 0 0 18px 18px; background: linear-gradient(180deg, #8249d2, #7039be); }
-.hero-blob span:nth-child(1) { left: 8px; height: 46px; }
-.hero-blob span:nth-child(2) { left: 37px; height: 26px; }
-.hero-blob span:nth-child(3) { right: 11px; height: 37px; }
-.hero-blob span:nth-child(4) { right: -12px; height: 18px; }
+.hero-blob { position: absolute; right: 155px; bottom: -14px; width: 76px; height: 118px; border-radius: 999px; background: linear-gradient(100deg, #ecffc6 0%, #b1f150 42%, #86cc2e 82%, #6ba51f 100%); box-shadow: 0 15px 35px #1705265e, 0 0 26px #b1f15059, inset 8px 5px 14px #f6ffdc99, inset -10px -6px 16px #4d8a1266; transform: rotate(12deg); }
+.hero-blob::before { position: absolute; top: 18px; left: 15px; width: 15px; height: 9px; border-radius: 50%; background: #ffffff55; transform: rotate(-23deg); content: ""; }
+.hero-blob span { position: absolute; bottom: -30px; width: 19px; border-radius: 0 0 18px 18px; background: linear-gradient(180deg, #9bd93f, #6ba51f); }
+.hero-blob span:nth-child(1) { left: 9px; height: 42px; }
+.hero-blob span:nth-child(2) { left: 33px; height: 24px; }
+.hero-blob span:nth-child(3) { right: 9px; height: 34px; }
+.hero-blob span:nth-child(4) { right: -10px; height: 17px; }
 .hero-metrics { position: relative; z-index: 1; display: flex; gap: 26px; align-self: flex-end; padding-bottom: 1px; }
 .hero-metrics > div { display: flex; min-width: 68px; flex-direction: column; gap: 4px; }
 .hero-metrics strong { color: #fff; font-size: 17px; font-weight: 700; letter-spacing: -.04em; }
