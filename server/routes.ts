@@ -997,6 +997,30 @@ export async function registerRoutes(
       return res.status(502).json({ error: "Publish failed" });
     }
   });
+   app.post("/api/builder/projects/:id/setup-card", async (req, res) => {
+    const id = parsePositiveInteger(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    
+    const owner = ownerOf(req);
+    try {
+      const project = await storage.getBuilderProject(owner, id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+
+      const sessionUrl = await createCardSetupSession({
+        projectId: project.id,
+        email: project.email,
+      });
+
+      if (!sessionUrl) {
+        return res.status(500).json({ error: "Failed to create setup session" });
+      }
+
+      res.json({ url: sessionUrl });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
 
   /** Billing: attach a Lago subscription to the project. Lago customers are
    *  keyed by the Keycloak sub so billing follows the account. */
