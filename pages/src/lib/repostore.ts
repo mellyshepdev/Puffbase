@@ -210,6 +210,28 @@ export async function addPushMirror(
   });
 }
 
+/** Fork one of the account's repos into a new repo under the same account. */
+export async function forkRepo(
+  accountId: string,
+  sourceName: string,
+  newName: string,
+): Promise<RepoMeta> {
+  const src = physical(accountId, sourceName);
+  const dest = physical(accountId, newName);
+  if (!src || !dest) throw new Error("invalid repo name");
+  const r = await storeFetch<RepoResponse>(
+    accountId,
+    `/repos/${await account(accountId)}/${src}/forks`,
+    { method: "POST", body: JSON.stringify({ name: dest }) },
+  );
+  return {
+    name: newName,
+    description: r.name ? `Fork of ${sourceName}` : "",
+    defaultBranch: r.default_branch || "main",
+    updatedAt: r.updated_at,
+  };
+}
+
 export async function deleteRepo(accountId: string, name: string) {
   const repo = physical(accountId, name);
   if (!repo) throw new Error("invalid repo name");

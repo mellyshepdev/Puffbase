@@ -4,7 +4,7 @@ import { like, or, and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { requestAccount } from "@/lib/accounts";
 import { hasScope } from "@/lib/pat";
-import { createRepo, deleteRepo, migrateRepo, repoWrite } from "@/lib/repostore";
+import { createRepo, deleteRepo, forkRepo, migrateRepo, repoWrite } from "@/lib/repostore";
 
 // GET /api/repos - the active account's repositories
 export async function GET(request: NextRequest) {
@@ -124,7 +124,21 @@ export async function POST(request: NextRequest) {
     let language = body.language ?? null;
     let initialMessage = "Initial commit";
 
-    if (source === "import") {
+    if (typeof body.forkOf === "string" && body.forkOf) {
+      // fork: copy an existing repo of this account under a new name
+      const [src] = await db
+        .select()
+        .from(repositories)
+        .where(and(eq(repositories.accountId, ctx.account.id), eq(repositories.name, body.forkOf)));
+      if (!src) return NextResponse.json({ error: "source repo not found" }, { status: 404 });
+      meta = await forkRepo(ctx.account.id, src.name, name);
+      language = src.language;
+      initialMessage = `Forked from ${src.name}`;
+      await db
+        .update(repositories)
+        .set({ forks: src.forks + 1, updatedAt: new Date() })
+        .where(eq(repositories.id, src.id));
+    } else if (source === "import") {
       const cloneUrl = String(body.cloneUrl ?? "").trim();
       if (!/^https?:\/\/\S+$/.test(cloneUrl)) {
         return NextResponse.json({ error: "a valid clone URL is required to import" }, { status: 400 });

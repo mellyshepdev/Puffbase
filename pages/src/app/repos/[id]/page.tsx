@@ -166,6 +166,8 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [forking, setForking] = useState(false);
+  const [forkError, setForkError] = useState<string | null>(null);
 
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [treeLoading, setTreeLoading] = useState(false);
@@ -284,6 +286,23 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
     }
   };
 
+  const handleFork = async () => {
+    if (!repo || forking) return;
+    const name = window.prompt("Fork as:", `${repo.name}-fork`);
+    if (!name) return;
+    setForking(true);
+    setForkError(null);
+    const res = await fetch("/api/repos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, forkOf: repo.name }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setForking(false);
+    if (res.ok) router.push(`/repos/${d.id}`);
+    else setForkError(d?.error ?? "Fork failed");
+  };
+
   const handleDelete = async () => {
     if (!repo) return;
     if (!window.confirm(`Delete ${repo.name}? This removes the repo and its history - no undo.`)) return;
@@ -352,6 +371,14 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
               {repo.defaultBranch}
             </div>
             <CodeButton repo={repo.name} />
+            <button
+              onClick={handleFork}
+              disabled={forking}
+              title="Fork this repo into your workspace"
+              className="flex items-center gap-1.5 text-xs text-[#9d8ec2] px-3 py-1.5 rounded-lg bg-[var(--color-dark-bg)] border border-[var(--color-dark-border)] hover:border-slime-500/50 hover:text-white transition-colors disabled:opacity-50"
+            >
+              <GitFork className="w-3.5 h-3.5 text-slime-400" /> {forking ? "Forking…" : "Fork"}
+            </button>
             <div className="flex items-center gap-1 text-xs text-[#5a4d7a]">
               <Star className="w-3.5 h-3.5" /> {repo.stars.toLocaleString()}
             </div>
@@ -360,6 +387,9 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
         </div>
+        {forkError && (
+          <p className="mt-3 pt-3 border-t border-[var(--color-dark-border)] text-xs text-red-400">{forkError}</p>
+        )}
         {repo.lastCommitMessage && (
           <div className="mt-3 pt-3 border-t border-[var(--color-dark-border)] flex items-center gap-2 text-xs text-[#5a4d7a]">
             <Clock className="w-3 h-3" />
