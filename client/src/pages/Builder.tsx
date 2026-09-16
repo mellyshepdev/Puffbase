@@ -164,6 +164,9 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [subdomain, setSubdomain] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [plan, setPlan] = useState<"monthly" | "yearly" | "business">(
+    "monthly",
+  );
   const { data: status } = useBuilderStatus();
   const queryClient = useQueryClient();
 
@@ -177,6 +180,7 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
           survey: answers,
           subdomain: subdomain || undefined,
           inviteCode: inviteCode.trim() || undefined,
+          plan,
         }),
       }),
     onSuccess: (project: ProjectDetail) => {
@@ -259,7 +263,39 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
           />
           <p className="mt-1 text-xs text-muted-foreground">
             With a code: free tier, no card required, capped usage. Without:
-            $5/mo per site + metered usage, card on file.
+            pick a plan below, card on file.
+          </p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">Plan</label>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(
+              [
+                { value: "monthly", label: "Monthly", price: "$5/mo", note: "per site + usage" },
+                { value: "yearly", label: "Yearly", price: "$50/yr", note: "per site + usage" },
+                { value: "business", label: "Business", price: "$25/mo", note: "flat, all your sites" },
+              ] as const
+            ).map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                data-testid={`plan-${p.value}`}
+                onClick={() => setPlan(p.value)}
+                className={`rounded-md border p-3 text-left transition-colors ${
+                  plan === p.value
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div className="text-sm font-medium">{p.label}</div>
+                <div className="text-lg font-semibold">{p.price}</div>
+                <div className="text-xs text-muted-foreground">{p.note}</div>
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Business covers every site on your account with priority
+            generation and a larger resource reservation.
           </p>
         </div>
         {create.error && (

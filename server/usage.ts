@@ -21,6 +21,9 @@ const FLUSH_MS = 60_000;
 // standard PaaS "allocated memory" model. Change this constant if the per-site
 // reservation changes; it is a pricing decision, not a measurement.
 const RAM_MB_PER_LIVE_SITE = 128;
+// Business plan sites get a larger reserved allocation (the "higher caps"
+// part of the plan); billed at the same $/MB-hour.
+const RAM_MB_BUSINESS_SITE = 256;
 
 // Free-tier caps: accounts created with an invite code get these limits;
 // crossing one starts a grace period, then live sites are suspended (their
@@ -111,8 +114,6 @@ export function usageTracker(app: Express) {
     if (lagoConfigured()) {
       try {
         const callsBy = new Map(metered.map((m) => [m.owner, m.count]));
-        const mbHoursPerWindow =
-          RAM_MB_PER_LIVE_SITE * (FLUSH_MS / 3_600_000);
         for (const owner of await storage.listLagoCustomerOwners()) {
           const stats = await storage.getOwnerBillingStats(owner);
           const calls = callsBy.get(owner) ?? 0;
@@ -125,8 +126,12 @@ export function usageTracker(app: Express) {
             mb: +(stats.storageBytes / 1048576).toFixed(3),
           }).catch((e) => console.error("lago event failed:", e));
           if (stats.liveDeployments > 0) {
+            const reservedMb =
+              (stats.liveDeployments - stats.businessDeployments) *
+                RAM_MB_PER_LIVE_SITE +
+              stats.businessDeployments * RAM_MB_BUSINESS_SITE;
             emitUsageEvent(owner, "ram_mb_hours", {
-              mb_hours: +(stats.liveDeployments * mbHoursPerWindow).toFixed(4),
+              mb_hours: +(reservedMb * (FLUSH_MS / 3_600_000)).toFixed(4),
             }).catch((e) => console.error("lago event failed:", e));
           }
 

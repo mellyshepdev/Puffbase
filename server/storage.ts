@@ -106,9 +106,11 @@ export interface IStorage {
   ): Promise<{
     storageBytes: number;
     liveDeployments: number;
+    businessDeployments: number;
     isFree: boolean;
     isPaid: boolean;
   }>;
+  ownerHasPlanSubscription(owner: string, plan: string): Promise<boolean>;
   getMonthlyApiCalls(owner: string): Promise<number>;
   latestBillingAlert(owner: string): Promise<Activity | undefined>;
   listLiveProjects(
@@ -343,6 +345,7 @@ export class DatabaseStorage implements IStorage {
   ): Promise<{
     storageBytes: number;
     liveDeployments: number;
+    businessDeployments: number;
     isFree: boolean;
     isPaid: boolean;
   }> {
@@ -350,6 +353,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         storageBytes: sql<number>`coalesce(sum(octet_length(${builderProjects.html})), 0)::int`,
         liveDeployments: sql<number>`count(*) filter (where ${builderProjects.status} = 'live')::int`,
+        businessDeployments: sql<number>`count(*) filter (where ${builderProjects.status} = 'live' and ${builderProjects.plan} = 'business')::int`,
         isFree: sql<boolean>`count(*) filter (where ${builderProjects.tier} = 'free') > 0`,
         isPaid: sql<boolean>`count(*) filter (where ${builderProjects.tier} = 'paid') > 0`,
       })
@@ -359,10 +363,31 @@ export class DatabaseStorage implements IStorage {
       rows[0] ?? {
         storageBytes: 0,
         liveDeployments: 0,
+        businessDeployments: 0,
         isFree: false,
         isPaid: false,
       }
     );
+  }
+
+  /** True when the owner already pays for a plan that bills per account
+   *  (business flat) - a second subscription would double-charge. */
+  async ownerHasPlanSubscription(
+    owner: string,
+    plan: string,
+  ): Promise<boolean> {
+    const rows = await db
+      .select({ id: builderProjects.id })
+      .from(builderProjects)
+      .where(
+        and(
+          eq(builderProjects.owner, owner),
+          eq(builderProjects.plan, plan),
+          isNotNull(builderProjects.lagoSubscriptionId),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
   }
 
   /** API calls recorded for the owner since the start of the UTC month. */
