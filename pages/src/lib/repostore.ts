@@ -97,7 +97,7 @@ export async function migrateRepo(
   accountId: string,
   name: string,
   cloneAddr: string,
-  opts: { service: "github" | "gitlab"; authToken?: string; description?: string },
+  opts: { service: "github" | "gitlab"; authToken?: string; description?: string; mirror?: boolean },
 ): Promise<RepoMeta> {
   const repo = physical(accountId, name);
   if (!repo) throw new Error("invalid repo name");
@@ -109,7 +109,8 @@ export async function migrateRepo(
       service: opts.service,
       auth_token: opts.authToken,
       private: true,
-      mirror: false,
+      mirror: opts.mirror === true,
+      ...(opts.mirror ? { mirror_interval: "8h0m0s" } : {}),
       description: opts.description ?? "",
     }),
   });
@@ -188,6 +189,21 @@ export async function updateRepo(
     method: "PATCH",
     body: JSON.stringify(patch),
   });
+}
+
+/** Whether the daemon repo is a native pull mirror (created via migrate mirror:true). */
+export async function repoIsMirror(accountId: string, name: string): Promise<boolean> {
+  const repo = physical(accountId, name);
+  if (!repo) return false;
+  const r = await storeFetch<{ mirror?: boolean }>(accountId, `/repos/${await account(accountId)}/${repo}`);
+  return r.mirror === true;
+}
+
+/** Ask the daemon to pull a native mirror's remote now (gitea >=1.21). */
+export async function syncMirror(accountId: string, name: string): Promise<void> {
+  const repo = physical(accountId, name);
+  if (!repo) throw new Error("invalid repo name");
+  await storeFetch(accountId, `/repos/${await account(accountId)}/${repo}/mirror-sync`, { method: "POST" });
 }
 
 /** Register a push mirror on the daemon repo (best-effort - needs gitea >=1.21). */

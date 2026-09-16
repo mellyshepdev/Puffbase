@@ -123,6 +123,8 @@ export async function POST(request: NextRequest) {
     let meta;
     let language = body.language ?? null;
     let initialMessage = "Initial commit";
+    let pullMirror = false;
+    let pullMirrorUrl: string | null = null;
 
     if (typeof body.forkOf === "string" && body.forkOf) {
       // fork: copy an existing repo of this account under a new name
@@ -144,12 +146,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "a valid clone URL is required to import" }, { status: 400 });
       }
       const service = body.service === "gitlab" ? "gitlab" : "github";
+      pullMirror = body.mirror === true;
+      pullMirrorUrl = pullMirror ? cloneUrl : null;
       meta = await migrateRepo(ctx.account.id, name, cloneUrl, {
         service,
         authToken: body.authToken ? String(body.authToken) : undefined,
         description,
+        mirror: pullMirror,
       });
-      initialMessage = "Imported project";
+      initialMessage = pullMirror ? "Imported project (pull mirror)" : "Imported project";
     } else {
       const gitignore = /^[A-Za-z0-9+_. -]{1,60}$/.test(String(body.gitignore ?? "")) ? String(body.gitignore) : undefined;
       meta = await createRepo(ctx.account.id, name, description, { readme, gitignore });
@@ -181,6 +186,7 @@ export async function POST(request: NextRequest) {
         ciEnabled: ci,
         sastEnabled: sast,
         secretScanEnabled: secretScan,
+        ...(pullMirror ? { mirrorDirection: "pull", mirrorUrl: pullMirrorUrl } : {}),
       })
       .returning();
     return NextResponse.json(created, { status: 201 });

@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { repositories } from "@/db/schema";
 import { requestAccount } from "@/lib/accounts";
 import { hasScope } from "@/lib/pat";
-import { deleteRepo, updateRepo, addPushMirror } from "@/lib/repostore";
+import { deleteRepo, updateRepo, addPushMirror, repoIsMirror, syncMirror } from "@/lib/repostore";
 
 // GET /api/repos/[id] - one repo row (int8 id compared as text)
 export async function GET(
@@ -22,7 +22,45 @@ export async function GET(
   if (!row || row.accountId !== ctx.account.id) {
     return NextResponse.json({ error: "Repo not found" }, { status: 404 });
   }
-  return NextResponse.json(row);
+  let isMirror = false;
+  try {
+    isMirror = await repoIsMirror(ctx.account.id, row.name);
+  } catch {
+    /* daemon hiccup must not take the page's repo fetch down with it */
+  }
+  return NextResponse.json({ ...row, isMirror });
+}
+
+// POST /api/repos/[id] { action: "sync-mirror" } - pull a native mirror's
+// remote in now rather than waiting for the daemon's interval.
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const ctx = await requestAccount(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "repos:write")) return NextResponse.json({ error: "pufftoken lacks the repos:write scope" }, { status: 403 });
+  const id = (await params).id;
+  const body = await req.json().catch(() => ({}));
+  const [row] = await db
+    .select()
+    .from(repositories)
+    .where(sql`${repositories.id}::text = ${id}`);
+  if (!row || row.accountId !== ctx.account.id) {
+    return NextResponse.json({ error: "Repo not found" }, { status: 404 });
+  }
+  if (body.action === "sync-mirror") {
+    try {
+      await syncMirror(ctx.account.id, row.name);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      return NextResponse.json(
+        { error: `sync failed - ${String(e).slice(0, 160)}. Only repos imported as mirrors can pull; this one may need re-importing with "keep in sync" checked.` },
+        { status: 400 },
+      );
+    }
+  }
+  return NextResponse.json({ error: "unknown action" }, { status: 400 });
 }
 
 // PATCH /api/repos/[id] - star/unstar (favorites view) or repo settings:
@@ -66,7 +104,7 @@ export async function PATCH(
   }
 
   // push mirror: register on the daemon (needs gitea >=1.21); pull mirrors
-  // can't be retrofitted via API - stored for the sync job to honor.
+  // can't be retrofitted via API - only repos imported with mirror:true sync.
   let mirrorNote: string | undefined;
   if (typeof body.mirrorUrl === "string" && body.mirrorUrl.trim() && body.mirrorDirection === "push") {
     try {
@@ -79,7 +117,13 @@ export async function PATCH(
       patch.mirrorUrl = body.mirrorUrl.trim();
     }
   } else if (body.mirrorDirection === "pull") {
-    mirrorNote = "pull mirror saved - syncs on the mirror job";
+    try {
+      mirrorNote = (await repoIsMirror(ctx.account.id, row.name))
+        ? "pull mirror - the daemon re-syncs it every 8h, or hit Sync now"
+        : "pull mirror noted, but this repo wasn't imported as a mirror so nothing will sync. Re-create it via Import with 'keep in sync' checked to get real pull mirroring.";
+    } catch {
+      mirrorNote = "pull mirror saved";
+    }
   }
 
   await db

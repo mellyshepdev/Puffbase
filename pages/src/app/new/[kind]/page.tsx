@@ -45,6 +45,7 @@ const KINDS: Record<string, KindConfig> = {
         { value: "github", label: "GitHub" }, { value: "gitlab", label: "GitLab" },
       ], show: (v) => v.source === "import", help: "Where the project lives now. Other git hosts work too - pick the closest match." },
       { key: "authToken", label: "Access token (if private)", kind: "text", placeholder: "Optional - only for private repos", show: (v) => v.source === "import", help: "A personal access token with repo read on the source host. Leave blank for public repos." },
+      { key: "mirror", label: "Keep in sync with the remote (pull mirror)", kind: "checkbox", show: (v) => v.source === "import", help: "The repo re-pulls from the source every 8 hours - upstream commits land here automatically. Use Settings > Mirroring > Sync now for an immediate pull." },
       { key: "template", label: "Template", kind: "select", options: [
         { value: "node-app", label: "Node.js app" },
         { value: "python-app", label: "Python app" },
@@ -86,6 +87,7 @@ const KINDS: Record<string, KindConfig> = {
       visibility: v.visibility || "private",
       readme: v.readme !== "off", ci: v.ci === "on",
       sast: v.sast === "on", secretScan: v.secretScan === "on",
+      mirror: v.mirror === "on",
     }),
     valid: (v) => (v.name ?? "").trim().length > 0
       && (v.source !== "import" || /^https?:\/\/\S+$/.test((v.cloneUrl ?? "").trim())),

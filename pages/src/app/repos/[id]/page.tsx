@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -26,6 +26,8 @@ import {
   Settings,
   RefreshCw,
   Trash2,
+  Radio,
+  ExternalLink,
 } from "lucide-react";
 import { CodeButton } from "@/components/CodeButton";
 
@@ -42,6 +44,7 @@ interface Repo {
   lastCommitAt: string | null;
   mirrorUrl?: string | null;
   mirrorDirection?: string | null;
+  isMirror?: boolean;
 }
 
 interface FileNode {
@@ -176,6 +179,53 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
   const [commitMsg, setCommitMsg] = useState("");
   const [isPro, setIsPro] = useState(false);
   const [drafting, setDrafting] = useState(false);
+  const [syncingMirror, setSyncingMirror] = useState(false);
+
+  /* Forge live-sync: the editor publishes frames over the forge pad relay
+   * (wss://forge.../pad/<room>), the forge Code tab views /view/<room>. */
+  const FORGE_ORIGIN = "https://forge.prime-quality.online";
+  const syncWs = useRef<WebSocket | null>(null);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [syncOn, setSyncOn] = useState(false);
+  const [syncRoom, setSyncRoom] = useState("");
+
+  const sendCodeFrame = () => {
+    if (syncWs.current?.readyState === WebSocket.OPEN && selectedFile?.path) {
+      syncWs.current.send(JSON.stringify({
+        t: "code",
+        repo: repo?.name ?? "",
+        path: selectedFile.path,
+        lang: selectedFile.language ?? "",
+        content: editedContent,
+      }));
+    }
+  };
+
+  const toggleSync = () => {
+    if (syncWs.current) {
+      syncWs.current.close();
+      return;
+    }
+    const room = `code-${repo?.name ?? "repo"}-${Math.random().toString(36).slice(2, 8)}`;
+    const ws = new WebSocket(`wss://forge.prime-quality.online/pad/${room}`);
+    syncWs.current = ws;
+    setSyncRoom(room);
+    ws.onopen = () => { setSyncOn(true); sendCodeFrame(); };
+    ws.onclose = () => { setSyncOn(false); setSyncRoom(""); syncWs.current = null; };
+    ws.onerror = () => { setSyncOn(false); setSyncRoom(""); syncWs.current = null; };
+  };
+
+  /* Stream editor changes to forge, lightly debounced so a burst of typing
+   * lands as one frame. */
+  useEffect(() => {
+    if (!syncOn) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(sendCodeFrame, 300);
+    return () => { if (syncTimer.current) clearTimeout(syncTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editedContent, syncOn, selectedFile?.path]);
+
+  useEffect(() => () => { syncWs.current?.close(); }, []);
 
   const loadTree = () => {
     setTreeLoading(true);
@@ -284,6 +334,19 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
     } else {
       setSettingsMsg(d?.error ?? "Save failed");
     }
+  };
+
+  const handleSyncMirror = async () => {
+    setSyncingMirror(true);
+    setSettingsMsg(null);
+    const res = await fetch(`/api/repos/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "sync-mirror" }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setSyncingMirror(false);
+    setSettingsMsg(res.ok ? "Pull sync kicked off - the daemon is fetching the remote now." : (d?.error ?? "Sync failed"));
   };
 
   const handleFork = async () => {
@@ -473,6 +536,13 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                         >
                           <X className="w-3 h-3" /> Cancel
                         </button>
+                        <button
+                          onClick={toggleSync}
+                          title="Stream your edits live to the Forge code viewer"
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-colors ${syncOn ? "bg-green-600/25 text-green-300" : "bg-[var(--color-dark-card)] text-[#7a6b9d] hover:text-white"}`}
+                        >
+                          <Radio className={`w-3 h-3 ${syncOn ? "animate-pulse" : ""}`} /> {syncOn ? "Live" : "Sync"}
+                        </button>
                       </>
                     ) : (
                       <button
@@ -489,6 +559,27 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 {/* Code content */}
+                {editMode && syncOn && (
+                  <div className="px-4 py-2 text-xs bg-green-600/10 border-b border-green-500/20 flex items-center gap-2 flex-wrap">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-green-300">Live in Forge</span>
+                    <span className="text-[#5a4d7a] font-mono">room {syncRoom}</span>
+                    <a
+                      href={`${FORGE_ORIGIN}/?mode=code&room=${encodeURIComponent(syncRoom)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-slime-400 hover:text-slime-300"
+                    >
+                      <ExternalLink className="w-3 h-3" /> Open Forge viewer
+                    </a>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`${FORGE_ORIGIN}/?mode=code&room=${encodeURIComponent(syncRoom)}`)}
+                      className="text-[#7a6b9d] hover:text-white"
+                    >
+                      Copy link
+                    </button>
+                  </div>
+                )}
                 {saveError && (
                   <div className="px-4 py-1.5 text-xs text-red-400 bg-red-500/10 border-b border-red-500/20">
                     {saveError}
@@ -682,12 +773,22 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                     <input type="password" value={sMirrorToken} onChange={(e) => setSMirrorToken(e.target.value)} placeholder="For private remotes" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50" />
                   </div>
                   <p className="text-[11px] text-[#5a4d7a]">
-                    Push mirrors sync on every commit and register on the store immediately. Pull mirrors save here and sync on the mirror job.
+                    Push mirrors sync on every commit and register on the store immediately.
+                    {repo.isMirror
+                      ? " This repo is a pull mirror - the store re-pulls the remote every 8 hours."
+                      : " Pull mirroring only works on repos created via Import with \"keep in sync\" checked - the store can't retrofit a mirror onto an existing repo."}
                   </p>
                 </div>
-                <button onClick={() => saveSettings({ mirrorUrl: sMirrorUrl, mirrorDirection: sMirrorDir, mirrorToken: sMirrorToken || undefined })} disabled={savingSettings} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
-                  {savingSettings ? "Saving…" : sMirrorUrl ? "Save mirror" : "Clear mirror"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => saveSettings({ mirrorUrl: sMirrorUrl, mirrorDirection: sMirrorDir, mirrorToken: sMirrorToken || undefined })} disabled={savingSettings} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
+                    {savingSettings ? "Saving…" : sMirrorUrl ? "Save mirror" : "Clear mirror"}
+                  </button>
+                  {repo.isMirror && (
+                    <button onClick={handleSyncMirror} disabled={syncingMirror} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slime-600/20 text-slime-300 text-xs hover:bg-slime-600/30 transition-colors disabled:opacity-50">
+                      <RefreshCw className={`w-3.5 h-3.5 ${syncingMirror ? "animate-spin" : ""}`} /> {syncingMirror ? "Syncing…" : "Sync now"}
+                    </button>
+                  )}
+                </div>
               </>
             )}
 
