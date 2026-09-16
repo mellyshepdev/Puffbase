@@ -74,7 +74,7 @@ export async function createRepo(
   accountId: string,
   name: string,
   description = "",
-  opts: { readme?: boolean } = {},
+  opts: { readme?: boolean; gitignore?: string } = {},
 ): Promise<RepoMeta> {
   const repo = physical(accountId, name);
   if (!repo) throw new Error("invalid repo name");
@@ -85,6 +85,7 @@ export async function createRepo(
       private: true,
       auto_init: true,
       readme: opts.readme === false ? "" : "Default",
+      ...(opts.gitignore ? { gitignores: opts.gitignore } : {}),
       description,
     }),
   });

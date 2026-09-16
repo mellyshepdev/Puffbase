@@ -137,7 +137,8 @@ export async function POST(request: NextRequest) {
       });
       initialMessage = "Imported project";
     } else {
-      meta = await createRepo(ctx.account.id, name, description, { readme });
+      const gitignore = /^[A-Za-z0-9+_. -]{1,60}$/.test(String(body.gitignore ?? "")) ? String(body.gitignore) : undefined;
+      meta = await createRepo(ctx.account.id, name, description, { readme, gitignore });
       if (source === "template") {
         const tpl = TEMPLATES[String(body.template ?? "")] ?? TEMPLATES["node-app"];
         language = language ?? tpl.language;
