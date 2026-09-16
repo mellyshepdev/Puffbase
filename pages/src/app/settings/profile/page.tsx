@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Save, Loader2, Upload, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { Check, Save, Loader2, Upload, RefreshCw, ArrowLeft } from "lucide-react";
 import { avatarSrc, isCustomAvatar, readAvatarFile } from "@/lib/avatar";
 
 interface Account {
@@ -82,6 +83,12 @@ export default function ProfileSettings() {
 
   return (
     <section className="slime-card p-5">
+      <Link
+        href="/settings"
+        className="inline-flex items-center gap-1.5 text-xs text-[#7a6b9d] hover:text-white transition-colors mb-3"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" /> All accounts
+      </Link>
       <h1 className="text-lg font-bold text-white mb-1">
         Profile — <span className="capitalize">{active.kind}</span>
       </h1>

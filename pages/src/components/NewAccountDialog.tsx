@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { X } from "lucide-react";
 import { avatarSrc, readAvatarFile } from "@/lib/avatar";
 
 /** "Add business account" dialog - name + optional avatar image. The image
@@ -50,9 +51,17 @@ export default function NewAccountDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="w-96 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] p-5 shadow-2xl"
+        className="relative w-96 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-3.5 right-3.5 p-1 rounded-md text-[#5a4d7a] hover:text-white hover:bg-[var(--color-dark-hover)] transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
         <h3 className="text-sm font-bold text-white mb-4">
           {kind === "business" ? "New business account" : "New account"}
         </h3>

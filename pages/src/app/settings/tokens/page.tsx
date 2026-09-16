@@ -12,11 +12,42 @@ interface TokenRec {
   createdAt: string;
 }
 
-const ALL_SCOPES = [
-  "repos:read", "repos:write", "issues:read", "issues:write",
-  "pipelines:read", "pipelines:write", "deployments:read", "deployments:write",
-  "docs:read", "docs:write", "groups:read", "groups:write",
-  "integrations:read", "integrations:write",
+const SCOPE_SECTIONS = [
+  {
+    title: "Repositories",
+    hint: "Browse and clone repos (read), push code and manage repo settings (write).",
+    scopes: ["repos:read", "repos:write"],
+  },
+  {
+    title: "Issues",
+    hint: "View issues (read), file, edit and close them (write).",
+    scopes: ["issues:read", "issues:write"],
+  },
+  {
+    title: "Pipelines",
+    hint: "See CI runs and logs (read), trigger and cancel runs (write).",
+    scopes: ["pipelines:read", "pipelines:write"],
+  },
+  {
+    title: "Deployments",
+    hint: "View deploy status and history (read), promote and roll back deploys (write).",
+    scopes: ["deployments:read", "deployments:write"],
+  },
+  {
+    title: "Documents",
+    hint: "Read workspace documents (read), create and edit them (write).",
+    scopes: ["docs:read", "docs:write"],
+  },
+  {
+    title: "Groups",
+    hint: "List teams and members (read), create teams and manage membership (write).",
+    scopes: ["groups:read", "groups:write"],
+  },
+  {
+    title: "Integrations",
+    hint: "See connected providers (read), connect and disconnect them (write).",
+    scopes: ["integrations:read", "integrations:write"],
+  },
 ] as const;
 
 export default function TokenSettings() {
@@ -106,17 +137,27 @@ export default function TokenSettings() {
           ))}
         </div>
         {tokenKind === "fine-grained" && (
-          <div className="grid grid-cols-2 gap-1.5">
-            {ALL_SCOPES.map((sc) => (
-              <label key={sc} className="flex items-center gap-2 text-xs text-[#9d8ec2] px-2 py-1.5 rounded-lg hover:bg-[var(--color-dark-hover)] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={tokenScopes.includes(sc)}
-                  onChange={() => setTokenScopes((cur) => cur.includes(sc) ? cur.filter((x) => x !== sc) : [...cur, sc])}
-                  className="accent-[#8bd450]"
-                />
-                <span className="font-mono">{sc}</span>
-              </label>
+          <div className="space-y-3">
+            {SCOPE_SECTIONS.map((sec) => (
+              <div key={sec.title} className="rounded-lg border border-[var(--color-dark-border)] px-3 py-2.5">
+                <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                  <p className="text-xs font-semibold text-white">{sec.title}</p>
+                  <p className="text-[10px] text-[#5a4d7a] text-right">{sec.hint}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {sec.scopes.map((sc) => (
+                    <label key={sc} className="flex items-center gap-2 text-xs text-[#9d8ec2] px-2 py-1.5 rounded-lg hover:bg-[var(--color-dark-hover)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tokenScopes.includes(sc)}
+                        onChange={() => setTokenScopes((cur) => cur.includes(sc) ? cur.filter((x) => x !== sc) : [...cur, sc])}
+                        className="accent-[#8bd450]"
+                      />
+                      <span className="font-mono">{sc.split(":")[1]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}

@@ -110,6 +110,18 @@ export const integrations = pgTable("integrations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// SSH public keys for git-over-ssh access. Keys belong to the Keycloak user
+// (userSub), not an account - the same identity clones across workspaces.
+export const sshKeys = pgTable("ssh_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userSub: varchar("user_sub", { length: 255 }).notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  publicKey: text("public_key").notNull(),
+  // SHA256:<base64> fingerprint, shown in the list instead of the full key.
+  fingerprint: varchar("fingerprint", { length: 80 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Groups = teams inside an account (business accounts especially).
 export const groups = pgTable("groups", {
   id: uuid("id").primaryKey().defaultRandom(),
