@@ -17,6 +17,7 @@ import Services from "@/pages/Services";
 import Builder from "@/pages/Builder";
 import Documents from "@/pages/Documents";
 import Account from "@/pages/Account";
+import Payment from "@/pages/Payment";
 import Analytics from "@/pages/Analytics";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
@@ -53,6 +54,7 @@ function Shell() {
         <main className="slime-scroll relative flex-1">
           <Switch>
             <Route path="/" component={Overview} />
+            <Route path="/payment" component={Payment} />
             <Route path="/deployments" component={Deployments} />
             <Route path="/services" component={Services} />
             <Route path="/builder/:id" component={Builder} />
