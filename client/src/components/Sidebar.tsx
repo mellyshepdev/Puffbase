@@ -43,7 +43,7 @@ export const NAV_ITEMS = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
   // The user dashboard is the customer app (app.prime-quality.online), not a
   // console route - external flag renders a plain anchor, not a hash Link.
-  { title: "Dashboard", url: "https://app.prime-quality.online", icon: CircleUser, external: true },
+  { title: "Dashboard", url: "/console", icon: CircleUser, external: true },
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
   { title: "Repositories", url: "/repositories", icon: GitBranch, adminOnly: true },
@@ -222,7 +222,7 @@ function UserCard() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() =>
-                (window.location.href = "https://app.prime-quality.online")
+                (window.location.href = "/console")
               }
             >
               User dashboard

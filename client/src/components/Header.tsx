@@ -171,7 +171,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() =>
-                (window.location.href = "https://app.prime-quality.online")
+                (window.location.href = "/console")
               }
               data-testid="menu-item-dashboard"
             >
