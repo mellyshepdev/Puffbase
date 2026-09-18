@@ -259,8 +259,15 @@ def revision_crew(
 
 
 def _gc_jobs() -> None:
+    # Reap completed jobs after TTL. Keyed on `finished`, not `created` - a
+    # crew run can legitimately exceed JOB_TTL_S, and keying on `created`
+    # deletes the job the moment it finishes, before the poller reads it.
     cutoff = time.time() - JOB_TTL_S
-    for jid in [j for j, s in _jobs.items() if s["created"] < cutoff]:
+    for jid in [
+        j
+        for j, s in _jobs.items()
+        if s["finished"] is not None and s["finished"] < cutoff
+    ]:
         del _jobs[jid]
 
 
