@@ -18,3 +18,7 @@ data.db-journal
 # Next.js build output
 .next/
 secrets/
+
+# Python bytecode
+__pycache__/
+*.pyc
