@@ -13,10 +13,12 @@ Single worker thread serialises jobs: the fleet has one CPU-bound LLM, so
 concurrent crews would only thrash it (mirrors the express-side gen queue).
 """
 
+import json
 import os
 import re
 import threading
 import time
+import urllib.request
 import uuid
 from queue import Queue
 
@@ -29,6 +31,17 @@ OLLAMA_BASE_URL = os.environ.get(
 MODEL = os.environ.get("CREW_MODEL", "phi4:14b")
 LLM_TIMEOUT_S = int(os.environ.get("CREW_LLM_TIMEOUT_S", "600"))
 JOB_TTL_S = int(os.environ.get("CREW_JOB_TTL_S", "3600"))
+
+# Locator power-drain gate: before a crew kicks off, ask the locator to stop
+# every policy-stoppable container on DRAIN_UNITS and wait for the all-clear
+# so the job runs on a quiet box. Drained services come back via
+# /api/power/restore (and wake-on-502 for anything that sees real traffic).
+# Empty LOCATOR_URL disables the gate entirely.
+LOCATOR_URL = os.environ.get("LOCATOR_URL", "").rstrip("/")
+LOCATOR_TOKEN = os.environ.get("LOCATOR_TOKEN", "")
+DRAIN_UNITS = os.environ.get("DRAIN_UNITS", "unit7")
+DRAIN_ACK_TIMEOUT_S = int(os.environ.get("DRAIN_ACK_TIMEOUT_S", "300"))
+DRAIN_POLL_S = int(os.environ.get("DRAIN_POLL_S", "5"))
 
 app = FastAPI(title="puffbase-crew", version="1.0.0")
 
@@ -410,6 +423,56 @@ def _gc_jobs() -> None:
         del _jobs[jid]
 
 
+def _locator_req(method: str, path: str, body: dict | None = None) -> dict:
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(
+        f"{LOCATOR_URL}{path}", data=data, method=method,
+        headers={"Content-Type": "application/json",
+                 "X-Power-Token": LOCATOR_TOKEN},
+    )
+    return json.loads(urllib.request.urlopen(req, timeout=15).read())
+
+
+def _drain_fleet(job: dict) -> str | None:
+    """Ask the locator to stop non-essential containers, wait for the ack.
+
+    Fail-open: a locator outage or slow drain must not wedge the job queue -
+    the gate is an optimization, not a hard dependency. Returns the drain_id
+    so the caller can restore afterwards.
+    """
+    drain_id = None
+    try:
+        resp = _locator_req("POST", "/api/power/drain", {
+            "units": DRAIN_UNITS, "reason": f"crew-{job.get('kind', 'job')}",
+        })
+        drain_id = resp["drain_id"]
+        deadline = time.time() + DRAIN_ACK_TIMEOUT_S
+        state = {}
+        while time.time() < deadline:
+            state = _locator_req("GET", f"/api/power/drain/{drain_id}")
+            if state.get("acknowledged"):
+                break
+            time.sleep(DRAIN_POLL_S)
+        job["drain"] = {
+            "drain_id": drain_id,
+            "acknowledged": bool(state.get("acknowledged")),
+            "stopped": state.get("stopped", []),
+            "failed": state.get("failed", []),
+        }
+    except Exception as exc:
+        job["drain"] = {"drain_id": drain_id, "error": str(exc)[:200]}
+    return drain_id
+
+
+def _restore_fleet(drain_id: str | None) -> None:
+    if not drain_id:
+        return
+    try:
+        _locator_req("POST", "/api/power/restore", {"drain_id": drain_id})
+    except Exception:
+        pass
+
+
 def _worker() -> None:
     while True:
         jid, kind, payload = _work.get()
@@ -417,6 +480,7 @@ def _worker() -> None:
         if not job:
             continue
         job["status"] = "running"
+        drain_id = _drain_fleet(job) if LOCATOR_URL else None
         try:
             if kind == "generate":
                 crew = generation_crew(
@@ -434,6 +498,7 @@ def _worker() -> None:
         except Exception as exc:  # surfaced to the poller; express falls back
             job.update(status="failed", error=str(exc)[:500])
         finally:
+            _restore_fleet(drain_id)
             job["finished"] = time.time()
             _gc_jobs()
 
@@ -493,6 +558,7 @@ def job_status(job_id: str):
             (job["finished"] or time.time()) - job["created"], 1
         ),
         "completed_tasks": job.get("completed_tasks", []),
+        "drain": job.get("drain"),
     }
     if job["status"] == "done":
         resp["html"] = job["html"]
