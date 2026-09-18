@@ -9,7 +9,7 @@
 import { chat, extractHtml } from "./llm";
 
 const CREW_URL = (process.env.CREW_URL ?? "").replace(/\/$/, "");
-const CREW_TIMEOUT_MS = Number(process.env.CREW_TIMEOUT_MS ?? 1_800_000);
+const CREW_TIMEOUT_MS = Number(process.env.CREW_TIMEOUT_MS ?? 3_600_000);
 
 export function crewConfigured(): boolean {
   return !!CREW_URL;
