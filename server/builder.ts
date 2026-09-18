@@ -1,7 +1,50 @@
 // Site-builder engine: survey answers -> prompt -> LLM -> single-file site.
 // Revisions keep the full conversation so "change the hero color" style
 // requests have the previous artifact + instruction history to work from.
+//
+// When CREW_URL is set, generation and revision run through the crew service
+// (crew/ - CrewAI multi-agent pipeline: plan -> copy -> design -> build ->
+// review). If the crew is down or fails, we fall back to the single-shot
+// chat() path below - same pattern as the website's chat fallback chain.
 import { chat, extractHtml } from "./llm";
+
+const CREW_URL = (process.env.CREW_URL ?? "").replace(/\/$/, "");
+const CREW_TIMEOUT_MS = Number(process.env.CREW_TIMEOUT_MS ?? 1_800_000);
+
+export function crewConfigured(): boolean {
+  return !!CREW_URL;
+}
+
+/** Submit a job to the crew service and poll until it finishes. The crew
+ *  takes minutes on CPU inference, so this is a job API rather than one long
+ *  request - a proxy blip mid-generation only costs one poll cycle. */
+async function crewJob(path: string, body: unknown): Promise<string> {
+  const create = await fetch(`${CREW_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!create.ok) throw new Error(`crew submit ${create.status}`);
+  const { job_id } = (await create.json()) as { job_id: string };
+
+  const deadline = Date.now() + CREW_TIMEOUT_MS;
+  for (;;) {
+    if (Date.now() > deadline) throw new Error("crew job timed out");
+    await new Promise((r) => setTimeout(r, 8_000));
+    const resp = await fetch(`${CREW_URL}/jobs/${job_id}`, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!resp.ok) throw new Error(`crew poll ${resp.status}`);
+    const st = (await resp.json()) as {
+      status: string;
+      html?: string;
+      error?: string;
+    };
+    if (st.status === "done" && st.html) return st.html;
+    if (st.status === "failed") throw new Error(st.error ?? "crew failed");
+  }
+}
 
 const SYSTEM_PROMPT = `You are a world-class web designer and front-end engineer
 building single-file marketing sites for small businesses.
@@ -60,6 +103,13 @@ export async function generateSite(
   name: string,
   survey: Record<string, string>,
 ): Promise<string> {
+  if (CREW_URL) {
+    try {
+      return await crewJob("/jobs/generate", { name, survey });
+    } catch (error) {
+      console.error("[builder] crew generation failed, falling back:", error);
+    }
+  }
   const raw = await chat([
     { role: "system", content: SYSTEM_PROMPT },
     { role: "user", content: buildGenerationPrompt(name, survey) },
@@ -77,6 +127,18 @@ export async function reviseSite(
   currentHtml: string,
   instruction: string,
 ): Promise<string> {
+  if (CREW_URL) {
+    try {
+      return await crewJob("/jobs/revise", {
+        name,
+        survey,
+        html: currentHtml,
+        instruction,
+      });
+    } catch (error) {
+      console.error("[builder] crew revision failed, falling back:", error);
+    }
+  }
   const { assistant, user } = buildRevisionPrompt(
     name,
     survey,

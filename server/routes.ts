@@ -33,7 +33,7 @@ import {
   listDocuments,
 } from "./gitspace";
 import { linearConfigured, listLinearIssues } from "./linear";
-import { generateSite, reviseSite } from "./builder";
+import { crewConfigured, generateSite, reviseSite } from "./builder";
 import { llmConfigured, llmModel } from "./llm";
 import {
   createSubscription,
@@ -825,6 +825,7 @@ export async function registerRoutes(
     res.json({
       llm: llmConfigured(),
       model: llmModel(),
+      crew: crewConfigured(),
       lago: lagoConfigured(),
       stripe: stripeConfigured(),
       mail: mailConfigured(),
