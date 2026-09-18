@@ -100,7 +100,14 @@ SITE_RULES = (
 )
 
 
-def generation_crew(name: str, survey: dict[str, str]):
+def generation_crew(name: str, survey: dict[str, str], job: dict):
+    """8-role pipeline per the crew setup config.
+
+    Sequential process: the Lead Architect's master brief is the coordination
+    mechanism - every downstream task consumes it via context chaining. A
+    hierarchical manager would add a delegate+review call around every task,
+    roughly doubling LLM calls on an already CPU-bound model.
+    """
     from crewai import Agent, Crew, Process, Task
 
     llm = make_llm()
@@ -110,93 +117,225 @@ def generation_crew(name: str, survey: dict[str, str]):
         respect_context_window=True, max_iter=4,
     )
 
-    architect = Agent(
-        role="Site Architect",
-        goal="Turn an intake survey into a tight site structure.",
-        backstory="Senior information architect for small-business sites.",
+    lead_architect = Agent(
+        role="Lead Architect",
+        goal=(
+            "Process customer requirements from the intake questionnaire and "
+            "set the direction every specialized agent follows."
+        ),
+        backstory=(
+            "Lead Architect for an autonomous web development crew. You own "
+            "the master build brief: requirements, structure, and the quality "
+            "bar the deliverable must meet."
+        ),
         **agent_kw,
     )
-    copywriter = Agent(
-        role="Conversion Copywriter",
-        goal="Write real, specific marketing copy for each planned section.",
-        backstory="Direct-response copywriter; plain confident voice, no filler.",
+    researcher = Agent(
+        role="Research Agent",
+        goal=(
+            "Analyze the customer's business domain, competitors, and core "
+            "messaging to establish a strong foundational concept."
+        ),
+        backstory=(
+            "Market researcher who turns a business description into concrete "
+            "positioning: who it's for, what competitors do, and the message "
+            "that differentiates it."
+        ),
         **agent_kw,
     )
     designer = Agent(
-        role="Visual Designer",
-        goal="Specify a coherent visual system for the page.",
-        backstory="Product designer; dark premium aesthetic unless told otherwise.",
+        role="Design and Brand Agent",
+        goal=(
+            "Determine the visual identity: color schemes, typography, and "
+            "hero section layout for a modern, engaging interface."
+        ),
+        backstory=(
+            "Brand designer; dark premium aesthetic by default. You output "
+            "precise specs - hex values, font stacks, spacing - not vague mood."
+        ),
         **agent_kw,
     )
-    developer = Agent(
-        role="Front-End Engineer",
-        goal="Implement the approved plan as a single-file HTML site.",
-        backstory="Expert in hand-rolled HTML/CSS/JS with zero dependencies.",
+    copywriter = Agent(
+        role="Content and Copywriting Agent",
+        goal=(
+            "Craft all textual elements: clear labels, persuasive sales copy, "
+            "and consistent information architecture across the page."
+        ),
+        backstory=(
+            "Direct-response copywriter. Plain confident voice, specific "
+            "claims, zero filler, never lorem ipsum."
+        ),
         **agent_kw,
     )
-    reviewer = Agent(
-        role="QA Reviewer",
-        goal="Verify the artifact against the brief and ship the final file.",
-        backstory="Meticulous reviewer who fixes defects and returns clean HTML.",
+    tech_integrator = Agent(
+        role="Technical Integration Agent",
+        goal=(
+            "Assemble the HTML, CSS, and JavaScript, integrate the chatbot "
+            "widget, and prepare the file for final deployment."
+        ),
+        backstory=(
+            "Front-end engineer specializing in dependency-free single-file "
+            "sites. You integrate a lightweight inline chatbot widget (a chat "
+            "bubble + panel wired to a configurable endpoint constant) when "
+            "the brief calls for one."
+        ),
+        **agent_kw,
+    )
+    qa_agent = Agent(
+        role="Quality Assurance and Syntax Agent",
+        goal=(
+            "Execute and validate all code: run syntax and structure checks "
+            "against industry standards so everything passes flawlessly."
+        ),
+        backstory=(
+            "QA engineer who validates markup the way you'd validate a complex "
+            "container configuration - every rule checked, every defect fixed."
+        ),
+        **agent_kw,
+    )
+    devops_sec = Agent(
+        role="DevOps and Security Agent",
+        goal=(
+            "Review the codebase for security vulnerabilities and verify the "
+            "chatbot widget, API integrations, and deployment pieces are "
+            "robust and operational."
+        ),
+        backstory=(
+            "Security-minded DevOps reviewer: no injected endpoints, no "
+            "external resource leaks, no unsafe inline handlers - and the "
+            "file must work when opened directly."
+        ),
+        **agent_kw,
+    )
+    packager = Agent(
+        role="Final Packaging Agent",
+        goal=(
+            "Compile all verified files into the final deliverable and "
+            "coordinate seamless delivery to the customer."
+        ),
+        backstory=(
+            "Release engineer. For this pipeline the deliverable is a single "
+            "self-contained HTML file - you confirm it is complete, "
+            "self-verified, and ship-ready."
+        ),
         **agent_kw,
     )
 
-    t_plan = Task(
+    t_brief = Task(
         description=(
-            f'Plan the landing page for "{name}".\n\nIntake survey:\n{digest}\n\n'
-            "Produce: ordered section list; for each, a one-line purpose and the "
-            "key message. Max 250 words."
+            f'Process the intake questionnaire for "{name}" and produce the '
+            f"master build brief.\n\nQuestionnaire:\n{digest}\n\n"
+            "Include: one-line positioning, ordered section list with purpose "
+            "each, must-have requirements, and whether a chatbot widget fits "
+            "the brief. Max 300 words - this brief directs every agent after "
+            "you."
         ),
-        expected_output="Compact markdown section plan, <=250 words.",
-        agent=architect,
+        expected_output="Master build brief, <=300 words.",
+        agent=lead_architect,
     )
-    t_copy = Task(
+    t_research = Task(
         description=(
-            "Using the section plan, write the final copy for every section: "
-            "headlines, subheads, body text, CTA labels, footer lines. Real copy "
-            f"about {name} - specific, no placeholders. Max 600 words."
+            "Analyze the business domain: who the customers are, what "
+            "competitors in this space typically promise, and the single "
+            "strongest message to lead with. Ground it in the master brief. "
+            "Max 250 words."
         ),
-        expected_output="Copy keyed by section name, <=600 words.",
-        agent=copywriter,
-        context=[t_plan],
+        expected_output="Domain + messaging analysis, <=250 words.",
+        agent=researcher,
+        context=[t_brief],
     )
     t_design = Task(
         description=(
-            "Define the visual system: hex palette (respect any survey colors), "
-            "type scale, spacing rhythm, layout notes per section, subtle motion. "
-            "Max 200 words."
+            "Define the visual identity: hex palette (respect any questionnaire "
+            "colors), type scale and system font stack, spacing rhythm, hero "
+            "section layout, subtle motion notes. Max 250 words."
         ),
-        expected_output="Design spec, <=200 words.",
+        expected_output="Design/brand spec, <=250 words.",
         agent=designer,
-        context=[t_plan],
+        context=[t_brief, t_research],
+    )
+    t_copy = Task(
+        description=(
+            "Write all textual content: every section's headline, subhead, "
+            "body copy, CTA labels, nav labels, footer lines. Specific to "
+            f"{name} and its audience - persuasive, real, no placeholders. "
+            "Max 600 words."
+        ),
+        expected_output="Complete site copy keyed by section, <=600 words.",
+        agent=copywriter,
+        context=[t_brief, t_research, t_design],
     )
     t_build = Task(
         description=(
-            f'Implement the complete single-file site for "{name}" using the '
-            f"plan, copy, and design spec.\n\nHard rules: {SITE_RULES}"
+            f'Assemble the complete single-file site for "{name}" from the '
+            "brief, research, design spec, and copy. If the brief calls for a "
+            "chatbot widget, embed a self-contained chat bubble + panel wired "
+            "to a clearly-named endpoint constant at the top of the script. "
+            f"Hard rules: {SITE_RULES}"
         ),
         expected_output="The complete HTML document and nothing else.",
-        agent=developer,
-        context=[t_plan, t_copy, t_design],
+        agent=tech_integrator,
+        context=[t_brief, t_design, t_copy],
     )
-    t_review = Task(
+    t_qa = Task(
         description=(
-            "Review the HTML document from the previous step against this brief:\n"
-            f"{digest}\n\nRules: {SITE_RULES}\n\n"
-            "Fix every defect you find and return the complete corrected HTML "
-            "document and nothing else."
+            "Validate the HTML document like a complex container "
+            "configuration: unclosed tags, invalid nesting, missing aria "
+            "labels, broken anchors, dead JS references, missing <style> or "
+            "<script> closures. Fix every defect and return the complete "
+            f"corrected document. Rules: {SITE_RULES}"
         ),
-        expected_output="The final complete HTML document and nothing else.",
-        agent=reviewer,
+        expected_output="The complete validated HTML document and nothing else.",
+        agent=qa_agent,
         context=[t_build],
     )
+    t_security = Task(
+        description=(
+            "Security-review the document: no external resource loads, no "
+            "unsafe inline handlers, the chatbot widget (if present) fails "
+            "closed when its endpoint is unreachable, and the file renders "
+            "opened directly from disk. Fix issues and return the complete "
+            "hardened document."
+        ),
+        expected_output="The complete hardened HTML document and nothing else.",
+        agent=devops_sec,
+        context=[t_qa],
+    )
+    t_package = Task(
+        description=(
+            "Final packaging: confirm the document is complete, self-contained, "
+            "and matches the master brief. Return the complete final HTML "
+            "document and nothing else - it IS the deliverable."
+        ),
+        expected_output="The final complete HTML document and nothing else.",
+        agent=packager,
+        context=[t_security],
+    )
+
+    tasks = [
+        t_brief, t_research, t_design, t_copy,
+        t_build, t_qa, t_security, t_package,
+    ]
+    task_names = [
+        "brief", "research", "design", "copy",
+        "build", "qa", "security", "package",
+    ]
+
+    def on_task_done(output):
+        done = len(job.setdefault("completed_tasks", []))
+        if done < len(task_names):
+            job["completed_tasks"].append(task_names[done])
 
     return Crew(
-        agents=[architect, copywriter, designer, developer, reviewer],
-        tasks=[t_plan, t_copy, t_design, t_build, t_review],
+        agents=[
+            lead_architect, researcher, designer, copywriter,
+            tech_integrator, qa_agent, devops_sec, packager,
+        ],
+        tasks=tasks,
         process=Process.sequential,
         memory=False,
         verbose=False,
+        task_callback=on_task_done,
     )
 
 
@@ -280,7 +419,9 @@ def _worker() -> None:
         job["status"] = "running"
         try:
             if kind == "generate":
-                crew = generation_crew(payload["name"], payload["survey"])
+                crew = generation_crew(
+                    payload["name"], payload["survey"], job
+                )
             else:
                 crew = revision_crew(
                     payload["name"], payload["survey"],
@@ -351,6 +492,7 @@ def job_status(job_id: str):
         "elapsed_s": round(
             (job["finished"] or time.time()) - job["created"], 1
         ),
+        "completed_tasks": job.get("completed_tasks", []),
     }
     if job["status"] == "done":
         resp["html"] = job["html"]
