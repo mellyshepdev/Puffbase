@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { Route, Router, Switch, useLocation } from "wouter";
+import { useAuth } from "@/lib/auth";
 import { useHashLocation } from "wouter/use-hash-location";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -37,6 +38,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
 
 function Shell() {
   const [location] = useLocation();
+  const { isAdmin } = useAuth();
   const meta = PAGE_META[location] ?? { title: "Not found", subtitle: "unknown route" };
 
   return (
@@ -63,7 +65,7 @@ function Shell() {
             <Route path="/builder" component={Builder} />
             <Route path="/documents" component={Documents} />
             <Route path="/account" component={Account} />
-            <Route path="/repositories" component={Repositories} />
+            {isAdmin && <Route path="/repositories" component={Repositories} />}
             <Route path="/analytics" component={Analytics} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
