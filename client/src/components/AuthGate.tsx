@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useAuth, loginUrl } from "@/lib/auth";
+import loginDrips from "@/assets/login-drips.png";
 import { PuffbaseEmblem } from "@/components/PuffbaseLogo";
 
 /** Every /api route is session-gated now (see server/index.ts) - this is the
@@ -29,6 +30,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
             background:
               "radial-gradient(70% 55% at 18% -8%, hsl(278 85% 40% / 0.35), transparent 62%), radial-gradient(55% 45% at 92% 4%, hsl(292 80% 45% / 0.22), transparent 60%), radial-gradient(80% 60% at 50% 115%, hsl(272 80% 38% / 0.3), transparent 65%)",
           }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[38svh] bg-top bg-repeat-x"
+          style={{ backgroundImage: `url(${loginDrips})`, backgroundSize: "auto 100%" }}
         />
         <div className="w-full max-w-sm rounded-2xl border border-card-border/80 bg-card/70 p-8 text-center backdrop-blur-sm">
           <PuffbaseEmblem className="mx-auto mb-2 h-36 w-auto" />
