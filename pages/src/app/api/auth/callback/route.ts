@@ -4,9 +4,21 @@ import { getOidcConfig, requestBase } from "@/lib/oidc";
 import { sign, verify, SESSION_COOKIE, OIDC_COOKIE, type SessionUser } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
-  const pending = await verify<{ state: string; codeVerifier: string }>(
+  const rawState = req.nextUrl.searchParams.get("state") ?? "";
+  let pending = await verify<{ state: string; codeVerifier: string }>(
     req.cookies.get(OIDC_COOKIE)?.value,
   );
+
+  if (!pending && rawState.includes("~")) {
+    // Cookie didn't round-trip (see login route) — recover the pending login
+    // from the signed verifier packed into the echoed state param. The HMAC
+    // signature means only states this server issued can pass.
+    const sep = rawState.indexOf("~");
+    const packed = await verify<{ s: string; v: string }>(rawState.slice(sep + 1));
+    if (packed && packed.s === rawState.slice(0, sep)) {
+      pending = { state: rawState, codeVerifier: packed.v };
+    }
+  }
   if (!pending) return new NextResponse("No login in progress", { status: 400 });
 
   const config = await getOidcConfig();
