@@ -166,8 +166,9 @@ export function registerAuthRoutes(app: Express) {
         name: typeof claims.name === "string" ? claims.name : undefined,
       };
       trackActivity(claims.sub, "auth", `${claims.name || claims.email || claims.sub} signed in`, "success");
-      // `/` is the public landing page now; the console SPA lives at /console.
-      res.redirect("/console");
+      // Post-login lands on the user dashboard; admins can still browse to
+      // /console directly (the console SPA lives there).
+      res.redirect(process.env.USER_DASH_URL ?? "https://dash.puff-base.com");
     } catch (err) {
       next(err);
     }

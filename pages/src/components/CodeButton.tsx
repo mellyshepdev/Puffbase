@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Check, Copy, Terminal } from "lucide-react";
 
-const GIT_HOST = "git.prime-quality.online";
+const GIT_HOST = "git.puff-base.com";
 const GIT_USER = "puffadmin";
 
 export function CodeButton({ repo }: { repo: string }) {

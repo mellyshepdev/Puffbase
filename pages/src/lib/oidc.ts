@@ -29,7 +29,7 @@ export function appUrl(): string {
 }
 
 /** Public base URL for the current request. The app is served on both
- *  app.prime-quality.online and puff.dashboard.prime-quality.online, and the
+ *  dash.puff-base.com and puff.dashboard.prime-quality.online, and the
  *  session cookie is host-only - so the login redirect_uri must complete on
  *  whichever host the user actually came from. */
 export function requestBase(req: { headers: Headers }): string {
