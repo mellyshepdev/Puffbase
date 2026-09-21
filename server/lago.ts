@@ -73,6 +73,7 @@ export async function createSubscription(
       method: "POST",
       body: JSON.stringify({
         subscription: {
+          external_id: crypto.randomUUID(),
           external_customer_id: externalCustomerId,
           plan_code: planCode,
         },
