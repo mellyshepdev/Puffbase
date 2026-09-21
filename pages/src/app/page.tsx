@@ -26,6 +26,7 @@ import {
   CircleDot,
 } from "lucide-react";
 import { CodeButton } from "@/components/CodeButton";
+import { HeroOrbs } from "@/components/HeroOrbs";
 
 interface Stats {
   repos: number;
@@ -235,24 +236,6 @@ export default function DashboardPage() {
         <div className="heading-actions" />
       </div>
 
-      {/* Slime Status hero banner */}
-      <section className="hero-card">
-        <div className="hero-copy">
-          <div className="hero-label"><Zap className="w-3.5 h-3.5" /> SLIME STATUS</div>
-          <h2>Everything is <em>flowing.</em></h2>
-          <p>Your builds are green, deployments are healthy, and the team is in sync.</p>
-          <Link href="/status" className="hero-link">View workspace activity <ArrowRight className="w-4 h-4" /></Link>
-        </div>
-        <div className="hero-orbit orbit-one" />
-        <div className="hero-orbit orbit-two" />
-        <div className="hero-blob"><span /><span /><span /><span /></div>
-        <div className="hero-metrics">
-          <div><strong>{stats?.successRate || 0}%</strong><span>build success</span></div>
-          <div><strong>{stats?.activeDeployments || 0}</strong><span>active deploys</span></div>
-          <div><strong>{stats?.totalStars || 0}</strong><span>total stars</span></div>
-        </div>
-      </section>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
@@ -266,6 +249,24 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* Slime Status hero banner */}
+      <section className="hero-card">
+        <div className="hero-copy">
+          <div className="hero-label"><Zap className="w-3.5 h-3.5" /> SLIME STATUS</div>
+          <h2>Everything is <em>flowing.</em></h2>
+          <p>Your builds are green, deployments are healthy, and the team is in sync.</p>
+          <Link href="/status" className="hero-link">View workspace activity <ArrowRight className="w-4 h-4" /></Link>
+        </div>
+        <div className="hero-orbit orbit-one" />
+        <div className="hero-orbit orbit-two" />
+        <HeroOrbs />
+        <div className="hero-metrics">
+          <div><strong>{stats?.successRate || 0}%</strong><span>build success</span></div>
+          <div><strong>{stats?.activeDeployments || 0}</strong><span>active deploys</span></div>
+          <div><strong>{stats?.totalStars || 0}</strong><span>total stars</span></div>
+        </div>
+      </section>
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
