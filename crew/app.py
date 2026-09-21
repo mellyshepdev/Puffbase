@@ -29,6 +29,9 @@ OLLAMA_BASE_URL = os.environ.get(
     "OLLAMA_BASE_URL", "http://100.64.118.105:11434/v1"
 ).rstrip("/")
 MODEL = os.environ.get("CREW_MODEL", "phi4:14b")
+# Code-stage model: build/QA/devops/revision agents get the coder model,
+# prose/reasoning roles keep MODEL (phi4).
+CODE_MODEL = os.environ.get("CREW_CODE_MODEL", "qwen2.5-coder:14b")
 LLM_TIMEOUT_S = int(os.environ.get("CREW_LLM_TIMEOUT_S", "600"))
 JOB_TTL_S = int(os.environ.get("CREW_JOB_TTL_S", "3600"))
 
@@ -86,12 +89,12 @@ def extract_html(raw: str) -> str:
     return body.strip()
 
 
-def make_llm():
+def make_llm(model: str = MODEL):
     from crewai import LLM
 
     return LLM(
         # openai/ prefix -> litellm OpenAI-compatible provider against Ollama
-        model=f"openai/{MODEL}",
+        model=f"openai/{model}",
         base_url=OLLAMA_BASE_URL,
         api_key="ollama",
         temperature=0.4,
@@ -123,12 +126,14 @@ def generation_crew(name: str, survey: dict[str, str], job: dict):
     """
     from crewai import Agent, Crew, Process, Task
 
-    llm = make_llm()
+    prose_llm = make_llm()
+    code_llm = make_llm(CODE_MODEL)
     digest = survey_digest(survey)
     agent_kw = dict(
-        llm=llm, allow_delegation=False, verbose=False,
+        llm=prose_llm, allow_delegation=False, verbose=False,
         respect_context_window=True, max_iter=4,
     )
+    code_kw = dict(agent_kw, llm=code_llm)
 
     lead_architect = Agent(
         role="Lead Architect",
@@ -192,7 +197,7 @@ def generation_crew(name: str, survey: dict[str, str], job: dict):
             "bubble + panel wired to a configurable endpoint constant) when "
             "the brief calls for one."
         ),
-        **agent_kw,
+        **code_kw,
     )
     qa_agent = Agent(
         role="Quality Assurance and Syntax Agent",
@@ -204,7 +209,7 @@ def generation_crew(name: str, survey: dict[str, str], job: dict):
             "QA engineer who validates markup the way you'd validate a complex "
             "container configuration - every rule checked, every defect fixed."
         ),
-        **agent_kw,
+        **code_kw,
     )
     devops_sec = Agent(
         role="DevOps and Security Agent",
@@ -218,7 +223,7 @@ def generation_crew(name: str, survey: dict[str, str], job: dict):
             "external resource leaks, no unsafe inline handlers - and the "
             "file must work when opened directly."
         ),
-        **agent_kw,
+        **code_kw,
     )
     packager = Agent(
         role="Final Packaging Agent",
@@ -231,7 +236,7 @@ def generation_crew(name: str, survey: dict[str, str], job: dict):
             "self-contained HTML file - you confirm it is complete, "
             "self-verified, and ship-ready."
         ),
-        **agent_kw,
+        **code_kw,
     )
 
     t_brief = Task(
@@ -357,7 +362,7 @@ def revision_crew(
 ):
     from crewai import Agent, Crew, Process, Task
 
-    llm = make_llm()
+    llm = make_llm(CODE_MODEL)
     digest = survey_digest(survey)
     agent_kw = dict(
         llm=llm, allow_delegation=False, verbose=False,
@@ -529,6 +534,7 @@ def status():
     running = sum(1 for j in _jobs.values() if j["status"] == "running")
     return {
         "model": MODEL,
+        "code_model": CODE_MODEL,
         "ollama": OLLAMA_BASE_URL,
         "queued": _work.qsize(),
         "running": running,
