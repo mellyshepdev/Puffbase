@@ -14,7 +14,7 @@ import { trackActivity } from "./usage";
 declare module "express-session" {
   interface SessionData {
     user?: { sub: string; email?: string; name?: string };
-    oidc?: { state: string; codeVerifier: string };
+    oidc?: { state: string; codeVerifier: string; returnTo?: string };
   }
 }
 
@@ -48,6 +48,10 @@ export function sessionMiddleware() {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      // Console logins start on admin.puff-base.com but the OIDC callback
+      // always lands on APP_URL (puff-base.com) - a host-only cookie would
+      // never reach the admin subdomain. Keep unset locally.
+      domain: process.env.SESSION_COOKIE_DOMAIN || undefined,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   });
@@ -96,8 +100,16 @@ function appUrl(): string {
 // for browsers (Firefox Total Cookie Protection / ETP Strict) that partition
 // or drop the cookie across the cross-domain hop to Keycloak and back.
 // Entries are single-use and expire after 10 minutes.
-const pendingLogins = new Map<string, { codeVerifier: string; expiresAt: number }>();
+const pendingLogins = new Map<string, { codeVerifier: string; returnTo?: string; expiresAt: number }>();
 const PENDING_LOGIN_TTL_MS = 10 * 60 * 1000;
+
+// The admin console lives on its own subdomain; logins that start there get
+// sent back there after the OIDC round trip instead of the user dashboard.
+const ADMIN_HOST = "admin.puff-base.com";
+
+function returnToFor(host?: string): string | undefined {
+  return host === ADMIN_HOST ? `https://${ADMIN_HOST}/` : undefined;
+}
 
 function prunePendingLogins() {
   const now = Date.now();
@@ -112,8 +124,9 @@ export function registerAuthRoutes(app: Express) {
       const codeVerifier = client.randomPKCECodeVerifier();
       const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
       const state = client.randomState();
-      _req.session.oidc = { state, codeVerifier };
-      pendingLogins.set(state, { codeVerifier, expiresAt: Date.now() + PENDING_LOGIN_TTL_MS });
+      const returnTo = returnToFor(_req.hostname);
+      _req.session.oidc = { state, codeVerifier, returnTo };
+      pendingLogins.set(state, { codeVerifier, returnTo, expiresAt: Date.now() + PENDING_LOGIN_TTL_MS });
 
       const url = client.buildAuthorizationUrl(config, {
         redirect_uri: `${appUrl()}/api/auth/callback`,
@@ -137,7 +150,7 @@ export function registerAuthRoutes(app: Express) {
         const state = typeof req.query.state === "string" ? req.query.state : "";
         const entry = state ? pendingLogins.get(state) : undefined;
         if (entry && entry.expiresAt > Date.now()) {
-          pending = { state, codeVerifier: entry.codeVerifier };
+          pending = { state, codeVerifier: entry.codeVerifier, returnTo: entry.returnTo };
         }
         if (!pending) {
           console.log(
@@ -166,9 +179,9 @@ export function registerAuthRoutes(app: Express) {
         name: typeof claims.name === "string" ? claims.name : undefined,
       };
       trackActivity(claims.sub, "auth", `${claims.name || claims.email || claims.sub} signed in`, "success");
-      // Post-login lands on the user dashboard; admins can still browse to
-      // /console directly (the console SPA lives there).
-      res.redirect(process.env.USER_DASH_URL ?? "https://dash.puff-base.com");
+      // Post-login lands on the user dashboard - or back on the admin
+      // console host when that's where the login started.
+      res.redirect(pending.returnTo ?? process.env.USER_DASH_URL ?? "https://dash.puff-base.com");
     } catch (err) {
       next(err);
     }

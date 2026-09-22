@@ -3,6 +3,11 @@ import type { Express } from 'express';
 import fs from "node:fs";
 import path from "node:path";
 
+// The admin console lives on its own host: admin.puff-base.com serves the
+// console SPA at `/` instead of the landing page, and /console on the
+// marketing host canonicalizes there.
+const ADMIN_HOST = "admin.puff-base.com";
+
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
   if (!fs.existsSync(distPath)) {
@@ -20,9 +25,22 @@ export function serveStatic(app: Express) {
     next();
   };
 
+  // /console on the marketing host redirects to the admin subdomain; the
+  // redirect runs before the static mount below so it wins there while
+  // admin.puff-base.com itself keeps serving the SPA at /console too.
+  app.use((req, res, next) => {
+    if (req.hostname !== ADMIN_HOST && /^\/console\/?$/i.test(req.path)) {
+      return res.redirect(301, `https://${ADMIN_HOST}/`);
+    }
+    next();
+  });
+
   // The public landing page owns `/`; the console SPA lives at /console
   // (hash-routed, so /console#/deployments etc. all resolve through it).
-  app.get("/", noCache, (_req, res) => {
+  app.get("/", noCache, (req, res) => {
+    if (req.hostname === ADMIN_HOST) {
+      return res.sendFile(path.resolve(distPath, "index.html"));
+    }
     res.sendFile(path.resolve(distPath, "landing.html"));
   });
 
