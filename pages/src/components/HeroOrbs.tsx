@@ -16,6 +16,12 @@ interface Orb {
   r: number;
   rot: number;
   spin: number;
+  /** knock-back offset (px) + its velocity — the purple "gives" on impact,
+   *  then a spring pulls it home */
+  ox: number;
+  oy: number;
+  ovx: number;
+  ovy: number;
 }
 
 type V3 = [number, number, number];
@@ -94,11 +100,10 @@ export function HeroOrbs() {
     ro.observe(canvas);
 
     // positions/velocities in fractions of canvas size; r as fraction of height
-    // canvas is a small 130x150 box in the hero corner — radii must stay small
-    // or the green has no room to actually travel (it was pinned before)
-    const green: Orb = { x: 0.3, y: 0.35, vx: 0.006, vy: 0.0045, r: 0.14, rot: 0, spin: 0.016 };
-    // solid purple polyhedron — anchored, rotates only
-    const purple: Orb = { x: 0.72, y: 0.6, vx: 0, vy: 0, r: 0.2, rot: 1.1, spin: -0.02 };
+    // canvas spans the whole hero card — green roams it freely, purple is
+    // anchored on a spring: it gives when hit, then eases back home
+    const green: Orb = { x: 0.3, y: 0.35, vx: 0.004, vy: 0.0032, r: 0.17, rot: 0, spin: 0.016, ox: 0, oy: 0, ovx: 0, ovy: 0 };
+    const purple: Orb = { x: 0.8, y: 0.55, vx: 0, vy: 0, r: 0.24, rot: 1.1, spin: -0.02, ox: 0, oy: 0, ovx: 0, ovy: 0 };
 
     // rotate unit-sphere verts, tilt, project orthographic → screen points
     const project = (o: Orb, w: number, h: number) => {
@@ -114,7 +119,7 @@ export function HeroOrbs() {
         const z = -vx * sinY + vz * cosY;
         const y2 = vy * cosX - z * sinX;
         const z2 = vy * sinX + z * cosX;
-        return { x: cx + x * r, y: cy + y2 * r, z: z2, nx: x, ny: y2, nz: z2 };
+        return { x: cx + o.ox + x * r, y: cy + o.oy + y2 * r, z: z2, nx: x, ny: y2, nz: z2 };
       });
     };
 
@@ -178,6 +183,15 @@ export function HeroOrbs() {
       green.rot += green.spin;
       purple.rot += purple.spin;
 
+      // purple's spring: it gives when knocked, eases back to its anchor
+      const STIFF = 0.16, DAMP = 0.86;
+      purple.ovx += -STIFF * purple.ox;
+      purple.ovy += -STIFF * purple.oy;
+      purple.ovx *= DAMP;
+      purple.ovy *= DAMP;
+      purple.ox += purple.ovx;
+      purple.oy += purple.ovy;
+
       // wall bounce with a small inset so the ball never clips the canvas edge
       const inset = 1.05;
       const rx = (green.r * inset * h) / w;
@@ -187,9 +201,10 @@ export function HeroOrbs() {
       green.x = Math.min(1 - rx, Math.max(rx, green.x));
       green.y = Math.min(1 - ry, Math.max(ry, green.y));
 
-      // green bounces off the anchored purple polyhedron (infinite mass)
-      const dx = (purple.x - green.x) * w;
-      const dy = (purple.y - green.y) * h;
+      // green bounces off the purple polyhedron — which gives a little on
+      // impact (impulse into its spring) instead of staying rigid
+      const dx = (purple.x * w + purple.ox) - green.x * w;
+      const dy = (purple.y * h + purple.oy) - green.y * h;
       const dist = Math.hypot(dx, dy);
       const min = (purple.r + green.r * inset) * h;
       if (dist > 0 && dist < min) {
@@ -201,6 +216,9 @@ export function HeroOrbs() {
         if (vn > 0) {
           green.vx -= (2 * vn * nx) / w;
           green.vy -= (2 * vn * ny) / h;
+          // knock the purple along the hit direction — spring pulls it home
+          purple.ovx += nx * vn * 0.55;
+          purple.ovy += ny * vn * 0.55;
         }
       }
 
