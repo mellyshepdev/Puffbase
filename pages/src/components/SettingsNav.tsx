@@ -9,6 +9,7 @@ import {
   Key,
   Shield,
   Sparkles,
+  SlidersHorizontal,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -19,6 +20,7 @@ const ITEMS = [
   { href: "/plan", label: "Membership", icon: Sparkles },
   { href: "/settings/tokens", label: "Developer tokens", icon: Key },
   { href: "/settings/security", label: "Security", icon: Shield },
+  { href: "/settings/advanced", label: "Advanced", icon: SlidersHorizontal },
 ];
 
 export function SettingsNav() {
