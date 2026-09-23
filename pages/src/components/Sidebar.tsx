@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useRef } from "react";
+import { SettingsNav } from "@/components/SettingsNav";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -137,8 +138,17 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — on settings pages the workspace-settings menu sits on
+          top of the regular nav inside this same panel, pushing it down */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+        {(pathname.startsWith("/settings") || pathname === "/plan") && (
+          <div className="mb-4 pb-4 border-b border-[var(--color-dark-border)]">
+            <p className="px-3 mb-3 text-[10px] font-semibold text-slime-400/60 uppercase tracking-widest">
+              Workspace settings
+            </p>
+            <SettingsNav />
+          </div>
+        )}
         <p className="px-3 mb-3 text-[10px] font-semibold text-slime-400/60 uppercase tracking-widest">
           Navigation
         </p>
