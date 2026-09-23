@@ -430,17 +430,19 @@ code, pre, .font-mono {
 /* ===== green code button + clone dropdown ===== */
 .code-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: #b6f34c; color: #241132; border: none; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(182,243,76,.25); transition: all .2s; }
 .code-btn:hover { box-shadow: 0 0 18px rgba(182,243,76,.5); transform: translateY(-1px); }
-.code-dropdown { position: absolute; right: 0; top: calc(100% + 8px); z-index: 40; width: 340px; background: #190f28; border: 1px solid #7e22ce; border-radius: 12px; padding: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.6), 0 0 16px rgba(168,85,247,.3); }
+.code-dropdown { position: absolute; right: 0; top: calc(100% + 8px); z-index: 40; width: 372px; background: #190f28; border: 1px solid #7e22ce; border-radius: 12px; padding: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.6), 0 0 16px rgba(168,85,247,.3); }
 .code-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .code-tabs button { padding: 5px 14px; border-radius: 7px; border: 1px solid #7e22ce; background: transparent; color: #c3a3ff; font-size: 10px; font-weight: 700; cursor: pointer; }
 .code-tabs button.active { background: #b6f34c; color: #241132; border-color: #b6f34c; }
 .code-url-row { display: flex; align-items: center; gap: 8px; background: #0b0712; border: 1px solid #7e22ce; border-radius: 8px; padding: 9px 11px; }
-.code-url-row code { flex: 1; color: #e9d5ff; font-size: 11px; overflow-x: auto; white-space: nowrap; }
+.code-url-row code { flex: 1; color: #e9d5ff; font-size: 11px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; }
+.code-url-row code::-webkit-scrollbar { display: none; }
 .code-url-row button { background: none; border: none; color: #9d8ec2; cursor: pointer; padding: 2px; flex-shrink: 0; }
 .code-url-row button:hover { color: #b6f34c; }
 .code-cli { display: flex; align-items: center; gap: 7px; margin-top: 9px; color: #7a6b9d; font-size: 10px; font-family: ui-monospace, monospace; }
 .code-cli svg { color: #b6f34c; flex-shrink: 0; }
-.code-cli span { overflow-x: auto; white-space: nowrap; }
+.code-cli span { overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; }
+.code-cli span::-webkit-scrollbar { display: none; }
 
 /* ===== settings / groups / integrations ===== */
 .acct-type { display: flex; align-items: center; gap: 12px; padding: 16px; background: #190f28; border: 1px solid rgba(126,34,206,.35); border-radius: 12px; cursor: pointer; transition: all .2s; color: inherit; font: inherit; width: 100%; text-align: left; }
