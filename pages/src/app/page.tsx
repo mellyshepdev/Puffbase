@@ -238,8 +238,8 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => (
-          <Link key={card.label} href={card.href} className="slime-card p-4 group cursor-pointer">
+        {statCards.map((card, i) => (
+          <Link key={card.label} href={card.href} className={`slime-card p-4 group cursor-pointer${i === 0 ? " no-drips" : ""}`}>
             <div className="flex items-center justify-between mb-3">
               <card.icon className="w-5 h-5 text-slime-400" />
               <ArrowRight className="w-3.5 h-3.5 text-[#3a2d5a] group-hover:text-slime-400 transition-colors" />

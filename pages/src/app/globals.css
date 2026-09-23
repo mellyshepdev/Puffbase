@@ -136,6 +136,10 @@ code, pre, .font-mono {
   pointer-events: none;
 }
 
+.slime-card.no-drips::after {
+  display: none;
+}
+
 .slime-card::before {
   content: '';
   position: absolute;
