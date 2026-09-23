@@ -159,6 +159,8 @@ code, pre, .font-mono {
   background:
     url("/transooze.webp") no-repeat left top / 50% auto,
     url("/ooze-drip-top.webp") no-repeat right top / 50% auto;
+  transform: scale(1.22);
+  transform-origin: center top;
   opacity: .75;
 }
 

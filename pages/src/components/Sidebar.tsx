@@ -103,7 +103,7 @@ export function Sidebar() {
             title="Menu"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/puffbase-emblem.png" alt="" className="h-9 w-auto shrink-0 object-contain drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
+            <img src="/puffbase-emblem.png" alt="" className="h-12 w-auto shrink-0 object-contain drop-shadow-[0_0_12px_hsl(280_90%_60%/0.55)]" />
             <ChevronDown className={clsx("w-3 h-3 text-[#5a4d7a] transition-transform", logoMenuOpen && "rotate-180")} />
           </button>
           <a href="https://puffbase.prime-quality.online" className="min-w-0">

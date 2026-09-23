@@ -42,7 +42,7 @@ export function HeroOrbs() {
     // positions/velocities in fractions of canvas size; r as fraction of height
     const green: Orb = { x: 0.3, y: 0.4, vx: 0.005, vy: 0.0038, r: 0.27, color: "#b1f150", rot: 0, spin: 0.016 };
     // solid purple — fixed anchor, rotates only
-    const purple: Orb = { x: 0.74, y: 0.58, vx: 0, vy: 0, r: 0.3, color: "#6d36e8", rot: 1.1, spin: -0.011 };
+    const purple: Orb = { x: 0.74, y: 0.58, vx: 0, vy: 0, r: 0.36, color: "#6d36e8", rot: 1.1, spin: -0.02 };
 
     const facetLines = (o: Orb, cx: number, cy: number, r: number) => {
       // meridians — vertical great-circles at many rotating angles
@@ -91,9 +91,9 @@ export function HeroOrbs() {
       const cy = o.y * h;
       const r = o.r * h;
       const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.08, cx, cy, r);
-      grad.addColorStop(0, "#5a2fc0");
-      grad.addColorStop(0.55, "#3a1a86");
-      grad.addColorStop(1, "#1a0b3f");
+      grad.addColorStop(0, "#7a48e8");
+      grad.addColorStop(0.5, "#3c1489");
+      grad.addColorStop(1, "#100530");
       ctx.fillStyle = grad;
       ctx.globalAlpha = 1;
       ctx.beginPath();
@@ -108,9 +108,11 @@ export function HeroOrbs() {
       ctx.clip();
       facetLines(o, cx, cy, r);
       ctx.restore();
+      // bright rim so the silhouette reads against the purple hero
+      ctx.strokeStyle = "rgba(168,120,255,.85)";
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.lineWidth = Math.max(1, r * 0.03);
+      ctx.lineWidth = Math.max(1, r * 0.035);
       ctx.stroke();
       ctx.globalAlpha = 1;
     };
