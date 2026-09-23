@@ -100,6 +100,16 @@ function timeAgo(dateStr: string) {
   return `${days}d ago`;
 }
 
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h === 0) return "Midnight slime session";
+  if (h < 5) return "Late night flow";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 21) return "Good evening";
+  return "Good night";
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [repos, setRepos] = useState<Repo[]>([]);
@@ -228,7 +238,7 @@ export default function DashboardPage() {
         <div>
           <div className="eyebrow"><span className="pulse-dot" /> ALL SYSTEMS OPERATIONAL</div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3 mt-1.5">
-            <span className="glow-text">Good morning, {accountName || "there"}</span>
+            <span className="glow-text">{greeting()}, {accountName || "there"}</span>
             <span className="wave">✦</span>
           </h1>
           <p className="text-sm text-[#7a6b9d] mt-1">Here&apos;s what&apos;s moving across your workspace today.</p>
