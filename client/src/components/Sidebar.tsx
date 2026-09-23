@@ -41,9 +41,9 @@ import oozeRail from "@/assets/ooze-drip-rail.webp";
 
 export const NAV_ITEMS = [
   { title: "Overview", url: "/", icon: LayoutDashboard },
-  // The user dashboard is the customer app (app.prime-quality.online), not a
+  // The user dashboard is the customer app (dash.puff-base.com), not a
   // console route - external flag renders a plain anchor, not a hash Link.
-  { title: "Dashboard", url: "/console", icon: CircleUser, external: true },
+  { title: "Dashboard", url: "https://dash.puff-base.com/", icon: CircleUser, external: true },
   { title: "Deployments", url: "/deployments", icon: Rocket },
   { title: "Services", url: "/services", icon: Boxes },
   { title: "Repositories", url: "/repositories", icon: GitBranch, adminOnly: true },
@@ -222,7 +222,7 @@ function UserCard() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() =>
-                (window.location.href = "/console")
+                (window.location.href = "https://dash.puff-base.com/")
               }
             >
               User dashboard

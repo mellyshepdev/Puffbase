@@ -171,7 +171,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() =>
-                (window.location.href = "/console")
+                (window.location.href = "https://dash.puff-base.com/")
               }
               data-testid="menu-item-dashboard"
             >
