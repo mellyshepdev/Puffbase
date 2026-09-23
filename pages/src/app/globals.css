@@ -162,15 +162,15 @@ code, pre, .font-mono {
   opacity: .75;
 }
 
-/* stat card 3: a different slime sheet (ooze-drip-alt), smaller still */
+/* stat card 3: box 1's transooze sheet, mirrored, at the same full size */
 .slime-card.drip-sm::after {
   top: 0;
   left: 0;
-  right: auto;
-  width: 38%;
+  right: 0;
   height: auto;
-  aspect-ratio: 1536 / 671;
-  background: url("/ooze-drip-alt.webp") no-repeat left top / 100% 100%;
+  aspect-ratio: 1536 / 1024;
+  background: url("/transooze.webp") no-repeat center top / 100% 100%;
+  transform: scaleX(-1);
   opacity: .75;
 }
 
