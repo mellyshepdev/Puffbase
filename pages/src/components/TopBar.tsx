@@ -181,7 +181,7 @@ export function TopBar() {
                 <img
                   src="/puffbase-icon.png"
                   alt="Puffbase"
-                  className="w-9 h-9 rounded-lg object-cover shrink-0"
+                  className="w-9 h-9 rounded-lg object-contain shrink-0"
                   style={{ boxShadow: "0 0 14px rgba(139,61,255,.4)" }}
                 />
                 <span className="min-w-0">
