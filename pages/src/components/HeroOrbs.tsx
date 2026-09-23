@@ -94,9 +94,11 @@ export function HeroOrbs() {
     ro.observe(canvas);
 
     // positions/velocities in fractions of canvas size; r as fraction of height
-    const green: Orb = { x: 0.28, y: 0.42, vx: 0.005, vy: 0.0038, r: 0.24, rot: 0, spin: 0.016 };
+    // canvas is a small 130x150 box in the hero corner — radii must stay small
+    // or the green has no room to actually travel (it was pinned before)
+    const green: Orb = { x: 0.3, y: 0.35, vx: 0.006, vy: 0.0045, r: 0.14, rot: 0, spin: 0.016 };
     // solid purple polyhedron — anchored, rotates only
-    const purple: Orb = { x: 0.76, y: 0.55, vx: 0, vy: 0, r: 0.34, rot: 1.1, spin: -0.02 };
+    const purple: Orb = { x: 0.72, y: 0.6, vx: 0, vy: 0, r: 0.2, rot: 1.1, spin: -0.02 };
 
     // rotate unit-sphere verts, tilt, project orthographic → screen points
     const project = (o: Orb, w: number, h: number) => {
@@ -144,13 +146,6 @@ export function HeroOrbs() {
         ctx.lineWidth = 1;
         ctx.stroke();
       }
-      // bright rim so the silhouette reads against the purple hero
-      const r = o.r * h;
-      ctx.strokeStyle = "rgba(168,120,255,.8)";
-      ctx.lineWidth = Math.max(1.5, r * 0.03);
-      ctx.beginPath();
-      ctx.arc(o.x * w, o.y * h, r, 0, Math.PI * 2);
-      ctx.stroke();
     };
 
     // lime wireframe — every edge, like the landing's wireframe ball
