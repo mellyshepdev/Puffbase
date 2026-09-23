@@ -2,6 +2,7 @@
 
 import { Search, Bell, ChevronDown, Plus, GitBranch, GitMerge, LogOut, Check, Building2, User as UserIcon, Settings as SettingsIcon, Star, ListTodo, Smile, Pencil, FolderGit2, AlertCircle, GitPullRequest, Rocket, Users, FileText, Shield } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { avatarSrc } from "@/lib/avatar";
 import NewAccountDialog from "@/components/NewAccountDialog";
@@ -427,8 +428,10 @@ export function TopBar() {
         <NewAccountDialog kind="business" onClose={() => setNewAcctOpen(false)} onCreated={onAccountCreated} />
       )}
 
-      {/* Edit status modal */}
-      {statusOpen && (
+      {/* Edit status modal — portaled to body: the header's backdrop-blur
+          creates a containing block, so a plain `fixed` here would pin the
+          modal to the 64px header instead of the viewport */}
+      {statusOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setStatusOpen(false)}>
           <div className="w-80 rounded-xl border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-bold text-white mb-4">Set status</h3>
@@ -457,7 +460,8 @@ export function TopBar() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </header>
   );
