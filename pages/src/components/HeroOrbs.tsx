@@ -2,21 +2,75 @@
 
 import { useEffect, useRef } from "react";
 
-// Miniature version of the landing page's hero spheres: the lime wireframe
-// ball (#b1f150) bounces freely, while the purple one is a solid darker
-// faceted shape — like the big icosahedron pinned at the top of the landing
-// page (MeshPhysicalMaterial #6d36e8 flat-shaded + black facet outlines) —
-// that stays put and only rotates.
+// The landing page's hero spheres, in miniature: a solid low-poly icosahedron
+// (flat-shaded faces + dark edges, NOT see-through) that stays put and rotates,
+// plus the lime wireframe ball bouncing freely off the edges and off the
+// purple solid. Real 3D geometry projected onto 2D canvas — same icosahedron
+// the landing builds with THREE.IcosahedronGeometry.
+
 interface Orb {
   x: number;
   y: number;
   vx: number;
   vy: number;
   r: number;
-  color: string;
   rot: number;
   spin: number;
 }
+
+type V3 = [number, number, number];
+
+const norm = (v: V3): V3 => {
+  const l = Math.hypot(v[0], v[1], v[2]);
+  return [v[0] / l, v[1] / l, v[2] / l];
+};
+
+// base icosahedron → subdivided `detail` times, midpoints pushed to the sphere
+function icosahedron(detail: number): { verts: V3[]; faces: [number, number, number][] } {
+  const t = (1 + Math.sqrt(5)) / 2;
+  let verts: V3[] = (
+    [
+      [-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0],
+      [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t],
+      [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1],
+    ] as V3[]
+  ).map(norm);
+  let faces: [number, number, number][] = [
+    [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+    [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+    [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+    [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
+  ];
+  for (let d = 0; d < detail; d++) {
+    const mid = new Map<string, number>();
+    const getMid = (a: number, b: number) => {
+      const key = a < b ? `${a}_${b}` : `${b}_${a}`;
+      let m = mid.get(key);
+      if (m === undefined) {
+        m = verts.length;
+        verts.push(norm([
+          (verts[a][0] + verts[b][0]) / 2,
+          (verts[a][1] + verts[b][1]) / 2,
+          (verts[a][2] + verts[b][2]) / 2,
+        ]));
+        mid.set(key, m);
+      }
+      return m;
+    };
+    const next: [number, number, number][] = [];
+    for (const [a, b, c] of faces) {
+      const ab = getMid(a, b);
+      const bc = getMid(b, c);
+      const ca = getMid(c, a);
+      next.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]);
+    }
+    faces = next;
+  }
+  return { verts, faces };
+}
+
+const GEO = icosahedron(2); // 320 faces — reads as low-poly facets, like the landing's
+const TILT = 0.42; // fixed X tilt so the rotation shows poles + facets, not a flat spin
 
 export function HeroOrbs() {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -40,80 +94,81 @@ export function HeroOrbs() {
     ro.observe(canvas);
 
     // positions/velocities in fractions of canvas size; r as fraction of height
-    const green: Orb = { x: 0.3, y: 0.4, vx: 0.005, vy: 0.0038, r: 0.27, color: "#b1f150", rot: 0, spin: 0.016 };
-    // solid purple — fixed anchor, rotates only
-    const purple: Orb = { x: 0.74, y: 0.58, vx: 0, vy: 0, r: 0.36, color: "#6d36e8", rot: 1.1, spin: -0.02 };
+    const green: Orb = { x: 0.28, y: 0.42, vx: 0.005, vy: 0.0038, r: 0.24, rot: 0, spin: 0.016 };
+    // solid purple polyhedron — anchored, rotates only
+    const purple: Orb = { x: 0.76, y: 0.55, vx: 0, vy: 0, r: 0.34, rot: 1.1, spin: -0.02 };
 
-    const facetLines = (o: Orb, cx: number, cy: number, r: number) => {
-      // meridians — vertical great-circles at many rotating angles
-      for (let i = 0; i < 8; i++) {
-        const a = o.rot + (i * Math.PI) / 8;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, r * Math.abs(Math.cos(a)), r, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      // parallels — horizontal rings at several latitudes, tilted by the spin
-      const tilt = 0.28 + Math.sin(o.rot * 0.6) * 0.14;
-      for (let j = -3; j <= 3; j++) {
-        if (j === 0) continue;
-        const lat = (j * Math.PI) / 8;
-        const py = cy - r * Math.sin(lat) * Math.cos(tilt);
-        const pr = r * Math.cos(lat);
-        ctx.beginPath();
-        ctx.ellipse(cx, py, pr, pr * Math.abs(Math.sin(tilt)) + r * 0.04, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      // equator, slightly stronger
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, r, r * Math.abs(Math.sin(tilt)) + r * 0.05, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    };
-
-    const drawWireOrb = (o: Orb, w: number, h: number) => {
+    // rotate unit-sphere verts, tilt, project orthographic → screen points
+    const project = (o: Orb, w: number, h: number) => {
       const cx = o.x * w;
       const cy = o.y * h;
       const r = o.r * h;
-      ctx.strokeStyle = o.color;
-      ctx.lineWidth = Math.max(1, r * 0.045);
-      ctx.globalAlpha = 0.9;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.lineWidth = Math.max(1, r * 0.028);
-      facetLines(o, cx, cy, r);
-      ctx.globalAlpha = 1;
+      const cosY = Math.cos(o.rot);
+      const sinY = Math.sin(o.rot);
+      const cosX = Math.cos(TILT);
+      const sinX = Math.sin(TILT);
+      return GEO.verts.map(([vx, vy, vz]) => {
+        const x = vx * cosY + vz * sinY;
+        const z = -vx * sinY + vz * cosY;
+        const y2 = vy * cosX - z * sinX;
+        const z2 = vy * sinX + z * cosX;
+        return { x: cx + x * r, y: cy + y2 * r, z: z2, nx: x, ny: y2, nz: z2 };
+      });
     };
 
-    // landing page's top sphere: solid flat-shaded purple, darker toward the
-    // rim, with black facet outlines pinned to the surface
-    const drawSolidOrb = (o: Orb, w: number, h: number) => {
-      const cx = o.x * w;
-      const cy = o.y * h;
-      const r = o.r * h;
-      const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.08, cx, cy, r);
-      grad.addColorStop(0, "#7a48e8");
-      grad.addColorStop(0.5, "#3c1489");
-      grad.addColorStop(1, "#100530");
-      ctx.fillStyle = grad;
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
-      // black facet outlines, like EdgesGeometry on the landing sphere
-      ctx.strokeStyle = "rgba(6,2,18,.8)";
-      ctx.lineWidth = Math.max(1, r * 0.02);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.clip();
-      facetLines(o, cx, cy, r);
-      ctx.restore();
+    // solid low-poly polyhedron: fill each front face with flat shading,
+    // dark facet edges — matches the landing's MeshPhysicalMaterial + EdgesGeometry
+    const drawSolid = (o: Orb, w: number, h: number) => {
+      const pts = project(o, w, h);
+      const light = norm([-0.45, -0.6, 0.75]);
+      const order = GEO.faces
+        .map((f, i) => ({ i, z: (pts[f[0]].z + pts[f[1]].z + pts[f[2]].z) / 3 }))
+        .sort((a, b) => a.z - b.z);
+      for (const { i } of order) {
+        const [a, b, c] = GEO.faces[i];
+        const pa = pts[a], pb = pts[b], pc = pts[c];
+        // face normal from rotated unit verts
+        const ux = pb.nx - pa.nx, uy = pb.ny - pa.ny, uz = pb.nz - pa.nz;
+        const wx = pc.nx - pa.nx, wy = pc.ny - pa.ny, wz = pc.nz - pa.nz;
+        const n = norm([uy * wz - uz * wy, uz * wx - ux * wz, ux * wy - uy * wx]);
+        if (n[2] <= 0) continue; // back faces hidden — opaque sphere
+        const lum = 0.42 + 0.58 * Math.max(0, n[0] * light[0] + n[1] * light[1] + n[2] * light[2]);
+        ctx.fillStyle = `rgb(${Math.round(58 * lum)}, ${Math.round(18 * lum)}, ${Math.round(150 * lum)})`;
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.lineTo(pc.x, pc.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(6,2,18,.75)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
       // bright rim so the silhouette reads against the purple hero
-      ctx.strokeStyle = "rgba(168,120,255,.85)";
+      const r = o.r * h;
+      ctx.strokeStyle = "rgba(168,120,255,.8)";
+      ctx.lineWidth = Math.max(1.5, r * 0.03);
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.lineWidth = Math.max(1, r * 0.035);
+      ctx.arc(o.x * w, o.y * h, r, 0, Math.PI * 2);
       ctx.stroke();
+    };
+
+    // lime wireframe — every edge, like the landing's wireframe ball
+    const drawWire = (o: Orb, w: number, h: number) => {
+      const pts = project(o, w, h);
+      const r = o.r * h;
+      ctx.strokeStyle = "#b1f150";
+      ctx.lineWidth = Math.max(1, r * 0.02);
+      for (const [a, b, c] of GEO.faces) {
+        const pa = pts[a], pb = pts[b], pc = pts[c];
+        ctx.globalAlpha = (pa.z + pb.z + pc.z) / 3 > 0 ? 0.9 : 0.32;
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.lineTo(pc.x, pc.y);
+        ctx.closePath();
+        ctx.stroke();
+      }
       ctx.globalAlpha = 1;
     };
 
@@ -128,18 +183,20 @@ export function HeroOrbs() {
       green.rot += green.spin;
       purple.rot += purple.spin;
 
-      const rx = (green.r * h) / w;
+      // wall bounce with a small inset so the ball never clips the canvas edge
+      const inset = 1.05;
+      const rx = (green.r * inset * h) / w;
+      const ry = green.r * inset;
       if (green.x - rx < 0 || green.x + rx > 1) green.vx *= -1;
-      if (green.y - green.r < 0 || green.y + green.r > 1) green.vy *= -1;
+      if (green.y - ry < 0 || green.y + ry > 1) green.vy *= -1;
       green.x = Math.min(1 - rx, Math.max(rx, green.x));
-      green.y = Math.min(1 - green.r, Math.max(green.r, green.y));
+      green.y = Math.min(1 - ry, Math.max(ry, green.y));
 
-      // green bounces off the anchored purple sphere (infinite mass — only
-      // the green ball's velocity changes)
+      // green bounces off the anchored purple polyhedron (infinite mass)
       const dx = (purple.x - green.x) * w;
       const dy = (purple.y - green.y) * h;
       const dist = Math.hypot(dx, dy);
-      const min = purple.r * h + green.r * h;
+      const min = (purple.r + green.r * inset) * h;
       if (dist > 0 && dist < min) {
         const nx = dx / dist;
         const ny = dy / dist;
@@ -152,8 +209,8 @@ export function HeroOrbs() {
         }
       }
 
-      drawSolidOrb(purple, w, h);
-      drawWireOrb(green, w, h);
+      drawSolid(purple, w, h);
+      drawWire(green, w, h);
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
