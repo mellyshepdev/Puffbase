@@ -312,7 +312,7 @@ export function TopBar() {
               {/* user header w/ status */}
               <div className="px-3 py-3 border-b border-[var(--color-dark-border)]">
                 <p className="text-sm font-medium text-white truncate">
-                  {user?.name ?? label}
+                  {active?.name ?? label}
                 </p>
                 <p className="text-[10px] text-[#5a4d7a] truncate">
                   {active?.statusEmoji || active?.statusText
