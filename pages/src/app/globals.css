@@ -148,6 +148,26 @@ code, pre, .font-mono {
   opacity: .75;
 }
 
+/* stat cards 2 & 3: same full-length goo sheet, condensed — same ratio, smaller */
+.slime-card.drip-med::after,
+.slime-card.drip-sm::after {
+  top: 0;
+  left: 0;
+  right: auto;
+  height: auto;
+  aspect-ratio: 1536 / 1024;
+  background: url("/transooze.webp") no-repeat left top / 100% 100%;
+  opacity: .75;
+}
+
+.slime-card.drip-med::after {
+  width: 60%;
+}
+
+.slime-card.drip-sm::after {
+  width: 35%;
+}
+
 .slime-card::before {
   content: '';
   position: absolute;
