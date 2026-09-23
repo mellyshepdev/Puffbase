@@ -10,7 +10,7 @@ import { verifyPat, PAT_PREFIX } from "@/lib/pat";
 
 export type Account = typeof accounts.$inferSelect;
 
-export const SHEEP_AVATARS = Array.from({ length: 8 }, (_, i) => `sheep-${i + 1}`);
+export const SHEEP_AVATARS = Array.from({ length: 12 }, (_, i) => `sheep-${i + 1}`);
 
 /** Allowed avatar values: a sheep id, an https URL (synced account picture),
  *  or a data:image URL from an upload. Anything else is rejected. */

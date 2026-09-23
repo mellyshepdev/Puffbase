@@ -2,11 +2,15 @@
 // id (bundled SVG), an https URL (e.g. synced from the BlackSheep account),
 // or a data:image URL from an uploaded picture.
 
+// sheep-9..12 are PNG art (the custom silhouette set); 1..8 are bundled SVGs.
+const PNG_SHEEP = new Set(["sheep-9", "sheep-10", "sheep-11", "sheep-12"]);
+
 export function avatarSrc(avatar?: string | null): string {
   if (avatar && (avatar.startsWith("data:") || avatar.startsWith("https://"))) {
     return avatar;
   }
-  return `/avatars/${avatar || "sheep-1"}.svg`;
+  const id = avatar || "sheep-1";
+  return `/avatars/${id}.${PNG_SHEEP.has(id) ? "png" : "svg"}`;
 }
 
 export function isCustomAvatar(avatar?: string | null): boolean {

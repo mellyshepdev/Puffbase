@@ -13,7 +13,7 @@ interface Account {
   businessUrl?: string | null;
 }
 
-const SHEEP = Array.from({ length: 8 }, (_, i) => `sheep-${i + 1}`);
+const SHEEP = Array.from({ length: 12 }, (_, i) => `sheep-${i + 1}`);
 
 export default function ProfileSettings() {
   const [active, setActive] = useState<Account | null>(null);
@@ -165,7 +165,7 @@ export default function ProfileSettings() {
           >
             <span className="w-10 h-10 rounded-full bg-gradient-to-br from-slime-400 to-goo-700 flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/avatars/${s}.svg`} alt={s} className="w-8 h-8" />
+              <img src={avatarSrc(s)} alt={s} className="w-8 h-8" />
             </span>
             {avatar === s && (
               <Check className="absolute top-1 right-1 w-3.5 h-3.5 text-[#b6f34c]" />
