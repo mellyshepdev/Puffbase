@@ -54,16 +54,29 @@ export function HeroOrbs() {
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
-      // rotating latitude rings
-      for (let i = 0; i < 3; i++) {
-        const a = o.rot + (i * Math.PI) / 3;
+      ctx.lineWidth = Math.max(1, r * 0.028);
+      // meridians — vertical great-circles at many rotating angles, like the
+      // landing page's icosahedron facets
+      for (let i = 0; i < 8; i++) {
+        const a = o.rot + (i * Math.PI) / 8;
         ctx.beginPath();
         ctx.ellipse(cx, cy, r * Math.abs(Math.cos(a)), r, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-      // one horizontal ring
+      // parallels — horizontal rings at several latitudes, tilted by the spin
+      const tilt = 0.28 + Math.sin(o.rot * 0.6) * 0.14;
+      for (let j = -3; j <= 3; j++) {
+        if (j === 0) continue;
+        const lat = (j * Math.PI) / 8;
+        const py = cy - r * Math.sin(lat) * Math.cos(tilt);
+        const pr = r * Math.cos(lat);
+        ctx.beginPath();
+        ctx.ellipse(cx, py, pr, pr * Math.abs(Math.sin(tilt)) + r * 0.04, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // equator, slightly stronger
       ctx.beginPath();
-      ctx.ellipse(cx, cy, r, r * Math.abs(Math.sin(o.rot)) * 0.55, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, r, r * Math.abs(Math.sin(tilt)) + r * 0.05, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
     };

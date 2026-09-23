@@ -136,16 +136,16 @@ code, pre, .font-mono {
   pointer-events: none;
 }
 
-/* first stat card: one drip cluster at natural proportions off the top-left
- * corner — the shared ::after stretches the art flat across the card */
+/* first stat card: the login-card goo sheet at natural proportions, hanging
+ * the full length over the card — the shared ::after stretches its art flat */
 .slime-card.drip-natural::after {
   top: 0;
   left: 0;
-  right: auto;
-  width: 110px;
-  height: 92px;
-  background: url("/ooze-drips-right.webp") no-repeat left top / contain;
-  opacity: .85;
+  right: 0;
+  height: auto;
+  aspect-ratio: 1536 / 1024;
+  background: url("/transooze.webp") no-repeat center top / 100% 100%;
+  opacity: .75;
 }
 
 .slime-card::before {
