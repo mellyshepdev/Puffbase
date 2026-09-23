@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 
 // POST /api/commit-message { path, before, after } - drafts a commit message
 // for an in-editor save. Pro-gated: free accounts write their own.
@@ -10,6 +11,9 @@ import { requestAccount } from "@/lib/accounts";
 export async function POST(req: NextRequest) {
   const ctx = await requestAccount(req);
   if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "docs:write")) {
+    return NextResponse.json({ error: "pufftoken lacks the docs:write scope" }, { status: 403 });
+  }
   if (!ctx.account.plan || ctx.account.plan === "free") {
     return NextResponse.json({ error: "Auto commit messages are a Pro feature" }, { status: 403 });
   }

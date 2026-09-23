@@ -1,33 +1,33 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verify, SESSION_COOKIE, SessionUser } from "@/lib/session";
+import { NextRequest, NextResponse } from "next/server";
+import { requestAccount } from "@/lib/accounts";
+import { hasScope } from "@/lib/pat";
 import { docTree, deleteDocument } from "@/lib/gitstore";
-
-async function owner(): Promise<string | null> {
-  const store = await cookies();
-  const user = await verify<SessionUser>(store.get(SESSION_COOKIE)?.value);
-  return user?.sub ?? null;
-}
 
 type Params = { params: Promise<{ name: string }> };
 
-// GET /api/editor/[name] - file tree of a document
-export async function GET(_req: Request, { params }: Params) {
-  const sub = await owner();
-  if (!sub) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+// GET /api/editor/[name] - file tree of a document. Pufftokens need docs:read.
+export async function GET(req: NextRequest, { params }: Params) {
+  const ctx = await requestAccount(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "docs:read")) {
+    return NextResponse.json({ error: "pufftoken lacks the docs:read scope" }, { status: 403 });
+  }
   try {
-    return NextResponse.json({ tree: await docTree(sub, (await params).name) });
+    return NextResponse.json({ tree: await docTree(ctx.user.sub, (await params).name) });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 404 });
   }
 }
 
-// DELETE /api/editor/[name] - delete the whole document
-export async function DELETE(_req: Request, { params }: Params) {
-  const sub = await owner();
-  if (!sub) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+// DELETE /api/editor/[name] - delete the whole document. Needs docs:write.
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const ctx = await requestAccount(req);
+  if (!ctx) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!hasScope(ctx.scopes, "docs:write")) {
+    return NextResponse.json({ error: "pufftoken lacks the docs:write scope" }, { status: 403 });
+  }
   try {
-    await deleteDocument(sub, (await params).name);
+    await deleteDocument(ctx.user.sub, (await params).name);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 404 });
