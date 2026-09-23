@@ -157,8 +157,8 @@ code, pre, .font-mono {
   height: auto;
   aspect-ratio: 3 / 1;
   background:
-    url("/transooze.webp") no-repeat left top / 47% auto,
-    url("/ooze-drip-top.webp") no-repeat right top / 47% auto;
+    url("/transooze.webp") no-repeat left top / 50% auto,
+    url("/ooze-drip-top.webp") no-repeat right top / 50% auto;
   opacity: .75;
 }
 
