@@ -148,24 +148,30 @@ code, pre, .font-mono {
   opacity: .75;
 }
 
-/* stat cards 2 & 3: same full-length goo sheet, condensed — same ratio, smaller */
-.slime-card.drip-med::after,
+/* stat card 2: two slime sheets side by side — transooze left + a second,
+ * different goo sheet (ooze-drip-top) beside it */
+.slime-card.drip-med::after {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  background:
+    url("/transooze.webp") no-repeat left top / 47% auto,
+    url("/ooze-drip-top.webp") no-repeat right top / 47% auto;
+  opacity: .75;
+}
+
+/* stat card 3: a different slime sheet (ooze-drip-alt), smaller still */
 .slime-card.drip-sm::after {
   top: 0;
   left: 0;
   right: auto;
+  width: 38%;
   height: auto;
-  aspect-ratio: 1536 / 1024;
-  background: url("/transooze.webp") no-repeat left top / 100% 100%;
+  aspect-ratio: 1536 / 671;
+  background: url("/ooze-drip-alt.webp") no-repeat left top / 100% 100%;
   opacity: .75;
-}
-
-.slime-card.drip-med::after {
-  width: 60%;
-}
-
-.slime-card.drip-sm::after {
-  width: 35%;
 }
 
 .slime-card::before {

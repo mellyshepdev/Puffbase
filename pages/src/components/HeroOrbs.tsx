@@ -40,7 +40,7 @@ export function HeroOrbs() {
     ro.observe(canvas);
 
     // positions/velocities in fractions of canvas size; r as fraction of height
-    const green: Orb = { x: 0.3, y: 0.4, vx: 0.0018, vy: 0.0012, r: 0.27, color: "#b1f150", rot: 0, spin: 0.016 };
+    const green: Orb = { x: 0.3, y: 0.4, vx: 0.005, vy: 0.0038, r: 0.27, color: "#b1f150", rot: 0, spin: 0.016 };
     // solid purple — fixed anchor, rotates only
     const purple: Orb = { x: 0.74, y: 0.58, vx: 0, vy: 0, r: 0.3, color: "#6d36e8", rot: 1.1, spin: -0.011 };
 
@@ -95,7 +95,7 @@ export function HeroOrbs() {
       grad.addColorStop(0.55, "#3a1a86");
       grad.addColorStop(1, "#1a0b3f");
       ctx.fillStyle = grad;
-      ctx.globalAlpha = 0.96;
+      ctx.globalAlpha = 1;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
