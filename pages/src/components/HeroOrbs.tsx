@@ -2,9 +2,11 @@
 
 import { useEffect, useRef } from "react";
 
-// Miniature version of the landing page's two wireframe bouncing balls
-// (lime #b1f150 + purple #6d36e8 icosahedron spheres), drawn as rotating
-// wireframe spheres on a small canvas inside the hero card.
+// Miniature version of the landing page's hero spheres: the lime wireframe
+// ball (#b1f150) bounces freely, while the purple one is a solid darker
+// faceted shape — like the big icosahedron pinned at the top of the landing
+// page (MeshPhysicalMaterial #6d36e8 flat-shaded + black facet outlines) —
+// that stays put and only rotates.
 interface Orb {
   x: number;
   y: number;
@@ -38,25 +40,12 @@ export function HeroOrbs() {
     ro.observe(canvas);
 
     // positions/velocities in fractions of canvas size; r as fraction of height
-    const orbs: Orb[] = [
-      { x: 0.3, y: 0.4, vx: 0.0018, vy: 0.0012, r: 0.27, color: "#b1f150", rot: 0, spin: 0.016 },
-      { x: 0.72, y: 0.55, vx: -0.0014, vy: 0.0016, r: 0.27, color: "#8b4dff", rot: 1.1, spin: -0.013 },
-    ];
+    const green: Orb = { x: 0.3, y: 0.4, vx: 0.0018, vy: 0.0012, r: 0.27, color: "#b1f150", rot: 0, spin: 0.016 };
+    // solid purple — fixed anchor, rotates only
+    const purple: Orb = { x: 0.74, y: 0.58, vx: 0, vy: 0, r: 0.3, color: "#6d36e8", rot: 1.1, spin: -0.011 };
 
-    const drawOrb = (o: Orb, w: number, h: number) => {
-      const cx = o.x * w;
-      const cy = o.y * h;
-      const r = o.r * h;
-      ctx.strokeStyle = o.color;
-      ctx.lineWidth = Math.max(1, r * 0.045);
-      ctx.globalAlpha = 0.9;
-      // outer rim
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.lineWidth = Math.max(1, r * 0.028);
-      // meridians — vertical great-circles at many rotating angles, like the
-      // landing page's icosahedron facets
+    const facetLines = (o: Orb, cx: number, cy: number, r: number) => {
+      // meridians — vertical great-circles at many rotating angles
       for (let i = 0; i < 8; i++) {
         const a = o.rot + (i * Math.PI) / 8;
         ctx.beginPath();
@@ -78,6 +67,51 @@ export function HeroOrbs() {
       ctx.beginPath();
       ctx.ellipse(cx, cy, r, r * Math.abs(Math.sin(tilt)) + r * 0.05, 0, 0, Math.PI * 2);
       ctx.stroke();
+    };
+
+    const drawWireOrb = (o: Orb, w: number, h: number) => {
+      const cx = o.x * w;
+      const cy = o.y * h;
+      const r = o.r * h;
+      ctx.strokeStyle = o.color;
+      ctx.lineWidth = Math.max(1, r * 0.045);
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = Math.max(1, r * 0.028);
+      facetLines(o, cx, cy, r);
+      ctx.globalAlpha = 1;
+    };
+
+    // landing page's top sphere: solid flat-shaded purple, darker toward the
+    // rim, with black facet outlines pinned to the surface
+    const drawSolidOrb = (o: Orb, w: number, h: number) => {
+      const cx = o.x * w;
+      const cy = o.y * h;
+      const r = o.r * h;
+      const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.08, cx, cy, r);
+      grad.addColorStop(0, "#5a2fc0");
+      grad.addColorStop(0.55, "#3a1a86");
+      grad.addColorStop(1, "#1a0b3f");
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = 0.96;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      // black facet outlines, like EdgesGeometry on the landing sphere
+      ctx.strokeStyle = "rgba(6,2,18,.8)";
+      ctx.lineWidth = Math.max(1, r * 0.02);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      facetLines(o, cx, cy, r);
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.lineWidth = Math.max(1, r * 0.03);
+      ctx.stroke();
       ctx.globalAlpha = 1;
     };
 
@@ -86,41 +120,38 @@ export function HeroOrbs() {
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      for (const o of orbs) {
-        o.x += o.vx;
-        o.y += o.vy;
-        o.rot += o.spin;
-        const rx = (o.r * h) / w;
-        if (o.x - rx < 0 || o.x + rx > 1) o.vx *= -1;
-        if (o.y - o.r < 0 || o.y + o.r > 1) o.vy *= -1;
-        o.x = Math.min(1 - rx, Math.max(rx, o.x));
-        o.y = Math.min(1 - o.r, Math.max(o.r, o.y));
-      }
+      // green roams + spins; purple holds position, rotates only
+      green.x += green.vx;
+      green.y += green.vy;
+      green.rot += green.spin;
+      purple.rot += purple.spin;
 
-      // elastic bounce off each other
-      const [a, b] = orbs;
-      const dx = (b.x - a.x) * w;
-      const dy = (b.y - a.y) * h;
+      const rx = (green.r * h) / w;
+      if (green.x - rx < 0 || green.x + rx > 1) green.vx *= -1;
+      if (green.y - green.r < 0 || green.y + green.r > 1) green.vy *= -1;
+      green.x = Math.min(1 - rx, Math.max(rx, green.x));
+      green.y = Math.min(1 - green.r, Math.max(green.r, green.y));
+
+      // green bounces off the anchored purple sphere (infinite mass — only
+      // the green ball's velocity changes)
+      const dx = (purple.x - green.x) * w;
+      const dy = (purple.y - green.y) * h;
       const dist = Math.hypot(dx, dy);
-      const min = a.r * h + b.r * h;
+      const min = purple.r * h + green.r * h;
       if (dist > 0 && dist < min) {
         const nx = dx / dist;
         const ny = dy / dist;
-        const overlap = (min - dist) / 2;
-        a.x -= (nx * overlap) / w;
-        a.y -= (ny * overlap) / h;
-        b.x += (nx * overlap) / w;
-        b.y += (ny * overlap) / h;
-        const av = a.vx * w * nx + a.vy * h * ny;
-        const bv = b.vx * w * nx + b.vy * h * ny;
-        const d = bv - av;
-        a.vx += (d * nx) / w;
-        a.vy += (d * ny) / h;
-        b.vx -= (d * nx) / w;
-        b.vy -= (d * ny) / h;
+        green.x -= (nx * (min - dist)) / w;
+        green.y -= (ny * (min - dist)) / h;
+        const vn = green.vx * w * nx + green.vy * h * ny;
+        if (vn > 0) {
+          green.vx -= (2 * vn * nx) / w;
+          green.vy -= (2 * vn * ny) / h;
+        }
       }
 
-      for (const o of orbs) drawOrb(o, w, h);
+      drawSolidOrb(purple, w, h);
+      drawWireOrb(green, w, h);
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
