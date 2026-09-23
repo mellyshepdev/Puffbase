@@ -13,7 +13,7 @@ interface Account {
   businessUrl?: string | null;
 }
 
-const SHEEP = Array.from({ length: 12 }, (_, i) => `sheep-${i + 1}`);
+const SHEEP = ["sheep-9", "sheep-10", "sheep-11", "sheep-12"];
 
 export default function ProfileSettings() {
   const [active, setActive] = useState<Account | null>(null);
@@ -23,7 +23,7 @@ export default function ProfileSettings() {
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
-  const [avatar, setAvatar] = useState("sheep-1");
+  const [avatar, setAvatar] = useState("sheep-9");
   const [businessUrl, setBusinessUrl] = useState("");
   const [bsPicture, setBsPicture] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);

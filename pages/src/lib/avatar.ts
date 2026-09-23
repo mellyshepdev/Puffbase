@@ -1,16 +1,14 @@
 // Client-safe avatar helpers. An account's `avatar` is either a "sheep-N"
-// id (bundled SVG), an https URL (e.g. synced from the BlackSheep account),
+// id (bundled PNG), an https URL (e.g. synced from the BlackSheep account),
 // or a data:image URL from an uploaded picture.
 
-// sheep-9..12 are PNG art (the custom silhouette set); 1..8 are bundled SVGs.
-const PNG_SHEEP = new Set(["sheep-9", "sheep-10", "sheep-11", "sheep-12"]);
-
+// The bundled generics are the custom silhouette set, sheep-9..12 (PNGs).
 export function avatarSrc(avatar?: string | null): string {
   if (avatar && (avatar.startsWith("data:") || avatar.startsWith("https://"))) {
     return avatar;
   }
-  const id = avatar || "sheep-1";
-  return `/avatars/${id}.${PNG_SHEEP.has(id) ? "png" : "svg"}`;
+  const id = avatar && /^sheep-(9|10|11|12)$/.test(avatar) ? avatar : "sheep-9";
+  return `/avatars/${id}.png`;
 }
 
 export function isCustomAvatar(avatar?: string | null): boolean {
