@@ -122,6 +122,7 @@ export function AppSidebar() {
                       asChild
                       isActive={active}
                       tooltip={item.title}
+                      className="text-[#9d8ec2] data-[active=true]:text-emerald-300"
                       data-testid={`link-nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                     >
                       {"external" in item && item.external ? (

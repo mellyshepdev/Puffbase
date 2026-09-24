@@ -171,14 +171,14 @@ export function Sidebar() {
               className={clsx(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative group",
                 isActive
-                  ? "bg-gradient-to-r from-slime-700/40 to-slime-900/20 text-white border border-slime-600/30"
+                  ? "bg-gradient-to-r from-slime-700/40 to-slime-900/20 text-[#b6f34c] border border-slime-600/30"
                   : "text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white border border-transparent"
               )}
             >
               {isActive && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-slime-400 rounded-r-full" />
               )}
-              <Icon className={clsx("w-[18px] h-[18px]", isActive ? "text-slime-300" : "")} />
+              <Icon className={clsx("w-[18px] h-[18px]", isActive ? "text-[#b6f34c]" : "")} />
               <span>{label}</span>
               {isActive && (
                 <div className="absolute -bottom-[3px] left-4 right-4 h-[3px] bg-gradient-to-r from-transparent via-slime-500/40 to-transparent rounded-b-full" />
