@@ -157,7 +157,7 @@ function ReposPage() {
             <Link
               key={repo.id}
               href={`/repos/${repo.id}`}
-              className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-5 group cursor-pointer`}
+              className={`slime-card drip-clip drip-${["natural","med","sm","long"][i % 4]} p-5 group cursor-pointer`}
               style={{ overflow: "visible" }}
             >
               <div className="flex items-start justify-between mb-2">
