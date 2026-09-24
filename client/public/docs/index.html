@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Puffbase Docs — Create. Build. Deploy.</title>
+<meta
+  name="description"
+  content="Puffbase documentation: the forge, versioned documents, pipelines, edge deployments, the AI site builder, plans, and the API surface."
+/>
+
+<style>
+:root {
+  --purple: #6d36e8;
+  --purple-dark: #32146f;
+  --purple-light: #f2edff;
+  --purple-soft: #faf8ff;
+  --slime: #b1f150;
+  --slime-light: #e1fabd;
+  --white: #ffffff;
+  --ink: #191523;
+  --muted: #716b7c;
+  --line: #e9e4f2;
+  --shadow: 0 24px 70px rgba(55, 25, 116, 0.12);
+  --radius: 24px;
+  --container: 1180px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--ink);
+  background: var(--white);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+  border: 0;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button-primary {
+  color: #17111f;
+  background: var(--slime);
+  box-shadow: 0 10px 30px rgba(177, 241, 80, 0.4);
+}
+
+.button-primary:hover {
+  background: #c4f873;
+}
+
+.button-outline {
+  color: var(--purple-dark);
+  background: var(--white);
+  border: 2px solid var(--line);
+}
+
+.button-outline:hover {
+  border-color: var(--purple);
+}
+
+.button-login {
+  color: var(--purple-dark);
+  background: transparent;
+  border: 0;
+  padding: 12px 8px;
+}
+
+.button-login:hover {
+  color: var(--purple);
+}
+
+.site-header {
+  position: relative;
+  z-index: 20;
+  padding: 20px 0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--purple-dark);
+  font-size: 1.28rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.brand-mark {
+  position: relative;
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  color: white;
+  background: var(--purple);
+  border-radius: 14px 14px 14px 6px;
+  box-shadow: 0 9px 20px rgba(109, 54, 232, 0.25);
+}
+
+.brand-mark::after {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 12px;
+  height: 12px;
+  background: var(--slime);
+  border: 3px solid white;
+  border-radius: 50%;
+  content: "";
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  color: #5d5669;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.nav-links a:hover {
+  color: var(--purple);
+}
+
+.nav-links a.active {
+  color: var(--purple);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  color: var(--purple-dark);
+  background: var(--purple-light);
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* ── Docs layout ─────────────────────────────────────────── */
+
+.docs-hero {
+  padding: 72px 0 40px;
+  background: linear-gradient(180deg, var(--purple-soft), var(--white));
+}
+
+.docs-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  color: var(--purple-dark);
+  background: var(--slime-light);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.docs-hero h1 {
+  margin-top: 18px;
+  color: var(--purple-dark);
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.docs-hero p {
+  margin-top: 14px;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.docs-wrap {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 56px;
+  padding: 56px 0 96px;
+}
+
+.docs-toc {
+  position: sticky;
+  top: 32px;
+  align-self: start;
+}
+
+.docs-toc p {
+  margin-bottom: 10px;
+  color: var(--purple-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.docs-toc a {
+  display: block;
+  padding: 7px 0 7px 16px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-left: 2px solid var(--line);
+}
+
+.docs-toc a:hover {
+  color: var(--purple);
+  border-left-color: var(--slime);
+}
+
+.docs-body section {
+  padding: 34px 0;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: 24px;
+}
+
+.docs-body section:first-child {
+  padding-top: 0;
+}
+
+.docs-body h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--purple-dark);
+  font-size: 1.55rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.docs-body h2 .dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: var(--slime);
+  border-radius: 50%;
+}
+
+.docs-body h3 {
+  margin: 26px 0 8px;
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.docs-body p {
+  margin-top: 12px;
+  color: var(--muted);
+}
+
+.docs-body ul {
+  margin: 14px 0 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.docs-body ul li {
+  position: relative;
+  margin-top: 9px;
+  padding-left: 24px;
+  color: var(--muted);
+}
+
+.docs-body ul li::before {
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 9px;
+  height: 9px;
+  background: var(--slime);
+  border-radius: 3px 3px 3px 1px;
+  content: "";
+}
+
+.docs-body strong {
+  color: var(--ink);
+}
+
+.docs-body code {
+  padding: 2px 7px;
+  color: var(--purple-dark);
+  background: var(--purple-light);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.docs-body pre {
+  margin-top: 16px;
+  padding: 18px 20px;
+  color: #e9e4f2;
+  background: #221739;
+  border-radius: 16px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.docs-body pre code {
+  padding: 0;
+  color: inherit;
+  background: none;
+}
+
+.docs-body table {
+  width: 100%;
+  margin-top: 18px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.docs-body th {
+  padding: 10px 14px;
+  color: var(--purple-dark);
+  background: var(--purple-light);
+  font-weight: 800;
+  text-align: left;
+}
+
+.docs-body th:first-child {
+  border-radius: 12px 0 0 12px;
+}
+
+.docs-body th:last-child {
+  border-radius: 0 12px 12px 0;
+}
+
+.docs-body td {
+  padding: 10px 14px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+
+.docs-body td:first-child {
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
+.docs-callout {
+  margin-top: 18px;
+  padding: 16px 20px;
+  background: var(--purple-soft);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--slime);
+  border-radius: 14px;
+}
+
+.docs-callout p {
+  margin-top: 0;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.card-grid .mini-card {
+  padding: 18px 20px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(55, 25, 116, 0.06);
+}
+
+.mini-card .k {
+  color: var(--purple-dark);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.mini-card .v {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+footer {
+  padding: 48px 0;
+  background: var(--purple-soft);
+  border-top: 1px solid var(--line);
+}
+
+.footer-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.footer-copy {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.footer-links a:hover {
+  color: var(--purple);
+}
+
+@media (max-width: 900px) {
+  .nav-links,
+  .nav-actions .button-outline {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .nav-links.open {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 12px 24px 20px;
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+
+  .nav-links.open a {
+    padding: 12px 0;
+  }
+
+  .docs-wrap {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .docs-toc {
+    position: static;
+  }
+
+  .docs-toc .toc-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 2px 18px;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="/" aria-label="Puffbase home">
+      <span class="brand-mark">P</span>
+      Puffbase
+    </a>
+
+    <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+      <a href="/#platform">Platform</a>
+      <a href="/#agentic">Agentic infrastructure</a>
+      <a href="/#open-source">Open source</a>
+      <a href="/docs/" class="active">Documentation</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="button button-outline" href="/docs/">Documentation</a>
+      <a class="button button-primary" href="https://dash.puff-base.com">
+        Start deploying
+        <span aria-hidden="true">→</span>
+      </a>
+      <a class="button button-login" href="https://dash.puff-base.com">Sign In</a>
+
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Toggle navigation"
+        aria-expanded="false"
+        aria-controls="navLinks"
+      >
+        ☰
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="docs-hero">
+  <div class="container">
+    <span class="eyebrow">Documentation</span>
+    <h1>Everything Puffbase,<br />end to end.</h1>
+    <p>
+      Puffbase is open, agentic infrastructure: a git forge, a versioned document
+      editor, pipelines, one-click edge deployments, and an AI site builder —
+      behind a single sign-on. This page is the map.
+    </p>
+  </div>
+</section>
+
+<div class="container docs-wrap">
+  <aside class="docs-toc" aria-label="Documentation contents">
+    <p>On this page</p>
+    <div class="toc-links">
+      <a href="#overview">Overview</a>
+      <a href="#accounts">Accounts &amp; SSO</a>
+      <a href="#forge">The forge</a>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#documents">Documents</a>
+      <a href="#pipelines">Pipelines</a>
+      <a href="#deployments">Deployments</a>
+      <a href="#builder">AI site builder</a>
+      <a href="#plans">Plans &amp; billing</a>
+      <a href="#integrations">Integrations</a>
+      <a href="#hosts">Hosts</a>
+      <a href="#api">API surface</a>
+    </div>
+  </aside>
+
+  <main class="docs-body">
+
+    <section id="overview">
+      <h2><span class="dot"></span>Overview</h2>
+      <p>
+        Puffbase combines the pieces you normally stitch together from four
+        different vendors: source hosting, CI, edge deployment, and AI-assisted
+        site generation. Every surface is reachable from one account:
+      </p>
+      <ul>
+        <li><strong>Forge</strong> — an embedded Gitea at <code>git.puff-base.com</code> hosts your repositories over HTTPS and SSH.</li>
+        <li><strong>Dashboard</strong> — <code>dash.puff-base.com</code> is the day-to-day UI: repositories, issues, merge requests, pipelines, deployments, and the document editor.</li>
+        <li><strong>Console</strong> — <code>admin.puff-base.com</code> is the operator surface for services, metrics, and account administration.</li>
+        <li><strong>Builder</strong> — describe a site, get a generated preview, revise it in chat, and publish it straight to the edge.</li>
+      </ul>
+    </section>
+
+    <section id="accounts">
+      <h2><span class="dot"></span>Accounts &amp; single sign-on</h2>
+      <p>
+        One identity covers everything. Sign-in runs through Keycloak
+        (<code>auth.theofficialblacksheepco.com</code>, realm <code>puffbase</code>),
+        and the session cookie is scoped to <code>.puff-base.com</code> — so logging
+        in on the console carries you into the dashboard and back without
+        re-authenticating.
+      </p>
+      <ul>
+        <li>Console logins start on <code>admin.puff-base.com</code>; the OIDC callback lands on <code>puff-base.com</code> and the session follows you.</li>
+        <li>New accounts are provisioned from the dashboard's sign-up dialog.</li>
+        <li>Admin surfaces are gated by an allowlist — non-admin API routes return <code>403</code>.</li>
+      </ul>
+      <div class="docs-callout">
+        <p>
+          <strong>Git credentials are never stored.</strong> Every git operation
+          exchanges for a per-user <em>pufftoken</em> minted in OpenBao at call
+          time — there is no static daemon token to leak.
+        </p>
+      </div>
+    </section>
+
+    <section id="forge">
+      <h2><span class="dot"></span>The forge</h2>
+      <p>
+        Repositories live on the embedded Gitea at
+        <a href="https://git.puff-base.com"><strong>git.puff-base.com</strong></a>.
+      </p>
+      <ul>
+        <li><strong>Clone / push over HTTPS</strong> — <code>https://git.puff-base.com/&lt;owner&gt;/&lt;repo&gt;.git</code></li>
+        <li><strong>SSH</strong> — port <code>2222</code>, keys managed in your Gitea profile</li>
+        <li><strong>Browse and edit in the dashboard</strong> — the repository pages proxy the forge: file trees, file read/write/delete, and commits all flow through the API without leaving the UI</li>
+        <li><strong>Registration is closed</strong> — accounts come from Puffbase SSO, keeping the forge private to the community</li>
+      </ul>
+      <pre><code>git clone https://git.puff-base.com/you/project.git
+# or
+git clone ssh://git@git.puff-base.com:2222/you/project.git</code></pre>
+    </section>
+
+    <section id="dashboard">
+      <h2><span class="dot"></span>Dashboard</h2>
+      <p>
+        <a href="https://dash.puff-base.com"><strong>dash.puff-base.com</strong></a>
+        is the main workspace. Everything in the sidebar maps to a real backend:
+      </p>
+      <div class="card-grid">
+        <div class="mini-card"><div class="k">Repositories</div><div class="v">Your forge repos with browse, edit, and file management.</div></div>
+        <div class="mini-card"><div class="k">Issues &amp; milestones</div><div class="v">Track work with labels, assignees, and milestone grouping.</div></div>
+        <div class="mini-card"><div class="k">Merge requests</div><div class="v">Review and land changes across branches.</div></div>
+        <div class="mini-card"><div class="k">Pipelines</div><div class="v">CI runs on every push — status at a glance.</div></div>
+        <div class="mini-card"><div class="k">Deployments</div><div class="v">Register, inspect, and tear down published sites.</div></div>
+        <div class="mini-card"><div class="k">Editor</div><div class="v">Versioned documents — every save is a commit.</div></div>
+        <div class="mini-card"><div class="k">Integrations</div><div class="v">Wire external tools into your workflow.</div></div>
+        <div class="mini-card"><div class="k">Status</div><div class="v">Platform health across the fleet.</div></div>
+      </div>
+    </section>
+
+    <section id="documents">
+      <h2><span class="dot"></span>Documents</h2>
+      <p>
+        A document is a private, versioned space — like a repo that only exists
+        to be written in. Every save lands as a commit, so the full history of a
+        spec, runbook, or set of release notes is always recoverable.
+      </p>
+      <ul>
+        <li>Create one from <strong>New → Document</strong> in the top bar.</li>
+        <li>Browse the tree, read files, write changes, and delete paths — all through the editor UI or the <code>/api/documents</code> endpoints.</li>
+        <li>Document names are lowercase-with-dashes; the name becomes its address in the editor.</li>
+      </ul>
+    </section>
+
+    <section id="pipelines">
+      <h2><span class="dot"></span>Pipelines</h2>
+      <p>
+        Pipelines are powered by Gitea Actions — the same workflow syntax as
+        GitHub Actions. Push a <code>.gitea/workflows/*.yml</code> file and runs
+        appear on the dashboard's Pipelines page automatically.
+      </p>
+      <ul>
+        <li>Trigger on push, pull request, or a manual dispatch.</li>
+        <li>Runs and their status show up alongside the repository they belong to.</li>
+      </ul>
+    </section>
+
+    <section id="deployments">
+      <h2><span class="dot"></span>Deployments</h2>
+      <p>
+        Deployments are wired straight into the edge. When you register a
+        deployment, the Locator service learns about it and emits a Traefik
+        router on the next poll — your site answers at its own address on the
+        deploy domain with TLS handled at the edge. No ingress config, no
+        certificates to request.
+      </p>
+      <ul>
+        <li><strong>Create</strong> — <strong>New → Deployment</strong>, name it, point it at the service.</li>
+        <li><strong>Inspect</strong> — the Deployments page lists every site with its live address.</li>
+        <li><strong>Update / remove</strong> — patch or delete a deployment and the edge router follows.</li>
+      </ul>
+      <div class="docs-callout">
+        <p>
+          Published sites share a single static host, and the platform emits
+          routing — you never touch a web server config to go live.
+        </p>
+      </div>
+    </section>
+
+    <section id="builder">
+      <h2><span class="dot"></span>AI site builder</h2>
+      <p>
+        The builder turns a description into a published site. A CrewAI crew
+        plans and drafts the page, a local LLM renders it, and you iterate in
+        chat until it looks right.
+      </p>
+      <h3>The flow</h3>
+      <ul>
+        <li><strong>Describe</strong> — create a builder project with a prompt describing the site you want.</li>
+        <li><strong>Preview</strong> — the generated page renders at a private preview URL.</li>
+        <li><strong>Revise</strong> — ask for changes in plain language; each revision regenerates the preview.</li>
+        <li><strong>Publish</strong> — one click pushes the site through the deployment pipeline to a live edge address.</li>
+      </ul>
+      <p>
+        Builder projects are card-gated: attach a payment method
+        (<code>/api/builder/projects/:id/card-setup</code>) and confirm before
+        generating. Publishing runs on your plan's allowance.
+      </p>
+    </section>
+
+    <section id="plans">
+      <h2><span class="dot"></span>Plans &amp; billing</h2>
+      <p>
+        Plans set your limits — repositories, deployments, builder projects, and
+        collaborators. Billing runs through Stripe for subscriptions and Lago
+        for usage metering, so metered features bill on real consumption rather
+        than flat guesses.
+      </p>
+      <ul>
+        <li><strong>Free</strong> — personal and business accounts, community repositories, the document editor.</li>
+        <li><strong>Paid tiers</strong> — raise deployment and builder limits and unlock paid integrations.</li>
+        <li>Manage or change your plan from the dashboard's <strong>Plan</strong> page.</li>
+      </ul>
+    </section>
+
+    <section id="integrations">
+      <h2><span class="dot"></span>Integrations</h2>
+      <p>
+        Integrations pull external tools into the same workflow:
+      </p>
+      <ul>
+        <li><strong>Linear</strong> — Linear issues surface inside the dashboard (<code>/api/linear/issues</code>) so triage lives next to your code.</li>
+        <li><strong>Notion</strong> — sync docs and release notes into a Notion workspace.</li>
+        <li><strong>Mail &amp; notifications</strong> — deployment and account events notify by mail.</li>
+      </ul>
+      <p>
+        Connect and configure them from the dashboard's
+        <strong>Integrations</strong> page.
+      </p>
+    </section>
+
+    <section id="hosts">
+      <h2><span class="dot"></span>Hosts</h2>
+      <table>
+        <tr><th>Host</th><th>What lives there</th></tr>
+        <tr><td>puff-base.com</td><td>Public landing page and this documentation.</td></tr>
+        <tr><td>dash.puff-base.com</td><td>The dashboard — your day-to-day workspace.</td></tr>
+        <tr><td>admin.puff-base.com</td><td>The admin console SPA.</td></tr>
+        <tr><td>git.puff-base.com</td><td>The embedded Gitea forge (SSH on port 2222).</td></tr>
+        <tr><td>auth.theofficialblacksheepco.com</td><td>Keycloak SSO — the puffbase realm.</td></tr>
+      </table>
+    </section>
+
+    <section id="api">
+      <h2><span class="dot"></span>API surface</h2>
+      <p>
+        Every UI action maps to a JSON endpoint under <code>/api</code> on the
+        console host. Authentication is the same session cookie as the UI.
+      </p>
+      <table>
+        <tr><th>Endpoint</th><th>Purpose</th></tr>
+        <tr><td>GET/POST/PATCH/DELETE /api/deployments</td><td>List, create, update, and remove deployments.</td></tr>
+        <tr><td>GET/POST/PATCH/DELETE /api/services</td><td>Registered services and their addresses.</td></tr>
+        <tr><td>GET/POST /api/metrics · /api/metrics/summary</td><td>Usage and platform metrics.</td></tr>
+        <tr><td>GET/POST /api/activity</td><td>The account activity feed.</td></tr>
+        <tr><td>GET /api/repos · /api/repos/:o/:r/tree · /file</td><td>Forge repo browsing; file read, write, delete (admin).</td></tr>
+        <tr><td>GET/POST/DELETE /api/documents · /:doc/tree · /:doc/file</td><td>Versioned document spaces.</td></tr>
+        <tr><td>GET /api/linear/issues</td><td>Linear issues for the linked workspace.</td></tr>
+        <tr><td>GET /api/dashboard</td><td>The aggregated dashboard payload.</td></tr>
+        <tr><td>/api/builder/projects[/:id/...]</td><td>AI builder: create, preview, revise, card setup, publish.</td></tr>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="container footer-row">
+    <div>
+      <a class="brand" href="/" aria-label="Puffbase home">
+        <span class="brand-mark">P</span>
+        Puffbase
+      </a>
+      <p class="footer-copy" style="margin-top:12px;">
+        © <span id="year"></span> Puffbase. Open infrastructure for everyone.
+      </p>
+    </div>
+
+    <div class="footer-links">
+      <a href="https://dash.puff-base.com">Dashboard</a>
+      <a href="https://admin.puff-base.com">Console</a>
+      <a href="/docs/">Documentation</a>
+      <a href="https://git.puff-base.com">Forge</a>
+      <a href="https://dash.puff-base.com/status">Status</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const menuButton = document.querySelector(".menu-toggle");
+  const navLinks = document.querySelector("#navLinks");
+  menuButton.addEventListener("click", () => {
+    const open = navLinks.classList.toggle("open");
+    menuButton.setAttribute("aria-expanded", String(open));
+  });
+</script>
+</body>
+</html>
