@@ -103,7 +103,7 @@ export function HeroOrbs() {
     // canvas spans the whole hero card — green roams it freely, purple is
     // anchored on a spring: it gives when hit, then eases back home
     const green: Orb = { x: 0.3, y: 0.35, vx: 0.004, vy: 0.0032, r: 0.17, rot: 0, spin: 0.016, ox: 0, oy: 0, ovx: 0, ovy: 0 };
-    const purple: Orb = { x: 0.8, y: 0.55, vx: 0, vy: 0, r: 0.24, rot: 1.1, spin: -0.02, ox: 0, oy: 0, ovx: 0, ovy: 0 };
+    const purple: Orb = { x: 0.86, y: 0.66, vx: 0, vy: 0, r: 0.29, rot: 1.1, spin: -0.008, ox: 0, oy: 0, ovx: 0, ovy: 0 };
 
     // rotate unit-sphere verts, tilt, project orthographic → screen points
     const project = (o: Orb, w: number, h: number) => {

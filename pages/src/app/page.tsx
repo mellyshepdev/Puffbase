@@ -281,7 +281,7 @@ export default function DashboardPage() {
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Repositories */}
-        <div className="lg:col-span-2 slime-card p-5">
+        <div className="lg:col-span-2 slime-card drip-long p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-white flex items-center gap-2">
               <FolderGit2 className="w-4 h-4 text-slime-400" />

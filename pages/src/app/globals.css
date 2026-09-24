@@ -176,6 +176,24 @@ code, pre, .font-mono {
   opacity: .75;
 }
 
+/* Recent Repositories: the login card's slime-long sheet as a full-card
+ * backdrop instead of the shared stretched drip strip */
+.slime-card.drip-long::after {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: auto;
+  background: url("/slime-long.png") no-repeat center top / cover;
+  opacity: .38;
+  z-index: 0;
+}
+/* keep repo rows + header readable above the goo backdrop */
+.slime-card.drip-long > * {
+  position: relative;
+  z-index: 1;
+}
+
 .slime-card::before {
   content: '';
   position: absolute;
