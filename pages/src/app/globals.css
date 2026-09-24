@@ -179,7 +179,7 @@ code, pre, .font-mono {
 /* Recent Repositories: the login card's slime-long sheet draped over the
  * box's top edge, in FRONT of the content, shaded to a darker purple */
 .slime-card.drip-long::after {
-  top: 0;
+  top: -26px;
   left: 0;
   right: 0;
   height: auto;
