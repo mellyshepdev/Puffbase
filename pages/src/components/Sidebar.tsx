@@ -210,7 +210,7 @@ export function Sidebar() {
         )}
 
         {/* Upgrade card */}
-        <div className="mt-5 mx-1 p-4 rounded-xl border border-slime-600/40 bg-gradient-to-br from-[#31114b] to-[#190f28]">
+        <div className="mt-5 mx-1 p-4 rounded-xl border border-slime-600/40 bg-gradient-to-br from-[#31114b] to-[#190f28] relative overflow-hidden drip-med">
           <div className="w-7 h-7 rounded-lg bg-[#b6f34c] flex items-center justify-center mb-2.5">
             <Sparkles className="w-4 h-4 text-[#241132]" />
           </div>

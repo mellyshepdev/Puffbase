@@ -182,10 +182,10 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CATALOG.map((def) => {
+        {CATALOG.map((def, i) => {
           const c = conn(def.provider);
           return (
-            <article key={def.provider} className="project-card">
+            <article key={def.provider} className={`project-card drip-${["natural","med","sm","long"][i % 4]}`}>
               <div className="project-card-top">
                 <div className="large-favicon"><Plug className="w-4 h-4" /></div>
                 <span className={`visibility ${c ? "public" : "building"}`}>

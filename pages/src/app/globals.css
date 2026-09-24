@@ -138,7 +138,7 @@ code, pre, .font-mono {
 
 /* first stat card: the login-card goo sheet at natural proportions, hanging
  * the full length over the card — the shared ::after stretches its art flat */
-.slime-card.drip-natural::after {
+.drip-natural::after {
   top: 0;
   left: 0;
   right: 0;
@@ -150,7 +150,7 @@ code, pre, .font-mono {
 
 /* stat card 2: two slime sheets side by side — transooze left + a second,
  * different goo sheet (ooze-drip-top) beside it */
-.slime-card.drip-med::after {
+.drip-med::after {
   top: 0;
   left: 0;
   right: 0;
@@ -165,7 +165,7 @@ code, pre, .font-mono {
 }
 
 /* stat card 3: box 1's transooze sheet, mirrored, at the same full size */
-.slime-card.drip-sm::after {
+.drip-sm::after {
   top: 0;
   left: 0;
   right: 0;
@@ -178,7 +178,7 @@ code, pre, .font-mono {
 
 /* Recent Repositories: the login card's slime-long sheet draped over the
  * box's top edge, in FRONT of the content, shaded to a darker purple */
-.slime-card.drip-long::after {
+.drip-long::after {
   top: -125px;
   left: 0;
   right: 0;
@@ -194,7 +194,7 @@ code, pre, .font-mono {
 
 /* goo sheet is z2 — lift card content (text, links) above it so the font
  * renders in front of the slime */
-.slime-card.drip-long > * {
+.drip-natural > *, .drip-med > *, .drip-sm > *, .drip-long > * {
   position: relative;
   z-index: 3;
 }
@@ -496,7 +496,7 @@ code, pre, .font-mono {
 .workspace-open { position: relative; z-index: 1; flex-shrink: 0; text-decoration: none; }
 
 /* ===== code workspace editor (from dashboard2, dark-adapted) ===== */
-.code-card { padding: 20px; overflow: hidden; background: #190f28; border: 1px solid rgba(126,34,206,.35); border-radius: 14px; }
+.code-card { position: relative; padding: 20px; overflow: hidden; background: #190f28; border: 1px solid rgba(126,34,206,.35); border-radius: 14px; }
 .code-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .code-card .section-eyebrow { margin-bottom: 5px; color: #b6f34c; font-size: 8px; font-weight: 800; letter-spacing: .14em; }
 .code-card h2 { margin: 0; color: #fff; font-size: 16px; font-weight: 750; letter-spacing: -.04em; }

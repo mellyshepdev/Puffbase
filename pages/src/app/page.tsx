@@ -261,7 +261,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Slime Status hero banner */}
-      <section className="hero-card">
+      <section className="hero-card drip-med">
         <div className="hero-copy">
           <div className="hero-label"><Zap className="w-3.5 h-3.5" /> SLIME STATUS</div>
           <h2>Everything is <em>flowing.</em></h2>
@@ -292,8 +292,8 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="project-grid">
-            {repos.map((repo) => (
-              <article className="project-card" key={repo.id}>
+            {repos.map((repo, i) => (
+              <article className={`project-card drip-${["natural","med","sm","long"][i % 4]}`} key={repo.id}>
                 <div className="project-card-top">
                   <div className="large-favicon">{repo.name.slice(0, 2).toUpperCase()}</div>
                   <div className="relative">
@@ -340,7 +340,7 @@ export default function DashboardPage() {
 
         <div className="space-y-6">
           {/* Deploy banner */}
-          <section className="deploy-banner">
+          <section className="deploy-banner drip-sm">
             <div className="deploy-glow" />
             <div className="deploy-banner-icon"><Rocket className="w-5 h-5" /></div>
             <div>
@@ -393,7 +393,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Code workspace — keep your hands in the code */}
-      <section className="code-card">
+      <section className="code-card drip-natural">
         <div className="code-card-header">
           <div>
             <div className="section-eyebrow">CODE WORKSPACE</div>

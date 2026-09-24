@@ -67,8 +67,8 @@ export default function GroupsPage() {
         ) : groups.length === 0 ? (
           <p className="text-sm text-[#7a6b9d] col-span-full">No groups yet — create one for your team.</p>
         ) : (
-          groups.map((g) => (
-            <article key={g.id} className="project-card">
+          groups.map((g, i) => (
+            <article key={g.id} className={`project-card drip-${["natural","med","sm","long"][i % 4]}`}>
               <div className="project-card-top">
                 <div className="large-favicon"><Users className="w-4 h-4" /></div>
                 <span className="visibility public flex items-center gap-1"><Crown className="w-3 h-3" />owner</span>
