@@ -176,22 +176,20 @@ code, pre, .font-mono {
   opacity: .75;
 }
 
-/* Recent Repositories: the login card's slime-long sheet as a full-card
- * backdrop instead of the shared stretched drip strip */
+/* Recent Repositories: the login card's slime-long sheet draped over the
+ * box's top edge, in FRONT of the content, with a darker-purple overlay
+ * layer to correct the raw bright slime colour */
 .slime-card.drip-long::after {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
   height: auto;
-  background: url("/slime-long.png") no-repeat center top / cover;
-  opacity: .38;
-  z-index: 0;
-}
-/* keep repo rows + header readable above the goo backdrop */
-.slime-card.drip-long > * {
-  position: relative;
-  z-index: 1;
+  aspect-ratio: 1536 / 1024;
+  background:
+    linear-gradient(hsl(272 80% 8% / .5), hsl(275 75% 14% / .4)),
+    url("/slime-long.png") no-repeat center top / 100% 100%;
+  opacity: .9;
+  z-index: 2;
 }
 
 .slime-card::before {
