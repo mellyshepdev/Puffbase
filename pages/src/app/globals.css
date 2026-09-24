@@ -139,39 +139,25 @@ code, pre, .font-mono {
 /* first stat card: the login-card goo sheet at natural proportions, hanging
  * the full length over the card — the shared ::after stretches its art flat */
 .drip-natural::after {
-  top: 0;
-  left: 0;
-  right: 0;
-  height: auto;
-  aspect-ratio: 1536 / 1024;
-  background: url("/transooze.webp") no-repeat center top / 100% 100%;
+  inset: 0;
+  background: url("/transooze.webp") no-repeat center top / 100% auto;
   opacity: .75;
 }
 
 /* stat card 2: two slime sheets side by side — transooze left + a second,
  * different goo sheet (ooze-drip-top) beside it */
 .drip-med::after {
-  top: 0;
-  left: 0;
-  right: 0;
-  height: auto;
-  aspect-ratio: 3 / 1;
+  inset: 0;
   background:
-    url("/transooze.webp") no-repeat left top / 50% auto,
-    url("/ooze-drip-top.webp") no-repeat right top / 50% auto;
-  transform: scale(1.22);
-  transform-origin: center top;
+    url("/transooze.webp") no-repeat left top / 61% auto,
+    url("/ooze-drip-top.webp") no-repeat right top / 61% auto;
   opacity: .75;
 }
 
 /* stat card 3: box 1's transooze sheet, mirrored, at the same full size */
 .drip-sm::after {
-  top: 0;
-  left: 0;
-  right: 0;
-  height: auto;
-  aspect-ratio: 1536 / 1024;
-  background: url("/transooze.webp") no-repeat center top / 100% 100%;
+  inset: 0;
+  background: url("/transooze.webp") no-repeat center top / 100% auto;
   transform: scaleX(-1);
   opacity: .75;
 }
@@ -179,12 +165,8 @@ code, pre, .font-mono {
 /* Recent Repositories: the login card's slime-long sheet draped over the
  * box's top edge, in FRONT of the content, shaded to a darker purple */
 .drip-long::after {
-  top: -125px;
-  left: 0;
-  right: 0;
-  height: auto;
-  aspect-ratio: 1536 / 1024;
-  background: url("/slime-long.png") no-repeat center top / 100% 100%;
+  inset: 0;
+  background: url("/slime-long.png") no-repeat center -125px / 100% auto;
   /* darker-purple shade via filter — hits only the goo pixels, no dark
    * rectangle over the sheet's transparent areas */
   filter: brightness(.6) saturate(1.15);
