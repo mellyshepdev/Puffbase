@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import {
   LayoutDashboard,
   GitBranch,
@@ -15,7 +16,6 @@ import {
   Activity,
   Sparkles,
   ArrowRight,
-  Users,
   Plug,
   ChevronDown,
   Milestone,
@@ -24,6 +24,7 @@ import {
 import clsx from "clsx";
 import { useRef } from "react";
 import { SettingsNav } from "@/components/SettingsNav";
+import { RepoSettingsNav } from "@/components/RepoSettingsNav";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -32,7 +33,6 @@ const navItems = [
   { href: "/merge-requests", label: "Merge requests", icon: GitMerge },
   { href: "/pipelines", label: "Pipelines", icon: GitPullRequest },
   { href: "/deploy", label: "Deployments", icon: Rocket },
-  { href: "/groups", label: "Groups", icon: Users },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/status", label: "Status", icon: Activity },
 ];
@@ -147,6 +147,16 @@ export function Sidebar() {
               Workspace settings
             </p>
             <SettingsNav />
+          </div>
+        )}
+        {/^\/repos\/[^/]+/.test(pathname) && (
+          <div className="mb-4 pb-4 border-b border-[var(--color-dark-border)]">
+            <p className="px-3 mb-3 text-[10px] font-semibold text-slime-400/60 uppercase tracking-widest">
+              Repo settings
+            </p>
+            <Suspense fallback={null}>
+              <RepoSettingsNav />
+            </Suspense>
           </div>
         )}
         <p className="px-3 mb-3 text-[10px] font-semibold text-slime-400/60 uppercase tracking-widest">

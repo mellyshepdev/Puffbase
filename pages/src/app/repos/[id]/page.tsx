@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, use } from "react";
+import { useEffect, useRef, useState, use, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FolderGit2,
   Star,
@@ -28,8 +28,13 @@ import {
   Trash2,
   Radio,
   ExternalLink,
+  Users,
+  Webhook,
+  Plug,
+  Key,
 } from "lucide-react";
 import { CodeButton } from "@/components/CodeButton";
+import { avatarSrc } from "@/lib/avatar";
 
 interface Repo {
   id: number;
@@ -151,16 +156,50 @@ function FileTreeItem({
   );
 }
 
+const SETTINGS_SECTIONS = [
+  "general",
+  "visibility",
+  "collaborators",
+  "webhooks",
+  "integrations",
+  "deploy-keys",
+  "mirroring",
+  "danger",
+] as const;
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+
 export default function RepoDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-[#9d8ec2]">Loading…</div>}>
+      <RepoDetail params={params} />
+    </Suspense>
+  );
+}
+
+function RepoDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [repo, setRepo] = useState<Repo | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editedContent, setEditedContent] = useState("");
-  const [activeTab, setActiveTab] = useState<"code" | "commits" | "settings">("code");
   const router = useRouter();
-  const [settingsSection, setSettingsSection] = useState<"general" | "visibility" | "mirroring" | "danger">("general");
+  const search = useSearchParams();
+  // Tab + settings section live in the URL so the sidebar's repo-settings
+  // menu can drive this page (and links are shareable).
+  const tabParam = search.get("tab");
+  const activeTab: "code" | "commits" | "settings" =
+    tabParam === "commits" || tabParam === "settings" ? tabParam : "code";
+  const secParam = search.get("section");
+  const settingsSection: SettingsSection = (SETTINGS_SECTIONS as readonly string[]).includes(
+    secParam ?? "",
+  )
+    ? (secParam as SettingsSection)
+    : "general";
+  const gotoTab = (tab: string, section?: string) => {
+    const q = tab === "settings" ? `?tab=settings&section=${section ?? settingsSection}` : `?tab=${tab}`;
+    router.push(`/repos/${id}${q}`);
+  };
   const [sDesc, setSDesc] = useState("");
   const [sVisibility, setSVisibility] = useState("private");
   const [sMirrorUrl, setSMirrorUrl] = useState("");
@@ -171,6 +210,27 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
   const [deleting, setDeleting] = useState(false);
   const [forking, setForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
+
+  // Repo settings panels
+  interface Collaborator { id: string; name: string; avatar: string | null; role: string; kind: string }
+  interface Hook { id: string; url: string; events: string[]; enabled: boolean; hasSecret: boolean; createdAt: string }
+  interface Integration { id: string; provider: string; externalName: string | null; createdAt: string }
+  interface DeployKey { id: string; name: string; fingerprint: string; canPush: boolean; createdAt: string }
+  const [collabs, setCollabs] = useState<Collaborator[]>([]);
+  const [collabName, setCollabName] = useState("");
+  const [collabRole, setCollabRole] = useState("write");
+  const [collabBusy, setCollabBusy] = useState(false);
+  const [hooks, setHooks] = useState<Hook[]>([]);
+  const [hookUrl, setHookUrl] = useState("");
+  const [hookEvents, setHookEvents] = useState<string[]>(["push"]);
+  const [hookSecret, setHookSecret] = useState("");
+  const [hookBusy, setHookBusy] = useState(false);
+  const [intgs, setIntgs] = useState<Integration[]>([]);
+  const [deployKeys, setDeployKeys] = useState<DeployKey[]>([]);
+  const [dkName, setDkName] = useState("");
+  const [dkKey, setDkKey] = useState("");
+  const [dkPush, setDkPush] = useState(false);
+  const [dkBusy, setDkBusy] = useState(false);
 
   const [fileTree, setFileTree] = useState<FileNode[]>([]);
   const [treeLoading, setTreeLoading] = useState(false);
@@ -279,6 +339,81 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
         }
       });
   }, [id]);
+
+  // Load the active settings section's data on demand.
+  useEffect(() => {
+    if (activeTab !== "settings") return;
+    const j = (r: Response) => (r.ok ? r.json() : null);
+    if (settingsSection === "collaborators") {
+      fetch(`/api/repos/${id}/collaborators`).then(j).then((d) => d && setCollabs(d.collaborators ?? [])).catch(() => {});
+    } else if (settingsSection === "webhooks") {
+      fetch(`/api/repos/${id}/webhooks`).then(j).then((d) => d && setHooks(d.webhooks ?? [])).catch(() => {});
+    } else if (settingsSection === "integrations") {
+      fetch("/api/integrations").then(j).then((d) => d && setIntgs(d.integrations ?? [])).catch(() => {});
+    } else if (settingsSection === "deploy-keys") {
+      fetch(`/api/repos/${id}/deploy-keys`).then(j).then((d) => d && setDeployKeys(d.deployKeys ?? [])).catch(() => {});
+    }
+  }, [activeTab, settingsSection, id]);
+
+  const addCollaborator = async () => {
+    setCollabBusy(true); setSettingsMsg(null);
+    const res = await fetch(`/api/repos/${id}/collaborators`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account: collabName, role: collabRole }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setCollabBusy(false);
+    if (!res.ok) return setSettingsMsg(d.error ?? "Failed to add partner");
+    setCollabName("");
+    setCollabs((c) => [...c.filter((x) => x.id !== d.id), { id: d.id, name: d.name, avatar: d.avatar, role: d.role, kind: d.kind ?? "business" }]);
+    setSettingsMsg(`Added ${d.name} as a ${d.role} partner`);
+  };
+
+  const removeCollaborator = async (cid: string) => {
+    await fetch(`/api/repos/${id}/collaborators?id=${cid}`, { method: "DELETE" });
+    setCollabs((c) => c.filter((x) => x.id !== cid));
+  };
+
+  const addWebhook = async () => {
+    setHookBusy(true); setSettingsMsg(null);
+    const res = await fetch(`/api/repos/${id}/webhooks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: hookUrl, events: hookEvents, secret: hookSecret || undefined }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setHookBusy(false);
+    if (!res.ok) return setSettingsMsg(d.error ?? "Failed to add webhook");
+    setHookUrl(""); setHookSecret("");
+    setHooks((h) => [...h, d]);
+    setSettingsMsg("Webhook added");
+  };
+
+  const removeWebhook = async (wid: string) => {
+    await fetch(`/api/repos/${id}/webhooks?id=${wid}`, { method: "DELETE" });
+    setHooks((h) => h.filter((x) => x.id !== wid));
+  };
+
+  const addDeployKey = async () => {
+    setDkBusy(true); setSettingsMsg(null);
+    const res = await fetch(`/api/repos/${id}/deploy-keys`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: dkName, publicKey: dkKey, canPush: dkPush }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setDkBusy(false);
+    if (!res.ok) return setSettingsMsg(d.error ?? "Failed to add key");
+    setDkName(""); setDkKey(""); setDkPush(false);
+    setDeployKeys((k) => [...k, d]);
+    setSettingsMsg("Deploy key added");
+  };
+
+  const removeDeployKey = async (kid: string) => {
+    await fetch(`/api/repos/${id}/deploy-keys?id=${kid}`, { method: "DELETE" });
+    setDeployKeys((k) => k.filter((x) => x.id !== kid));
+  };
 
   const handleSelectFile = (file: FileNode) => {
     setSaveError(null);
@@ -492,7 +627,7 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
         {(["code", "commits", "settings"] as const).map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => gotoTab(tab)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
                 ? "border-slime-500 text-white"
@@ -712,30 +847,9 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      {/* Settings tab - left section nav + panel, repo-scoped */}
+      {/* Settings tab - the section menu lives in the left sidebar */}
       {activeTab === "settings" && (
-        <div className="grid grid-cols-[200px_1fr] gap-0 border border-[var(--color-dark-border)] rounded-xl overflow-hidden min-h-[400px]">
-          <div className="bg-[var(--color-dark-surface)] border-r border-[var(--color-dark-border)] p-3 space-y-1">
-            {([
-              { key: "general", label: "General", icon: Settings },
-              { key: "visibility", label: "Visibility", icon: Lock },
-              { key: "mirroring", label: "Mirroring", icon: RefreshCw },
-              { key: "danger", label: "Danger zone", icon: Trash2 },
-            ] as const).map((s) => (
-              <button
-                key={s.key}
-                onClick={() => { setSettingsSection(s.key); setSettingsMsg(null); }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
-                  settingsSection === s.key
-                    ? "bg-slime-600/20 text-slime-300"
-                    : "text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white"
-                }`}
-              >
-                <s.icon className="w-3.5 h-3.5" /> {s.label}
-              </button>
-            ))}
-          </div>
-
+        <div className="border border-[var(--color-dark-border)] rounded-xl overflow-hidden min-h-[400px]">
           <div className="bg-[var(--color-dark-bg)] p-5 space-y-4">
             {settingsMsg && (
               <p className={`text-xs ${/fail|reject|error/i.test(settingsMsg) ? "text-red-400" : "text-slime-300"}`}>{settingsMsg}</p>
@@ -779,6 +893,175 @@ export default function RepoDetailPage({ params }: { params: Promise<{ id: strin
                 <button onClick={() => saveSettings({ visibility: sVisibility })} disabled={savingSettings || sVisibility === repo.visibility} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
                   {savingSettings ? "Saving…" : "Change visibility"}
                 </button>
+              </>
+            )}
+
+            {settingsSection === "collaborators" && (
+              <>
+                <h3 className="text-sm font-semibold text-white">Collaborations</h3>
+                <p className="text-[11px] text-[#7a6b9d] max-w-md">
+                  Business partners - other Puffbase accounts allowed to work on this repo.
+                </p>
+                <div className="max-w-md space-y-2">
+                  {collabs.length === 0 && (
+                    <p className="text-xs text-[#5a4d7a]">No partners on this repo yet.</p>
+                  )}
+                  {collabs.map((c) => (
+                    <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-[var(--color-dark-border)]">
+                      <img src={avatarSrc(c.avatar)} alt="" className="w-7 h-7 rounded-full object-cover" />
+                      <span className="text-sm text-white flex-1">{c.name}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-slime-300 bg-slime-600/20 px-2 py-0.5 rounded">{c.role}</span>
+                      <button onClick={() => removeCollaborator(c.id)} className="text-[#7a6b9d] hover:text-red-400 transition-colors" title="Remove partner">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-end gap-2 max-w-md">
+                  <div className="flex-1">
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Partner account name</label>
+                    <input value={collabName} onChange={(e) => setCollabName(e.target.value)} placeholder="e.g. Tobsco" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Role</label>
+                    <select value={collabRole} onChange={(e) => setCollabRole(e.target.value)} className="px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white outline-none">
+                      <option value="read">Read</option>
+                      <option value="write">Write</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <button onClick={addCollaborator} disabled={collabBusy || !collabName.trim()} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
+                    <Users className="w-3.5 h-3.5 inline mr-1" />{collabBusy ? "Adding…" : "Add partner"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {settingsSection === "webhooks" && (
+              <>
+                <h3 className="text-sm font-semibold text-white">Webhooks</h3>
+                <p className="text-[11px] text-[#7a6b9d] max-w-md">
+                  POST a JSON payload to your URL when repo events happen. If you set a secret, deliveries are signed in the <span className="font-mono">X-Puffbase-Signature</span> header - secrets are never shown after saving.
+                </p>
+                <div className="max-w-lg space-y-2">
+                  {hooks.length === 0 && (
+                    <p className="text-xs text-[#5a4d7a]">No webhooks yet.</p>
+                  )}
+                  {hooks.map((h) => (
+                    <div key={h.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-[var(--color-dark-border)]">
+                      <Webhook className="w-4 h-4 text-slime-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">{h.url}</p>
+                        <p className="text-[10px] text-[#5a4d7a]">
+                          {(h.events.length ? h.events : ["all events"]).join(" · ")}{h.hasSecret ? " · signed" : ""}
+                        </p>
+                      </div>
+                      <button onClick={() => removeWebhook(h.id)} className="text-[#7a6b9d] hover:text-red-400 transition-colors" title="Delete webhook">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="max-w-md space-y-3">
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Payload URL</label>
+                    <input value={hookUrl} onChange={(e) => setHookUrl(e.target.value)} placeholder="https://example.com/hook" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Events</label>
+                    <div className="flex flex-wrap gap-3">
+                      {["push", "issues", "pipelines", "deployments"].map((ev) => (
+                        <label key={ev} className="flex items-center gap-1.5 text-xs text-[#9d8ec2] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={hookEvents.includes(ev)}
+                            onChange={(e) => setHookEvents((p) => e.target.checked ? [...p, ev] : p.filter((x) => x !== ev))}
+                            className="accent-slime-500"
+                          />
+                          {ev}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Secret (optional)</label>
+                    <input type="password" value={hookSecret} onChange={(e) => setHookSecret(e.target.value)} placeholder="Signing secret" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50" />
+                  </div>
+                  <button onClick={addWebhook} disabled={hookBusy || !hookUrl.trim()} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
+                    {hookBusy ? "Adding…" : "Add webhook"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {settingsSection === "integrations" && (
+              <>
+                <h3 className="text-sm font-semibold text-white">Integrations</h3>
+                <p className="text-[11px] text-[#7a6b9d] max-w-md">
+                  Third-party providers connected to this workspace. Repo-to-repo syncing with them is handled under Mirroring.
+                </p>
+                <div className="max-w-md space-y-2">
+                  {intgs.length === 0 && (
+                    <p className="text-xs text-[#5a4d7a]">No integrations connected yet.</p>
+                  )}
+                  {intgs.map((i) => (
+                    <div key={i.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-[var(--color-dark-border)]">
+                      <Plug className="w-4 h-4 text-slime-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white capitalize">{i.provider}</p>
+                        {i.externalName && <p className="text-[10px] text-[#5a4d7a] truncate">{i.externalName}</p>}
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wider text-slime-300 bg-slime-600/20 px-2 py-0.5 rounded">connected</span>
+                    </div>
+                  ))}
+                </div>
+                <Link href="/integrations" className="inline-flex items-center gap-1.5 text-xs text-slime-300 hover:text-slime-200 transition-colors">
+                  Manage integrations <ExternalLink className="w-3 h-3" />
+                </Link>
+              </>
+            )}
+
+            {settingsSection === "deploy-keys" && (
+              <>
+                <h3 className="text-sm font-semibold text-white">Deploy keys</h3>
+                <p className="text-[11px] text-[#7a6b9d] max-w-md">
+                  SSH keys that grant automated systems access to this repo only. Read-only unless you check "allow push".
+                </p>
+                <div className="max-w-lg space-y-2">
+                  {deployKeys.length === 0 && (
+                    <p className="text-xs text-[#5a4d7a]">No deploy keys yet.</p>
+                  )}
+                  {deployKeys.map((k) => (
+                    <div key={k.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-[var(--color-dark-border)]">
+                      <Key className="w-4 h-4 text-slime-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white">{k.name}</p>
+                        <p className="text-[10px] text-[#5a4d7a] font-mono truncate">{k.fingerprint}</p>
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wider text-slime-300 bg-slime-600/20 px-2 py-0.5 rounded">{k.canPush ? "read/write" : "read-only"}</span>
+                      <button onClick={() => removeDeployKey(k.id)} className="text-[#7a6b9d] hover:text-red-400 transition-colors" title="Remove key">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="max-w-md space-y-3">
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Title</label>
+                    <input value={dkName} onChange={(e) => setDkName(e.target.value)} placeholder="e.g. CI server" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none focus:border-slime-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#7a6b9d] mb-1">Public key</label>
+                    <textarea value={dkKey} onChange={(e) => setDkKey(e.target.value)} rows={3} placeholder="ssh-ed25519 AAAA…" className="w-full px-3 py-2 rounded-lg border border-[var(--color-dark-border)] bg-[var(--color-dark-surface)] text-sm text-white placeholder-[#5a4d7a] outline-none resize-none font-mono focus:border-slime-500/50" />
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-[#9d8ec2] cursor-pointer">
+                    <input type="checkbox" checked={dkPush} onChange={(e) => setDkPush(e.target.checked)} className="accent-slime-500" />
+                    Allow push access
+                  </label>
+                  <button onClick={addDeployKey} disabled={dkBusy || !dkName.trim() || !dkKey.trim()} className="slime-btn text-xs py-2 px-4 disabled:opacity-50">
+                    {dkBusy ? "Adding…" : "Add deploy key"}
+                  </button>
+                </div>
               </>
             )}
 

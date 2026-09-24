@@ -135,3 +135,37 @@ export const groups = pgTable("groups", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Repo-scoped collaborators - other accounts (business partners) granted
+// access to this repository with a role.
+export const repoCollaborators = pgTable("repo_collaborators", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  repoId: integer("repo_id").references(() => repositories.id).notNull(),
+  accountId: uuid("account_id").references(() => accounts.id).notNull(),
+  role: varchar("role", { length: 20 }).default("write").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Repo webhooks - fired on repo events (push for now). Secret signs the
+// payload as X-Puffbase-Signature (HMAC-SHA256) when set.
+export const repoWebhooks = pgTable("repo_webhooks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  repoId: integer("repo_id").references(() => repositories.id).notNull(),
+  url: varchar("url", { length: 500 }).notNull(),
+  secret: varchar("secret", { length: 255 }),
+  events: jsonb("events").$type<string[]>().notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Deploy keys - repo-scoped public keys for automated clones. can_push=read
+// only (the default); true = write access for CI bots.
+export const repoDeployKeys = pgTable("repo_deploy_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  repoId: integer("repo_id").references(() => repositories.id).notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  publicKey: text("public_key").notNull(),
+  fingerprint: varchar("fingerprint", { length: 80 }).notNull(),
+  canPush: boolean("can_push").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

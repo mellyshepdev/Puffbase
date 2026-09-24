@@ -5,6 +5,7 @@ import { repositories } from "@/db/schema";
 import { requestAccount } from "@/lib/accounts";
 import { hasScope } from "@/lib/pat";
 import { repoRead, repoWrite } from "@/lib/repostore";
+import { fireWebhooks } from "@/lib/webhooks";
 
 async function repoFor(id: string, accountId: string) {
   const [row] = await db
@@ -49,6 +50,14 @@ export async function PUT(
   }
   try {
     await repoWrite(ctx.account.id, row.name, path, { content, sha, message });
+    // Repo webhooks - fire-and-forget, delivery must not slow the write.
+    fireWebhooks(row.id, "push", {
+      repo: { id: row.id, name: row.name },
+      path,
+      message: message ?? null,
+      author: ctx.user.name ?? ctx.user.email ?? null,
+      account: ctx.account.name,
+    }).catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 400 });
