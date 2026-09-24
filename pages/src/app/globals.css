@@ -192,6 +192,13 @@ code, pre, .font-mono {
   z-index: 2;
 }
 
+/* goo sheet is z2 — lift card content (text, links) above it so the font
+ * renders in front of the slime */
+.slime-card.drip-long > * {
+  position: relative;
+  z-index: 3;
+}
+
 .slime-card::before {
   content: '';
   position: absolute;

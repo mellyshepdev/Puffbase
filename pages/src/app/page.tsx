@@ -354,7 +354,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Activity Feed */}
-          <div className="slime-card p-5">
+          <div className="slime-card drip-long p-5">
           <h2 className="text-base font-semibold text-white flex items-center gap-2 mb-4">
             <Activity className="w-4 h-4 text-slime-400" />
             Latest Activity
@@ -442,7 +442,7 @@ export default function DashboardPage() {
       {/* Bottom grid: Pipelines & Issues */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Pipelines */}
-        <div className="slime-card p-5">
+        <div className="slime-card drip-long p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-white flex items-center gap-2">
               <GitPullRequest className="w-4 h-4 text-slime-400" />
@@ -477,7 +477,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Issues */}
-        <div className="slime-card p-5">
+        <div className="slime-card drip-long p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-white flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-slime-400" />
