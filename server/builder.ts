@@ -15,6 +15,19 @@ export function crewConfigured(): boolean {
   return !!CREW_URL;
 }
 
+/** Browser-facing URL for a builder project page. The customer UI lives on
+ *  the user dashboard (BUILDER_UI_URL=https://dash.puff-base.com/builder);
+ *  unset falls back to the hash-routed console page on APP_URL. Used for
+ *  Stripe Checkout return URLs and notification email links. */
+export function builderProjectUrl(projectId: number, query = ""): string {
+  const dash = (process.env.BUILDER_UI_URL ?? "").replace(/\/$/, "");
+  const app = (process.env.APP_URL ?? "").replace(/\/$/, "");
+  const base = dash
+    ? `${dash}/${projectId}`
+    : `${app}/#/builder/${projectId}`;
+  return query ? `${base}?${query}` : base;
+}
+
 /** Submit a job to the crew service and poll until it finishes. The crew
  *  takes minutes on CPU inference, so this is a job API rather than one long
  *  request - a proxy blip mid-generation only costs one poll cycle. */

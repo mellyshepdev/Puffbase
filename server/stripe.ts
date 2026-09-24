@@ -5,9 +5,9 @@
 // Config: STRIPE_SECRET_KEY + APP_URL. Absent key -> builder skips the card
 // step entirely (dev/local).
 import Stripe from "stripe";
+import { builderProjectUrl } from "./builder";
 
 const KEY = process.env.STRIPE_SECRET_KEY ?? "";
-const APP_URL = (process.env.APP_URL ?? "https://puffbase.prime-quality.online").replace(/\/$/, "");
 
 export function stripeConfigured(): boolean {
   return Boolean(KEY);
@@ -26,8 +26,8 @@ export async function createCardSetupSession(
   const session = await stripe.checkout.sessions.create({
     mode: "setup",
     customer_email: email || undefined,
-    success_url: `${APP_URL}/#/builder/${projectId}?card=ok&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL}/#/builder/${projectId}?card=cancelled`,
+    success_url: builderProjectUrl(projectId, "card=ok&session_id={CHECKOUT_SESSION_ID}"),
+    cancel_url: builderProjectUrl(projectId, "card=cancelled"),
     metadata: { projectId: String(projectId) },
   });
   return session.url!;

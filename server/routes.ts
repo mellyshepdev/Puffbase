@@ -33,7 +33,7 @@ import {
   listDocuments,
 } from "./gitspace";
 import { linearConfigured, listLinearIssues } from "./linear";
-import { crewConfigured, generateSite, reviseSite } from "./builder";
+import { crewConfigured, generateSite, reviseSite, builderProjectUrl } from "./builder";
 import { llmConfigured, llmModel } from "./llm";
 import {
   createSubscription,
@@ -786,7 +786,7 @@ export async function registerRoutes(
         sendSiteReady(
           project.email,
           project.name,
-          `${process.env.APP_URL ?? ""}/#/builder/${projectId}`,
+          builderProjectUrl(projectId),
         );
       }
     } catch (error) {

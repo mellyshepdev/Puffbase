@@ -8,6 +8,7 @@
 import * as client from "openid-client";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { timingSafeEqual } from "node:crypto";
 import type { Express, NextFunction, Request, Response } from "express";
 import { trackActivity } from "./usage";
 
@@ -62,6 +63,30 @@ export function sessionMiddleware() {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (req.session.user) return next();
   return res.status(401).json({ error: "Not signed in" });
+}
+
+/** Trusted internal hop: the user dashboard (dash.puff-base.com) proxies
+ *  /api/builder calls server-side and asserts the caller's Keycloak identity
+ *  with a shared secret instead of a session cookie - the dash's own signed
+ *  session is verified there, then forwarded as these headers. Mounted only
+ *  on /api/builder; the asserted user still passes through isAdmin() for any
+ *  admin-gated route, and an unset PUFFBASE_INTERNAL_TOKEN fails closed. */
+export function internalIdentity(req: Request, _res: Response, next: NextFunction) {
+  const token = process.env.PUFFBASE_INTERNAL_TOKEN ?? "";
+  const given = req.get("x-puffbase-internal") ?? "";
+  const sub = req.get("x-puffbase-sub") ?? "";
+  const valid =
+    token.length > 0 &&
+    given.length === token.length &&
+    timingSafeEqual(Buffer.from(given), Buffer.from(token));
+  if (valid && sub) {
+    req.session.user = {
+      sub,
+      email: req.get("x-puffbase-email") || undefined,
+      name: req.get("x-puffbase-name") || undefined,
+    };
+  }
+  next();
 }
 
 /* ------------------------------------------------------------------------- *

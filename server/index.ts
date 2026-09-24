@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "node:http";
-import { sessionMiddleware, registerAuthRoutes, requireAuth } from "./auth";
+import { sessionMiddleware, registerAuthRoutes, requireAuth, internalIdentity } from "./auth";
 import { usageTracker } from "./usage";
 import { storage } from "./storage";
 
@@ -102,6 +102,9 @@ app.use((req, res, next) => {
 
 app.use(sessionMiddleware());
 registerAuthRoutes(app);
+// The user dashboard proxies builder calls with an asserted Keycloak sub
+// instead of a session cookie - establish that identity before requireAuth.
+app.use("/api/builder", internalIdentity);
 // Everything under /api is real data now, not a public demo - gate it behind
 // a session, except the auth routes themselves (login has to be reachable
 // while logged out, obviously).

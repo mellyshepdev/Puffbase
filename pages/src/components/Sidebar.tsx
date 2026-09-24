@@ -33,6 +33,7 @@ const navItems = [
   { href: "/merge-requests", label: "Merge requests", icon: GitMerge },
   { href: "/pipelines", label: "Pipelines", icon: GitPullRequest },
   { href: "/deploy", label: "Deployments", icon: Rocket },
+  { href: "/builder", label: "Site Builder", icon: Sparkles },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/status", label: "Status", icon: Activity },
 ];
@@ -47,6 +48,7 @@ const menuItems = [
   { href: "/repos", label: "Branches", icon: GitBranch },
   { href: "/pipelines", label: "Pipelines", icon: GitPullRequest },
   { href: "/deploy", label: "Deployments", icon: Rocket },
+  { href: "/builder", label: "Site Builder", icon: Sparkles },
   { href: "/editor", label: "Editor", icon: Code2 },
   { href: "/status", label: "Status", icon: Activity },
 ];
