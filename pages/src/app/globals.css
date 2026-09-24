@@ -202,6 +202,9 @@ code, pre, .font-mono {
 .slime-card::before {
   content: '';
   position: absolute;
+  /* z4 — above the goo sheet (z2) and card content (z3) so the shimmer bar
+   * rides over the slime on every card */
+  z-index: 4;
   top: 0;
   left: 0;
   right: 0;
