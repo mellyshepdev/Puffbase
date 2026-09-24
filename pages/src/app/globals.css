@@ -177,17 +177,17 @@ code, pre, .font-mono {
 }
 
 /* Recent Repositories: the login card's slime-long sheet draped over the
- * box's top edge, in FRONT of the content, with a darker-purple overlay
- * layer to correct the raw bright slime colour */
+ * box's top edge, in FRONT of the content, shaded to a darker purple */
 .slime-card.drip-long::after {
   top: 0;
   left: 0;
   right: 0;
   height: auto;
   aspect-ratio: 1536 / 1024;
-  background:
-    linear-gradient(hsl(272 80% 8% / .5), hsl(275 75% 14% / .4)),
-    url("/slime-long.png") no-repeat center top / 100% 100%;
+  background: url("/slime-long.png") no-repeat center top / 100% 100%;
+  /* darker-purple shade via filter — hits only the goo pixels, no dark
+   * rectangle over the sheet's transparent areas */
+  filter: brightness(.6) saturate(1.15);
   opacity: .9;
   z-index: 2;
 }
