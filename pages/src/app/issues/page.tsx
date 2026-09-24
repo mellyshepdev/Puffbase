@@ -185,7 +185,7 @@ function IssuesPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="slime-card p-4 animate-pulse">
+            <div key={i} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-4 animate-pulse`}>
               <div className="h-5 bg-[var(--color-dark-border)] rounded w-2/3 mb-2" />
               <div className="h-3 bg-[var(--color-dark-border)] rounded w-1/3" />
             </div>
@@ -193,10 +193,10 @@ function IssuesPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {issues.map((issue) => {
+          {issues.map((issue, i) => {
             const priority = priorityConfig[issue.priority] || priorityConfig.medium;
             return (
-              <div key={issue.id} className="slime-card p-4 group cursor-pointer">
+              <div key={issue.id} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-4 group cursor-pointer`}>
                 <div className="flex items-start gap-3">
                   <div className={`mt-0.5 flex-shrink-0 ${
                     issue.status === "open" ? "text-green-400" : "text-purple-400"
@@ -258,7 +258,7 @@ function IssuesPage() {
 
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCreateOpen(false)}>
-          <div className="slime-card p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="slime-card drip-sm p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">New issue</h3>
               <button onClick={() => setCreateOpen(false)} className="text-[#5a4d7a] hover:text-white"><X className="w-4 h-4" /></button>

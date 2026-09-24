@@ -93,7 +93,7 @@ export default function SecuritySettings() {
 
   return (
     <div className="space-y-6">
-      <section className="slime-card p-5">
+      <section className="slime-card drip-med p-5">
         <h1 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
           <Shield className="w-4 h-4 text-slime-400" /> Security
         </h1>
@@ -105,7 +105,7 @@ export default function SecuritySettings() {
         </a>
       </section>
 
-      <section className="slime-card p-5">
+      <section className="slime-card drip-sm p-5">
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <KeyRound className="w-4 h-4 text-slime-400" /> SSH keys
         </h2>
@@ -159,7 +159,7 @@ export default function SecuritySettings() {
         </div>
       </section>
 
-      <section className="slime-card p-5 border-red-900/40">
+      <section className="slime-card drip-natural p-5 border-red-900/40">
         <h2 className="text-base font-semibold text-red-400 mb-2">Danger zone</h2>
         <p className="text-xs text-[#7a6b9d] mb-4">
           Deleting this workspace removes its repositories, issues, pipelines, deployments, groups, and integrations. This can&apos;t be undone.

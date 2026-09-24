@@ -144,7 +144,7 @@ function ReposPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="slime-card p-5 animate-pulse">
+            <div key={i} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-5 animate-pulse`}>
               <div className="h-5 bg-[var(--color-dark-border)] rounded w-1/3 mb-3" />
               <div className="h-4 bg-[var(--color-dark-border)] rounded w-2/3 mb-4" />
               <div className="h-3 bg-[var(--color-dark-border)] rounded w-1/2" />
@@ -153,11 +153,11 @@ function ReposPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredRepos.map((repo) => (
+          {filteredRepos.map((repo, i) => (
             <Link
               key={repo.id}
               href={`/repos/${repo.id}`}
-              className="slime-card p-5 group cursor-pointer"
+              className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-5 group cursor-pointer`}
               style={{ overflow: "visible" }}
             >
               <div className="flex items-start justify-between mb-2">

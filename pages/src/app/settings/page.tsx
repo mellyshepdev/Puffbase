@@ -57,7 +57,7 @@ export default function AccountsSettings() {
   }
 
   return (
-    <section className="slime-card p-5">
+    <section className="slime-card drip-med p-5">
       <h1 className="text-lg font-bold text-white mb-1">Accounts</h1>
       <p className="text-xs text-[#7a6b9d] mb-5">
         Personal workspaces are free. Business adds teams, billing, and usage metering.

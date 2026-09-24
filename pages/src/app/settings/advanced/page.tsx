@@ -171,7 +171,7 @@ export default function AdvancedSettings() {
 
   return (
     <div className="space-y-6">
-      <section className="slime-card p-5">
+      <section className="slime-card drip-natural p-5">
         <h1 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-slime-400" /> Advanced
         </h1>
@@ -184,7 +184,7 @@ export default function AdvancedSettings() {
       {note && <p className="text-xs text-[#b6f34c]">{note}</p>}
 
       {/* change your url */}
-      <section className="slime-card p-5">
+      <section className="slime-card drip-med p-5">
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <Link2 className="w-4 h-4 text-slime-400" /> Workspace URL
         </h2>
@@ -203,7 +203,7 @@ export default function AdvancedSettings() {
       </section>
 
       {/* create a sub-business */}
-      <section className="slime-card p-5">
+      <section className="slime-card drip-sm p-5">
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <Building2 className="w-4 h-4 text-slime-400" /> Create a sub-business
         </h2>
@@ -225,7 +225,7 @@ export default function AdvancedSettings() {
       </section>
 
       {/* add a partner */}
-      <section className="slime-card p-5">
+      <section className="slime-card drip-long p-5">
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <Handshake className="w-4 h-4 text-slime-400" /> Add a partner
         </h2>
@@ -259,7 +259,7 @@ export default function AdvancedSettings() {
       </section>
 
       {/* issue board */}
-      <section className="slime-card p-5">
+      <section className="slime-card drip-natural p-5">
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <ListTodo className="w-4 h-4 text-slime-400" /> Issue board
         </h2>
@@ -270,7 +270,7 @@ export default function AdvancedSettings() {
       </section>
 
       {/* business access tokens */}
-      <section className="slime-card p-5">
+      <section className="slime-card drip-med p-5">
         <h2 className="text-base font-semibold text-white mb-1 flex items-center gap-2">
           <Key className="w-4 h-4 text-slime-400" /> Business access tokens
         </h2>
@@ -305,7 +305,7 @@ export default function AdvancedSettings() {
       </section>
 
       {/* delete a business */}
-      <section className="slime-card p-5 border-red-900/40">
+      <section className="slime-card drip-sm p-5 border-red-900/40">
         <h2 className="text-base font-semibold text-red-400 mb-1 flex items-center gap-2">
           <Trash2 className="w-4 h-4" /> Delete this business
         </h2>

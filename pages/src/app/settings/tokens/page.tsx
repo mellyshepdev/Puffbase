@@ -92,7 +92,7 @@ export default function TokenSettings() {
   };
 
   return (
-    <section className="slime-card p-5">
+    <section className="slime-card drip-long p-5">
       <h1 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
         <Key className="w-4 h-4 text-slime-400" /> Developer tokens
       </h1>

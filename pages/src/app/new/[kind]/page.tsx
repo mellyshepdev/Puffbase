@@ -249,7 +249,7 @@ function NewItemPage() {
       </div>
       <p className="text-sm text-[#9d8ec2] mb-8">{cfg.blurb}</p>
 
-      <div className="slime-card p-6 space-y-6">
+      <div className="slime-card drip-long p-6 space-y-6">
         {cfg.fields.filter((f) => !f.show || f.show(values)).map((f) => (
           <div key={f.key}>
             {f.kind !== "checkbox" && (

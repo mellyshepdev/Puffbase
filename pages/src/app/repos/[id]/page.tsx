@@ -569,7 +569,7 @@ function RepoDetail({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {/* Repo header card - overflow visible so the Code clone dropdown isn't clipped */}
-      <div className="slime-card p-5" style={{ overflow: "visible" }}>
+      <div className="slime-card drip-med p-5" style={{ overflow: "visible" }}>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slime-500/30 to-goo-700/30 flex items-center justify-center glow-purple">
@@ -818,7 +818,7 @@ function RepoDetail({ params }: { params: Promise<{ id: string }> }) {
 
       {/* Commits tab */}
       {activeTab === "commits" && (
-        <div className="slime-card p-5">
+        <div className="slime-card drip-sm p-5">
           <div className="space-y-3">
             {[
               { sha: "a3f8d2e", message: repo.lastCommitMessage || "Initial commit", author: "slime_dev", time: repo.lastCommitAt || new Date().toISOString() },

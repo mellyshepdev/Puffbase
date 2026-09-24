@@ -82,15 +82,15 @@ export default function MergeRequestsPage() {
           <Loader2 className="w-4 h-4 animate-spin" /> Loading…
         </div>
       ) : mrs.length === 0 ? (
-        <div className="slime-card p-8 text-center">
+        <div className="slime-card drip-natural p-8 text-center">
           <GitMerge className="w-8 h-8 text-[#5a4d7a] mx-auto mb-3" />
           <p className="text-sm text-[#9d8ec2]">No open merge requests.</p>
           <p className="text-xs text-[#5a4d7a] mt-1">When a repo gets a PR, it shows up here.</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {mrs.map((m) => (
-            <div key={`${m.repo}-${m.number}`} className="slime-card p-4 flex items-center gap-4">
+          {mrs.map((m, i) => (
+            <div key={`${m.repo}-${m.number}`} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-4 flex items-center gap-4`}>
               <GitMerge className="w-4 h-4 text-slime-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-white truncate">
@@ -117,7 +117,7 @@ export default function MergeRequestsPage() {
 
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCreateOpen(false)}>
-          <div className="slime-card p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="slime-card drip-med p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">New merge request</h3>
               <button onClick={() => setCreateOpen(false)} className="text-[#5a4d7a] hover:text-white"><X className="w-4 h-4" /></button>

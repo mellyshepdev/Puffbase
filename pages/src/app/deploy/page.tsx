@@ -147,21 +147,21 @@ export default function DeployPage() {
 
       {/* Overview cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="slime-card p-4">
+        <div className="slime-card drip-natural p-4">
           <div className="flex items-center gap-2 mb-2">
             <Server className="w-4 h-4 text-slime-400" />
             <span className="text-xs text-[#7a6b9d]">Total Deployments</span>
           </div>
           <p className="text-2xl font-bold text-white">{deployments.length}</p>
         </div>
-        <div className="slime-card p-4">
+        <div className="slime-card drip-med p-4">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="w-4 h-4 text-green-400" />
             <span className="text-xs text-[#7a6b9d]">Active</span>
           </div>
           <p className="text-2xl font-bold text-green-400">{activeCount}</p>
         </div>
-        <div className="slime-card p-4">
+        <div className="slime-card drip-sm p-4">
           <div className="flex items-center gap-2 mb-2">
             <Shield className="w-4 h-4 text-blue-400" />
             <span className="text-xs text-[#7a6b9d]">Production</span>
@@ -170,7 +170,7 @@ export default function DeployPage() {
             {deployments.filter((d) => d.environment === "production").length}
           </p>
         </div>
-        <div className="slime-card p-4">
+        <div className="slime-card drip-long p-4">
           <div className="flex items-center gap-2 mb-2">
             <Globe className="w-4 h-4 text-slime-400" />
             <span className="text-xs text-[#7a6b9d]">Custom Domains</span>
@@ -183,7 +183,7 @@ export default function DeployPage() {
 
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setCreateOpen(false)}>
-          <div className="slime-card p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="slime-card drip-med p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">New deployment</h3>
               <button onClick={() => setCreateOpen(false)} className="text-[#5a4d7a] hover:text-white"><X className="w-4 h-4" /></button>
@@ -244,7 +244,7 @@ export default function DeployPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="slime-card p-5 animate-pulse">
+            <div key={i} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-5 animate-pulse`}>
               <div className="h-5 bg-[var(--color-dark-border)] rounded w-1/3 mb-3" />
               <div className="h-3 bg-[var(--color-dark-border)] rounded w-2/3" />
             </div>
@@ -252,10 +252,10 @@ export default function DeployPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {deployments.map((deployment) => {
+          {deployments.map((deployment, i) => {
             const status = statusConfig[deployment.status] || statusConfig.pending;
             return (
-              <div key={deployment.id} className="slime-card p-5 group">
+              <div key={deployment.id} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-5 group`}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">

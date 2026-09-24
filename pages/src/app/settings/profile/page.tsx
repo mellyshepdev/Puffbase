@@ -82,7 +82,7 @@ export default function ProfileSettings() {
   if (!active) return <p className="text-sm text-[#7a6b9d]">No active account.</p>;
 
   return (
-    <section className="slime-card p-5">
+    <section className="slime-card drip-sm p-5">
       <Link
         href="/settings"
         className="inline-flex items-center gap-1.5 text-xs text-[#7a6b9d] hover:text-white transition-colors mb-3"

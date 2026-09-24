@@ -245,11 +245,11 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Import lists */}
-      {(["github", "gitlab"] as const).map((p) => {
+      {(["github", "gitlab"] as const).map((p, i) => {
         const repos = remoteRepos[p];
         if (!repos) return null;
         return (
-          <section key={p} className="slime-card p-5">
+          <section key={p} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-5`}>
             <h2 className="text-base font-semibold text-white mb-3 capitalize">{p} repositories</h2>
             {repos.length === 0 ? (
               <p className="text-sm text-[#7a6b9d]">No repositories found on this account.</p>

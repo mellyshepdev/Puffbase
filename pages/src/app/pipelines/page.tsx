@@ -194,7 +194,7 @@ export default function PipelinesPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="slime-card p-5 animate-pulse">
+            <div key={i} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-5 animate-pulse`}>
               <div className="h-5 bg-[var(--color-dark-border)] rounded w-1/3 mb-3" />
               <div className="h-3 bg-[var(--color-dark-border)] rounded w-1/2" />
             </div>
@@ -202,11 +202,11 @@ export default function PipelinesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {pipelines.map((pipeline) => {
+          {pipelines.map((pipeline, i) => {
             const status = statusConfig[pipeline.status] || statusConfig.pending;
             const isExpanded = expandedId === pipeline.id;
             return (
-              <div key={pipeline.id} className="slime-card overflow-hidden">
+              <div key={pipeline.id} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} overflow-hidden`}>
                 <div
                   className="p-4 flex items-center gap-4 cursor-pointer hover:bg-[var(--color-dark-hover)] transition-colors"
                   onClick={() => setExpandedId(isExpanded ? null : pipeline.id)}

@@ -111,8 +111,8 @@ export default function StatusPage() {
             { label: "Open issues", value: stats.openIssues, icon: CircleDot },
             { label: "Pipelines run", value: stats.totalPipelines, icon: Activity },
             { label: "Deployments live", value: stats.activeDeployments, icon: Rocket },
-          ].map((c) => (
-            <div key={c.label} className="slime-card p-4">
+          ].map((c, i) => (
+            <div key={c.label} className={`slime-card drip-${["natural","med","sm","long"][i % 4]} p-4`}>
               <c.icon className="w-4 h-4 text-slime-400 mb-2" />
               <p className="text-2xl font-bold text-white">{c.value}</p>
               <p className="text-xs text-[#7a6b9d]">{c.label}</p>
@@ -122,7 +122,7 @@ export default function StatusPage() {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <section className="slime-card p-5">
+        <section className="slime-card drip-natural p-5">
           <h2 className="text-base font-semibold text-white mb-4">Recent pipelines</h2>
           {pipelines.length === 0 ? (
             <p className="text-sm text-[#5a4d7a]">No pipelines yet.</p>
@@ -140,7 +140,7 @@ export default function StatusPage() {
           )}
         </section>
 
-        <section className="slime-card p-5">
+        <section className="slime-card drip-natural p-5">
           <h2 className="text-base font-semibold text-white mb-4">Recent deployments</h2>
           {deployments.length === 0 ? (
             <p className="text-sm text-[#5a4d7a]">No deployments yet.</p>

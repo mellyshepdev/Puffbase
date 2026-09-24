@@ -101,12 +101,12 @@ function PlanPage() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {plans.map((p) => {
+        {plans.map((p, i) => {
           const active = plan === p.id || (plan.startsWith("pro") && p.id.startsWith("pro"));
           return (
             <div
               key={p.id}
-              className={`slime-card p-5 flex flex-col ${active ? "border-slime-500/60 ring-1 ring-slime-500/30" : ""}`}
+              className={`slime-card p-5 flex flex-col ${active ? "border-slime-500/60 ring-1 ring-slime-500/30" : ""} drip-${["natural","med","sm","long"][i % 4]}`}
             >
               <p className="text-sm font-bold text-white">{p.label}</p>
               <p className="mt-1">
