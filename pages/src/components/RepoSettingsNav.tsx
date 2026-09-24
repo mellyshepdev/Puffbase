@@ -44,11 +44,11 @@ export function RepoSettingsNav() {
           className={clsx(
             "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all",
             active === section
-              ? "bg-slime-600/20 text-white font-medium border-l-2 border-slime-500"
+              ? "bg-slime-600/20 text-[#b6f34c] font-medium border-l-2 border-slime-500"
               : "text-[#9d8ec2] hover:bg-[var(--color-dark-hover)] hover:text-white",
           )}
         >
-          <Icon className={clsx("w-4 h-4", active === section ? "text-slime-300" : "")} />
+          <Icon className={clsx("w-4 h-4", active === section ? "text-[#b6f34c]" : "")} />
           {label}
         </Link>
       ))}
