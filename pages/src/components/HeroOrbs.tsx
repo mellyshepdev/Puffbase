@@ -177,10 +177,13 @@ export function HeroOrbs() {
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      // green roams + spins; purple holds position, rotates only
+      // green roams + spins; purple holds position, rotates only.
+      // spin rides the horizontal velocity so the ball rolls — the fixed
+      // spin value kept turning the old way after every bounce flip.
+      // vx*4 matches the old 0.016 rate at the 0.004 cruising speed.
       green.x += green.vx;
       green.y += green.vy;
-      green.rot += green.spin;
+      green.rot += green.vx * 4;
       purple.rot += purple.spin;
 
       // purple's spring: it gives when knocked, eases back to its anchor
