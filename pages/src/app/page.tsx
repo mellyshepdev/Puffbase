@@ -354,7 +354,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Activity Feed */}
-          <div className="slime-card drip-long p-5">
+          <div className="slime-card drip-long drip-lower p-5">
           <h2 className="text-base font-semibold text-white flex items-center gap-2 mb-4">
             <Activity className="w-4 h-4 text-slime-400" />
             Latest Activity

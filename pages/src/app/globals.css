@@ -192,6 +192,10 @@ code, pre, .font-mono {
   z-index: 2;
 }
 
+/* narrow-column cards: the -125px hang clips the whole goo band above the
+ * card — pull the sheet down so the slime drapes over the top edge */
+.drip-lower::after { top: -50px; }
+
 /* overflow:visible cards (Code dropdown must escape) — pin the goo sheet to
  * the card box so it can't spill; image still fills it top-down */
 .drip-clip::after {
