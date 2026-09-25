@@ -438,12 +438,18 @@ def _locator_req(method: str, path: str, body: dict | None = None) -> dict:
     return json.loads(urllib.request.urlopen(req, timeout=15).read())
 
 
+class DrainRefused(RuntimeError):
+    """The power drain did not complete cleanly — the job must not run."""
+
+
 def _drain_fleet(job: dict) -> str | None:
     """Ask the locator to stop non-essential containers, wait for the ack.
 
-    Fail-open: a locator outage or slow drain must not wedge the job queue -
-    the gate is an optimization, not a hard dependency. Returns the drain_id
-    so the caller can restore afterwards.
+    FAIL-CLOSED (owner call 2026-09-25): a locator outage, a slow drain, or
+    any failed stop REFUSES the job rather than letting it run on a
+    contested box. Partial stops are rolled back before raising so the
+    fleet is left as found. Returns the drain_id so the caller can restore
+    afterwards.
     """
     drain_id = None
     try:
@@ -464,8 +470,19 @@ def _drain_fleet(job: dict) -> str | None:
             "stopped": state.get("stopped", []),
             "failed": state.get("failed", []),
         }
+        if not state.get("acknowledged"):
+            raise DrainRefused(
+                f"power drain {drain_id} not acknowledged within "
+                f"{DRAIN_ACK_TIMEOUT_S}s")
+        if state.get("failed"):
+            raise DrainRefused(
+                f"power drain {drain_id} failed stops: {state['failed']}")
     except Exception as exc:
         job["drain"] = {"drain_id": drain_id, "error": str(exc)[:200]}
+        _restore_fleet(drain_id)   # roll back whatever did stop
+        if isinstance(exc, DrainRefused):
+            raise
+        raise DrainRefused(f"power drain error: {exc}") from exc
     return drain_id
 
 
@@ -485,7 +502,15 @@ def _worker() -> None:
         if not job:
             continue
         job["status"] = "running"
-        drain_id = _drain_fleet(job) if LOCATOR_URL else None
+        drain_id = None
+        try:
+            drain_id = _drain_fleet(job) if LOCATOR_URL else None
+        except DrainRefused as exc:
+            job.update(status="failed",
+                       error=f"power drain refused: {exc}"[:500],
+                       finished=time.time())
+            _gc_jobs()
+            continue
         try:
             if kind == "generate":
                 crew = generation_crew(
