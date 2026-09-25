@@ -247,7 +247,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, i) => (
           <Link key={card.label} href={card.href} className={`slime-card p-4 group cursor-pointer${i === 0 ? " drip-natural" : i === 1 || i === 3 ? " drip-med" : i === 2 ? " drip-sm" : ""}`}>
             <div className="flex items-center justify-between mb-3">
