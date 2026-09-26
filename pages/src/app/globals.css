@@ -177,9 +177,13 @@ code, pre, .font-mono {
 }
 
 /* Recent Repositories: the login card's slime-long sheet draped over the
- * box's top edge, in FRONT of the content, shaded to a darker purple */
+ * box's top edge, in FRONT of the content, shaded to a darker purple.
+ * translateY anchors the sheet by its own height — the art's goo band
+ * starts ~20% down — so the slime stays flush at the top edge at ANY card
+ * width; the old fixed -125px/-50px tops only aligned at one width and let
+ * the band float below the edge (or clip above it) as the card resized */
 .drip-long::after {
-  top: -125px;
+  top: 0;
   left: 0;
   right: 0;
   height: auto;
@@ -190,11 +194,8 @@ code, pre, .font-mono {
   filter: brightness(.6) saturate(1.15);
   opacity: .9;
   z-index: 2;
+  transform: translateY(-20%);
 }
-
-/* narrow-column cards: the -125px hang clips the whole goo band above the
- * card — pull the sheet down so the slime drapes over the top edge */
-.drip-lower::after { top: -50px; }
 
 /* overflow:visible cards (Code dropdown must escape) — pin the goo sheet to
  * the card box so it can't spill; image still fills it top-down */
