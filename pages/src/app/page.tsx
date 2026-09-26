@@ -279,7 +279,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 -mt-3">
         {/* Recent Repositories */}
         <div className="lg:col-span-2 slime-card drip-long p-5">
           <div className="flex items-center justify-between mb-4">
