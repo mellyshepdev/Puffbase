@@ -584,7 +584,7 @@ footer {
         site generation. Every surface is reachable from one account:
       </p>
       <ul>
-        <li><strong>Forge</strong> — an embedded Gitea at <code>git.puff-base.com</code> hosts your repositories over HTTPS and SSH.</li>
+        <li><strong>Forge</strong> — the Puffbase forge at <code>git.puff-base.com</code> hosts your repositories over HTTPS and SSH.</li>
         <li><strong>Dashboard</strong> — <code>dash.puff-base.com</code> is the day-to-day UI: repositories, issues, merge requests, pipelines, deployments, and the document editor.</li>
         <li><strong>Console</strong> — <code>admin.puff-base.com</code> is the operator surface for services, metrics, and account administration.</li>
         <li><strong>Builder</strong> — describe a site, get a generated preview, revise it in chat, and publish it straight to the edge.</li>
@@ -617,12 +617,12 @@ footer {
     <section id="forge">
       <h2><span class="dot"></span>The forge</h2>
       <p>
-        Repositories live on the embedded Gitea at
+        Repositories live on the Puffbase forge at
         <a href="https://git.puff-base.com"><strong>git.puff-base.com</strong></a>.
       </p>
       <ul>
         <li><strong>Clone / push over HTTPS</strong> — <code>https://git.puff-base.com/&lt;owner&gt;/&lt;repo&gt;.git</code></li>
-        <li><strong>SSH</strong> — port <code>2222</code>, keys managed in your Gitea profile</li>
+        <li><strong>SSH</strong> — port <code>2222</code>, keys managed in your forge profile</li>
         <li><strong>Browse and edit in the dashboard</strong> — the repository pages proxy the forge: file trees, file read/write/delete, and commits all flow through the API without leaving the UI</li>
         <li><strong>Registration is closed</strong> — accounts come from Puffbase SSO, keeping the forge private to the community</li>
       </ul>
@@ -666,8 +666,8 @@ git clone ssh://git@git.puff-base.com:2222/you/project.git</code></pre>
     <section id="pipelines">
       <h2><span class="dot"></span>Pipelines</h2>
       <p>
-        Pipelines are powered by Gitea Actions — the same workflow syntax as
-        GitHub Actions. Push a <code>.gitea/workflows/*.yml</code> file and runs
+        Pipelines use a GitHub-Actions-compatible workflow syntax.
+        Push a <code>.puffbase/workflows/*.yml</code> file and runs
         appear on the dashboard's Pipelines page automatically.
       </p>
       <ul>
@@ -757,7 +757,7 @@ git clone ssh://git@git.puff-base.com:2222/you/project.git</code></pre>
         <tr><td>puff-base.com</td><td>Public landing page and this documentation.</td></tr>
         <tr><td>dash.puff-base.com</td><td>The dashboard — your day-to-day workspace.</td></tr>
         <tr><td>admin.puff-base.com</td><td>The admin console SPA.</td></tr>
-        <tr><td>git.puff-base.com</td><td>The embedded Gitea forge (SSH on port 2222).</td></tr>
+        <tr><td>git.puff-base.com</td><td>The Puffbase forge — git hosting (SSH on port 2222).</td></tr>
         <tr><td>auth.theofficialblacksheepco.com</td><td>Keycloak SSO — the puffbase realm.</td></tr>
       </table>
     </section>

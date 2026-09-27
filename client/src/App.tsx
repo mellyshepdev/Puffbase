@@ -31,7 +31,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   "/builder": { title: "Site Builder", subtitle: "survey · generate · publish" },
   "/documents": { title: "Documents", subtitle: "your private file space" },
   "/account": { title: "Account", subtitle: "profile · sites · billing" },
-  "/repositories": { title: "Repositories", subtitle: "live from Gitea" },
+  "/repositories": { title: "Repositories", subtitle: "live from the forge" },
   "/analytics": { title: "Analytics", subtitle: "traffic · latency · errors" },
   "/settings": { title: "Settings", subtitle: "workspace configuration" },
 };

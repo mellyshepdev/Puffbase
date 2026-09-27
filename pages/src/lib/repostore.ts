@@ -199,14 +199,14 @@ export async function repoIsMirror(accountId: string, name: string): Promise<boo
   return r.mirror === true;
 }
 
-/** Ask the daemon to pull a native mirror's remote now (gitea >=1.21). */
+/** Ask the daemon to pull a native mirror's remote now (engine >=1.21). */
 export async function syncMirror(accountId: string, name: string): Promise<void> {
   const repo = physical(accountId, name);
   if (!repo) throw new Error("invalid repo name");
   await storeFetch(accountId, `/repos/${await account(accountId)}/${repo}/mirror-sync`, { method: "POST" });
 }
 
-/** Register a push mirror on the daemon repo (best-effort - needs gitea >=1.21). */
+/** Register a push mirror on the daemon repo (best-effort - needs forge engine >=1.21). */
 export async function addPushMirror(
   accountId: string,
   name: string,

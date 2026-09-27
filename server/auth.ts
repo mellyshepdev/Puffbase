@@ -90,9 +90,9 @@ export function internalIdentity(req: Request, _res: Response, next: NextFunctio
 }
 
 /* ------------------------------------------------------------------------- *
- * Admin gate. Puffbase talks to Gitea through one shared instance-admin
+ * Admin gate. Puffbase talks to the forge through one shared instance-admin
  * token, so repo browsing/editing is effectively "act as puffadmin". Until
- * per-user Gitea accounts exist, only allowlisted accounts may touch the
+ * per-user forge accounts exist, only allowlisted accounts may touch the
  * /api/repos* routes - otherwise every sign-in can read and commit to every
  * private repo on the instance. Fail closed: no env list = nobody is admin.
  * ------------------------------------------------------------------------- */

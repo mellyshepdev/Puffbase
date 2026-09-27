@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { GiteaRepo } from "@/lib/data";
+import type { ForgeRepo } from "@/lib/data";
 import { ExternalLink, GitBranch, Lock, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ export default function Repositories() {
         <div>
           <SectionTitle hint={`${data.length} repos`}>Repositories</SectionTitle>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Live from this workspace's Gitea instance - push something to see it show up here.
+            Live from this workspace's forge - push something to see it show up here.
           </p>
         </div>
         <div className="relative">
@@ -53,7 +53,7 @@ export default function Repositories() {
           title={data.length === 0 ? "No repositories yet" : "No repositories match that filter"}
           hint={
             data.length === 0
-              ? "Push a repo to Gitea and it'll show up here."
+              ? "Push a repo to the forge and it'll show up here."
               : "Try a different name."
           }
         />
@@ -68,7 +68,7 @@ export default function Repositories() {
   );
 }
 
-function RepoCard({ repo }: { repo: GiteaRepo }) {
+function RepoCard({ repo }: { repo: ForgeRepo }) {
   return (
     <Card
       data-testid={`card-repo-${repo.id}`}

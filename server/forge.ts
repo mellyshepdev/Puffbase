@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
-// Thin client for the internal git daemon (`puffbase-gitea` on puffnet).
+// Thin client for the internal git daemon (`puffbase-forge` on puffnet).
 // The daemon URL and an "admin" pufftoken come from the OpenBao token
 // exchange - no daemon credential lives in this process.
 // ---------------------------------------------------------------------------
 
 import { puffToken, daemonUrl } from "./bao";
 
-export type GiteaRepo = {
+export type ForgeRepo = {
   id: number;
   name: string;
   fullName: string;
@@ -19,7 +19,7 @@ export type GiteaRepo = {
   forksCount: number;
 };
 
-type GiteaRepoResponse = {
+type ForgeRepoResponse = {
   id: number;
   name: string;
   full_name: string;
@@ -32,15 +32,14 @@ type GiteaRepoResponse = {
   forks_count: number;
 };
 
-/** Gitea's own html_url in API responses reflects whatever Host it saw on
- *  the *request that hit it* - since this server calls it over the internal
- *  puffnet network (GITEA_URL=http://gitea:3000), links come back pointing
- *  at that internal hostname, unusable from a browser. GITEA_PUBLIC_URL (the
- *  real public address, e.g. https://git.prime-quality.online) swaps that
- *  prefix back out before a repo ever reaches the client. Falls back to
- *  GITEA_URL unchanged if GITEA_PUBLIC_URL isn't set. */
+/** The forge's own html_url in API responses reflects whatever Host it saw
+ *  on the *request that hit it* - since this server calls it over the internal
+ *  puffnet network (the daemon URL is the internal hostname), links come back
+ *  pointing at that internal hostname, unusable from a browser.
+ *  FORGE_PUBLIC_URL (the real public address) swaps that prefix back out
+ *  before a repo ever reaches the client. */
 async function toPublicUrl(internalUrl: string): Promise<string> {
-  const publicBase = process.env.GITEA_PUBLIC_URL;
+  const publicBase = process.env.FORGE_PUBLIC_URL;
   if (!publicBase) return internalUrl;
   const internalBase = await daemonUrl();
   return internalUrl.startsWith(internalBase)
@@ -48,7 +47,7 @@ async function toPublicUrl(internalUrl: string): Promise<string> {
     : internalUrl;
 }
 
-async function giteaFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function forgeFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = await daemonUrl();
   const token = await puffToken("admin");
   const res = await fetch(`${baseUrl}${path}`, {
@@ -60,13 +59,13 @@ async function giteaFetch<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
-    throw new Error(`Gitea request failed (${res.status}): ${path}`);
+    throw new Error(`Forge request failed (${res.status}): ${path}`);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
-async function toRepo(r: GiteaRepoResponse): Promise<GiteaRepo> {
+async function toRepo(r: ForgeRepoResponse): Promise<ForgeRepo> {
   return {
     id: r.id,
     name: r.name,
@@ -83,8 +82,8 @@ async function toRepo(r: GiteaRepoResponse): Promise<GiteaRepo> {
 
 /** Every repo the token's user can see. Legitimately empty on a fresh
  *  instance - that's not an error, just nothing pushed yet. */
-export async function listRepos(): Promise<GiteaRepo[]> {
-  const data = await giteaFetch<{ ok: boolean; data: GiteaRepoResponse[] }>(
+export async function listRepos(): Promise<ForgeRepo[]> {
+  const data = await forgeFetch<{ ok: boolean; data: ForgeRepoResponse[] }>(
     "/api/v1/repos/search?limit=50",
   );
   return Promise.all((data.data ?? []).map(toRepo));
@@ -95,8 +94,8 @@ export async function listRepos(): Promise<GiteaRepo[]> {
 export async function createRepo(
   name: string,
   description: string,
-): Promise<GiteaRepo> {
-  const data = await giteaFetch<GiteaRepoResponse>("/api/v1/user/repos", {
+): Promise<ForgeRepo> {
+  const data = await forgeFetch<ForgeRepoResponse>("/api/v1/user/repos", {
     method: "POST",
     body: JSON.stringify({ name, description, private: true, auto_init: true }),
   });
@@ -104,7 +103,7 @@ export async function createRepo(
 }
 
 /* ------------------------------------------------------------------------- *
- * File browsing + editing - backs the console's code editor page. Gitea's
+ * File browsing + editing - backs the console's code editor page. The forge's
  * contents API is the write path; every save is a real commit on the branch.
  * ------------------------------------------------------------------------- */
 
@@ -115,7 +114,7 @@ function encodeFilePath(path: string): string {
 }
 
 async function defaultBranch(owner: string, repo: string): Promise<string> {
-  const r = await giteaFetch<{ default_branch: string }>(
+  const r = await forgeFetch<{ default_branch: string }>(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
   );
   return r.default_branch;
@@ -129,7 +128,7 @@ export async function repoTree(
   ref?: string,
 ): Promise<RepoTreeEntry[]> {
   const branch = ref ?? (await defaultBranch(owner, repo));
-  const data = await giteaFetch<{
+  const data = await forgeFetch<{
     tree: { path: string; type: string; size: number }[];
   }>(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=true`,
@@ -156,7 +155,7 @@ export async function readRepoFile(
   ref?: string,
 ): Promise<RepoFile> {
   const q = ref ? `?ref=${encodeURIComponent(ref)}` : "";
-  const data = await giteaFetch<{
+  const data = await forgeFetch<{
     type: string;
     name: string;
     path: string;
@@ -189,7 +188,7 @@ export async function writeRepoFile(
   };
   // sha present = update existing file (PUT); absent = create (POST)
   if (opts.sha) body.sha = opts.sha;
-  await giteaFetch(
+  await forgeFetch(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeFilePath(path)}`,
     { method: opts.sha ? "PUT" : "POST", body: JSON.stringify(body) },
   );
@@ -201,7 +200,7 @@ export async function deleteRepoFile(
   path: string,
   opts: { sha: string; message: string; branch?: string },
 ): Promise<void> {
-  await giteaFetch(
+  await forgeFetch(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeFilePath(path)}`,
     {
       method: "DELETE",

@@ -1,21 +1,21 @@
 #!/bin/bash
-# puffbase merged runtime: node app (PID1) + embedded gitea + sshd.
-# Replicates what the official gitea image's s6 tree does, minus s6 —
-# same /data layout so the existing puffbase_gitea-data volume drops in.
+# puffbase merged runtime: node app (PID1) + embedded forge + sshd.
+# Replicates the upstream forge image's s6 tree, minus s6 — same /data
+# layout so the existing puffbase_forge-data volume drops in.
 set -e
 
 export GITEA_WORK_DIR=/data
-export GITEA_CUSTOM=/data/gitea
+export GITEA_CUSTOM=/data/forge
 export USER=git
 export HOME=/data/git
 
-mkdir -p /data/gitea/conf /data/gitea/log /data/git/.ssh /data/ssh /run/sshd
+mkdir -p /data/forge/conf /data/forge/log /data/git/.ssh /data/ssh /run/sshd
 chown -R git:git /data
 
 # app.ini from GITEA__* env vars (same thing env-to-ini does — refuses root).
-runuser -u git -- /usr/local/bin/gitea config edit-ini --in-place --apply-env || true
+runuser -u git -- /usr/local/bin/forge config edit-ini --in-place --apply-env || true
 
-# git/.ssh permissions + environment file (from official gitea/setup).
+# git/.ssh permissions + environment file (from the upstream setup).
 chmod 700 /data/git/.ssh
 [ -f /data/git/.ssh/authorized_keys ] && chmod 600 /data/git/.ssh/authorized_keys
 if ! grep -q "^GITEA_CUSTOM=$GITEA_CUSTOM$" /data/git/.ssh/environment 2>/dev/null; then
@@ -35,8 +35,8 @@ chown root:root /data/ssh/* 2>/dev/null || true
 chmod 700 /data/ssh
 chmod 600 /data/ssh/* 2>/dev/null || true
 
-# sshd (git-over-ssh on :22, published as :2222) + gitea with a respawn loop.
+# sshd (git-over-ssh on :22, published as :2222) + forge with a respawn loop.
 /usr/sbin/sshd
-( while :; do runuser -u git -- /usr/local/bin/gitea web; sleep 2; done ) &
+( while :; do runuser -u git -- /usr/local/bin/forge web; sleep 2; done ) &
 
 exec "$@"

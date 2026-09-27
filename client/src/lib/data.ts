@@ -35,8 +35,8 @@ export type Dashboard = {
   };
 };
 
-/** A repo from the real Gitea instance (see server/gitea.ts). */
-export type GiteaRepo = {
+/** A repo from the forge (see server/forge.ts). */
+export type ForgeRepo = {
   id: number;
   name: string;
   fullName: string;
@@ -78,7 +78,7 @@ export const useDeployments = () => useApi<Deployment[]>("/api/deployments", [])
 export const useServices = () => useApi<Service[]>("/api/services", []);
 export const useActivity = () => useApi<Activity[]>("/api/activity", []);
 export const useMetrics = () => useApi<Metric[]>("/api/metrics", []);
-export const useRepos = () => useApi<GiteaRepo[]>("/api/repos", []);
+export const useRepos = () => useApi<ForgeRepo[]>("/api/repos", []);
 
 /* -------------------------------------------------------------------------- *
  * Formatters
