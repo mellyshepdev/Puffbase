@@ -498,6 +498,7 @@ code, pre, .font-mono {
 .field { display: block; color: #c3a3ff; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
 .field input { width: 100%; margin-top: 6px; padding: 10px 12px; background: #190f28; border: 1px solid #7e22ce; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
 .field input:focus { border-color: #b6f34c; box-shadow: 0 0 10px rgba(182,243,76,.25); }
+.field input:disabled { opacity: .55; border-color: #4a3766; cursor: default; }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(126,34,206,.2); color: #c3a3ff; font-size: 12px; cursor: pointer; }
 .toggle-row:last-child { border-bottom: none; }
 .toggle-row input { accent-color: #b6f34c; width: 16px; height: 16px; }

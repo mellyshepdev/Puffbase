@@ -26,12 +26,16 @@ export default function ProfileSettings() {
   const [avatar, setAvatar] = useState("sheep-9");
   const [businessUrl, setBusinessUrl] = useState("");
   const [bsPicture, setBsPicture] = useState<string | null>(null);
+  const [me, setMe] = useState<{ username?: string; email?: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((r) => { if (r.user?.picture) setBsPicture(r.user.picture); })
+      .then((r) => {
+        if (r.user?.picture) setBsPicture(r.user.picture);
+        setMe(r.user ?? null);
+      })
       .catch(() => {});
     fetch("/api/accounts")
       .then((r) => r.json())
@@ -97,6 +101,12 @@ export default function ProfileSettings() {
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label className="field">Username
+          <input value={me?.username ?? me?.name ?? ""} readOnly disabled />
+        </label>
+        <label className="field">Email
+          <input value={me?.email ?? ""} readOnly disabled />
+        </label>
         <label className="field">Display name
           <input value={name} onChange={(e) => setName(e.target.value)} />
         </label>

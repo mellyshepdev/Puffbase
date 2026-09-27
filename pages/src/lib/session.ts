@@ -7,6 +7,8 @@ export interface SessionUser {
   sub: string;
   email?: string;
   name?: string;
+  /** Login username (OIDC preferred_username). */
+  username?: string;
   /** Avatar URL from the BlackSheep (OIDC) account, if the IdP sends one. */
   picture?: string;
   /** Active account (personal or business) - see lib/accounts.ts. */
