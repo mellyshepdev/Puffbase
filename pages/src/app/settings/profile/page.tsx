@@ -26,7 +26,7 @@ export default function ProfileSettings() {
   const [avatar, setAvatar] = useState("sheep-9");
   const [businessUrl, setBusinessUrl] = useState("");
   const [bsPicture, setBsPicture] = useState<string | null>(null);
-  const [me, setMe] = useState<{ username?: string; email?: string } | null>(null);
+  const [me, setMe] = useState<{ username?: string; name?: string; email?: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
