@@ -31,6 +31,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       name: accounts.name,
       avatar: accounts.avatar,
       kind: accounts.kind,
+      businessUrl: accounts.businessUrl,
     })
     .from(repoCollaborators)
     .innerJoin(accounts, eq(repoCollaborators.accountId, accounts.id))
@@ -68,7 +69,10 @@ export async function POST(req: NextRequest, { params }: Params) {
       set: { role },
     })
     .returning();
-  return NextResponse.json({ ...created, name: partner.name, avatar: partner.avatar }, { status: 201 });
+  return NextResponse.json(
+    { ...created, name: partner.name, avatar: partner.avatar, kind: partner.kind, businessUrl: partner.businessUrl },
+    { status: 201 },
+  );
 }
 
 // DELETE /api/repos/[id]/collaborators?id=<uuid> - remove a partner

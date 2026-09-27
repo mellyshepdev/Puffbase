@@ -10,6 +10,7 @@ interface Account {
   kind: "personal" | "business";
   name: string;
   avatar: string;
+  businessUrl?: string | null;
 }
 
 export default function AccountsSettings() {
@@ -89,6 +90,11 @@ export default function AccountsSettings() {
             <div className="text-left">
               <strong>{b.name}</strong>
               <p>Business · groups, metered usage, invoices.</p>
+              {b.businessUrl && (
+                <p className="!text-slime-400 truncate">
+                  {b.businessUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                </p>
+              )}
             </div>
             {activeId === b.id && <Check className="w-4 h-4 text-[#b6f34c] ml-auto" />}
           </button>

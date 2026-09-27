@@ -212,7 +212,7 @@ function RepoDetail({ params }: { params: Promise<{ id: string }> }) {
   const [forkError, setForkError] = useState<string | null>(null);
 
   // Repo settings panels
-  interface Collaborator { id: string; name: string; avatar: string | null; role: string; kind: string }
+  interface Collaborator { id: string; name: string; avatar: string | null; role: string; kind: string; businessUrl?: string | null }
   interface Hook { id: string; url: string; events: string[]; enabled: boolean; hasSecret: boolean; createdAt: string }
   interface Integration { id: string; provider: string; externalName: string | null; createdAt: string }
   interface DeployKey { id: string; name: string; fingerprint: string; canPush: boolean; createdAt: string }
@@ -366,7 +366,7 @@ function RepoDetail({ params }: { params: Promise<{ id: string }> }) {
     setCollabBusy(false);
     if (!res.ok) return setSettingsMsg(d.error ?? "Failed to add partner");
     setCollabName("");
-    setCollabs((c) => [...c.filter((x) => x.id !== d.id), { id: d.id, name: d.name, avatar: d.avatar, role: d.role, kind: d.kind ?? "business" }]);
+    setCollabs((c) => [...c.filter((x) => x.id !== d.id), { id: d.id, name: d.name, avatar: d.avatar, role: d.role, kind: d.kind ?? "business", businessUrl: d.businessUrl ?? null }]);
     setSettingsMsg(`Added ${d.name} as a ${d.role} partner`);
   };
 
@@ -909,7 +909,20 @@ function RepoDetail({ params }: { params: Promise<{ id: string }> }) {
                   {collabs.map((c) => (
                     <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-[var(--color-dark-border)]">
                       <img src={avatarSrc(c.avatar)} alt="" className="w-7 h-7 rounded-full object-cover" />
-                      <span className="text-sm text-white flex-1">{c.name}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-white block truncate">{c.name}</span>
+                        {c.businessUrl && (
+                          <a
+                            href={c.businessUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-slime-400 hover:text-slime-300 flex items-center gap-1 truncate"
+                          >
+                            <Globe className="w-3 h-3 shrink-0" />
+                            {c.businessUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                          </a>
+                        )}
+                      </div>
                       <span className="text-[10px] uppercase tracking-wider text-slime-300 bg-slime-600/20 px-2 py-0.5 rounded">{c.role}</span>
                       <button onClick={() => removeCollaborator(c.id)} className="text-[#7a6b9d] hover:text-red-400 transition-colors" title="Remove partner">
                         <X className="w-3.5 h-3.5" />
