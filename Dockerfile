@@ -1,5 +1,10 @@
 # syntax=docker/dockerfile:1
 
+# Forge engine binary lifted from the upstream image (static Go binary —
+# the musl build runs fine on glibc). /usr/local/bin/* there are wrappers;
+# the real binary is /app/gitea/gitea inside it.
+FROM gitea/gitea:latest AS forge-src
+
 # ---- deps (full, incl. devDependencies, for building) ----
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
@@ -38,10 +43,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
-# Forge engine binary lifted from the upstream image (static Go binary —
-# the musl build runs fine on glibc). /usr/local/bin/* there are wrappers;
-# the real binary is /app/gitea/gitea inside it.
-FROM gitea/gitea:latest AS forge-src
 COPY --from=forge-src /app/gitea/gitea /usr/local/bin/forge
 COPY docker/sshd_config /etc/ssh/sshd_config
 COPY docker/entrypoint.sh /entrypoint.sh
