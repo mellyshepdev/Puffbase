@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   Activity as ActivityIcon,
   BarChart3,
+  BookOpen,
   Boxes,
   CircleUser,
   FileCode,
@@ -50,6 +51,7 @@ export const NAV_ITEMS = [
   { title: "Site Builder", url: "/builder", icon: Sparkles },
   { title: "Documents", url: "/documents", icon: FileCode },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Documentation", url: "/docs/", icon: BookOpen, external: true },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;
 
