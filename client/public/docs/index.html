@@ -7,7 +7,7 @@
 <title>Puffbase Docs — Create. Build. Deploy.</title>
 <meta
   name="description"
-  content="Puffbase documentation: the forge, versioned documents, pipelines, edge deployments, the AI site builder, plans, and the API surface."
+  content="Puffbase documentation: the depot, versioned documents, pipelines, edge deployments, the AI site builder, plans, and the API surface."
 />
 
 <style>
@@ -548,7 +548,7 @@ footer {
     <span class="eyebrow">Documentation</span>
     <h1>Everything Puffbase,<br />end to end.</h1>
     <p>
-      Puffbase is open, agentic infrastructure: a git forge, a versioned document
+      Puffbase is open, agentic infrastructure: a git depot, a versioned document
       editor, pipelines, one-click edge deployments, and an AI site builder —
       behind a single sign-on. This page is the map.
     </p>
@@ -561,7 +561,7 @@ footer {
     <div class="toc-links">
       <a href="#overview">Overview</a>
       <a href="#accounts">Accounts &amp; SSO</a>
-      <a href="#forge">The forge</a>
+      <a href="#depot">The depot</a>
       <a href="#dashboard">Dashboard</a>
       <a href="#documents">Documents</a>
       <a href="#pipelines">Pipelines</a>
@@ -584,7 +584,7 @@ footer {
         site generation. Every surface is reachable from one account:
       </p>
       <ul>
-        <li><strong>Forge</strong> — the Puffbase forge at <code>git.puff-base.com</code> hosts your repositories over HTTPS and SSH.</li>
+        <li><strong>Depot</strong> — the Puffbase depot at <code>git.puff-base.com</code> hosts your repositories over HTTPS and SSH.</li>
         <li><strong>Dashboard</strong> — <code>dash.puff-base.com</code> is the day-to-day UI: repositories, issues, merge requests, pipelines, deployments, and the document editor.</li>
         <li><strong>Console</strong> — <code>admin.puff-base.com</code> is the operator surface for services, metrics, and account administration.</li>
         <li><strong>Builder</strong> — describe a site, get a generated preview, revise it in chat, and publish it straight to the edge.</li>
@@ -614,17 +614,17 @@ footer {
       </div>
     </section>
 
-    <section id="forge">
-      <h2><span class="dot"></span>The forge</h2>
+    <section id="depot">
+      <h2><span class="dot"></span>The depot</h2>
       <p>
-        Repositories live on the Puffbase forge at
+        Repositories live on the Puffbase depot at
         <a href="https://git.puff-base.com"><strong>git.puff-base.com</strong></a>.
       </p>
       <ul>
         <li><strong>Clone / push over HTTPS</strong> — <code>https://git.puff-base.com/&lt;owner&gt;/&lt;repo&gt;.git</code></li>
-        <li><strong>SSH</strong> — port <code>2222</code>, keys managed in your forge profile</li>
-        <li><strong>Browse and edit in the dashboard</strong> — the repository pages proxy the forge: file trees, file read/write/delete, and commits all flow through the API without leaving the UI</li>
-        <li><strong>Registration is closed</strong> — accounts come from Puffbase SSO, keeping the forge private to the community</li>
+        <li><strong>SSH</strong> — port <code>2222</code>, keys managed in your depot profile</li>
+        <li><strong>Browse and edit in the dashboard</strong> — the repository pages proxy the depot: file trees, file read/write/delete, and commits all flow through the API without leaving the UI</li>
+        <li><strong>Registration is closed</strong> — accounts come from Puffbase SSO, keeping the depot private to the community</li>
       </ul>
       <pre><code>git clone https://git.puff-base.com/you/project.git
 # or
@@ -638,7 +638,7 @@ git clone ssh://git@git.puff-base.com:2222/you/project.git</code></pre>
         is the main workspace. Everything in the sidebar maps to a real backend:
       </p>
       <div class="card-grid">
-        <div class="mini-card"><div class="k">Repositories</div><div class="v">Your forge repos with browse, edit, and file management.</div></div>
+        <div class="mini-card"><div class="k">Repositories</div><div class="v">Your depot repos with browse, edit, and file management.</div></div>
         <div class="mini-card"><div class="k">Issues &amp; milestones</div><div class="v">Track work with labels, assignees, and milestone grouping.</div></div>
         <div class="mini-card"><div class="k">Merge requests</div><div class="v">Review and land changes across branches.</div></div>
         <div class="mini-card"><div class="k">Pipelines</div><div class="v">CI runs on every push — status at a glance.</div></div>
@@ -757,7 +757,7 @@ git clone ssh://git@git.puff-base.com:2222/you/project.git</code></pre>
         <tr><td>puff-base.com</td><td>Public landing page and this documentation.</td></tr>
         <tr><td>dash.puff-base.com</td><td>The dashboard — your day-to-day workspace.</td></tr>
         <tr><td>admin.puff-base.com</td><td>The admin console SPA.</td></tr>
-        <tr><td>git.puff-base.com</td><td>The Puffbase forge — git hosting (SSH on port 2222).</td></tr>
+        <tr><td>git.puff-base.com</td><td>The Puffbase depot — git hosting (SSH on port 2222).</td></tr>
         <tr><td>auth.theofficialblacksheepco.com</td><td>Keycloak SSO — the puffbase realm.</td></tr>
       </table>
     </section>
@@ -774,7 +774,7 @@ git clone ssh://git@git.puff-base.com:2222/you/project.git</code></pre>
         <tr><td>GET/POST/PATCH/DELETE /api/services</td><td>Registered services and their addresses.</td></tr>
         <tr><td>GET/POST /api/metrics · /api/metrics/summary</td><td>Usage and platform metrics.</td></tr>
         <tr><td>GET/POST /api/activity</td><td>The account activity feed.</td></tr>
-        <tr><td>GET /api/repos · /api/repos/:o/:r/tree · /file</td><td>Forge repo browsing; file read, write, delete (admin).</td></tr>
+        <tr><td>GET /api/repos · /api/repos/:o/:r/tree · /file</td><td>Depot repo browsing; file read, write, delete (admin).</td></tr>
         <tr><td>GET/POST/DELETE /api/documents · /:doc/tree · /:doc/file</td><td>Versioned document spaces.</td></tr>
         <tr><td>GET /api/linear/issues</td><td>Linear issues for the linked workspace.</td></tr>
         <tr><td>GET /api/dashboard</td><td>The aggregated dashboard payload.</td></tr>
@@ -801,7 +801,7 @@ git clone ssh://git@git.puff-base.com:2222/you/project.git</code></pre>
       <a href="https://dash.puff-base.com">Dashboard</a>
       <a href="https://admin.puff-base.com">Console</a>
       <a href="/docs/">Documentation</a>
-      <a href="https://git.puff-base.com">Forge</a>
+      <a href="https://git.puff-base.com">Depot</a>
       <a href="https://dash.puff-base.com/status">Status</a>
     </div>
   </div>

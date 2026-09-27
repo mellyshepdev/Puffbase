@@ -1,19 +1,19 @@
 #!/bin/bash
-# puffbase merged runtime: node app (PID1) + embedded forge + sshd.
-# Replicates the upstream forge image's s6 tree, minus s6 — same /data
-# layout so the existing puffbase_forge-data volume drops in.
+# puffbase merged runtime: node app (PID1) + embedded depot + sshd.
+# Replicates the upstream engine image's s6 tree, minus s6 — same /data
+# layout so the existing puffbase_depot-data volume drops in.
 set -e
 
 export GITEA_WORK_DIR=/data
-export GITEA_CUSTOM=/data/forge
+export GITEA_CUSTOM=/data/depot
 export USER=git
 export HOME=/data/git
 
-mkdir -p /data/forge/conf /data/forge/log /data/git/.ssh /data/ssh /run/sshd
+mkdir -p /data/depot/conf /data/depot/log /data/git/.ssh /data/ssh /run/sshd
 chown -R git:git /data
 
 # app.ini from GITEA__* env vars (same thing env-to-ini does — refuses root).
-runuser -u git -- /usr/local/bin/forge config edit-ini --in-place --apply-env || true
+runuser -u git -- /usr/local/bin/depot config edit-ini --in-place --apply-env || true
 
 # git/.ssh permissions + environment file (from the upstream setup).
 chmod 700 /data/git/.ssh
@@ -35,8 +35,8 @@ chown root:root /data/ssh/* 2>/dev/null || true
 chmod 700 /data/ssh
 chmod 600 /data/ssh/* 2>/dev/null || true
 
-# sshd (git-over-ssh on :22, published as :2222) + forge with a respawn loop.
+# sshd (git-over-ssh on :22, published as :2222) + depot with a respawn loop.
 /usr/sbin/sshd
-( while :; do runuser -u git -- /usr/local/bin/forge web; sleep 2; done ) &
+( while :; do runuser -u git -- /usr/local/bin/depot web; sleep 2; done ) &
 
 exec "$@"

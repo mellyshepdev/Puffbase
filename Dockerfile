@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
-# Forge engine binary lifted from the upstream image (static Go binary —
+# Depot engine binary lifted from the upstream image (static Go binary —
 # the musl build runs fine on glibc). /usr/local/bin/* there are wrappers;
 # the real binary is /app/gitea/gitea inside it.
-FROM gitea/gitea:latest AS forge-src
+FROM gitea/gitea:latest AS depot-src
 
 # ---- deps (full, incl. devDependencies, for building) ----
 FROM node:22-bookworm-slim AS deps
@@ -31,8 +31,8 @@ RUN npm ci --omit=dev
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-# Embedded forge engine: git for repo ops, openssh for git-over-ssh. The
-# node image's uid-1000 `node` user is renamed to `git` — the forge's volume
+# Embedded depot engine: git for repo ops, openssh for git-over-ssh. The
+# node image's uid-1000 `node` user is renamed to `git` — the depot's volume
 # data is already owned by 1000.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git openssh-server ca-certificates \
@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
-COPY --from=forge-src /app/gitea/gitea /usr/local/bin/forge
+COPY --from=depot-src /app/gitea/gitea /usr/local/bin/depot
 COPY docker/sshd_config /etc/ssh/sshd_config
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

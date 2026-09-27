@@ -16,7 +16,7 @@ green theme. It is NOT the admin console:
 | `puffbase.prime-quality.online/console` | admin dashboard (`client/`) | `puffbase` / `puffbase` |
 | **`app.prime-quality.online`** | **this app** | `puffbase-customers` / `slimegit` |
 | `puff.dashboard.prime-quality.online` | editor surface — same app, `/` rewrites to `/editor` | `puffbase-customers` / `slimegit` |
-| `git.prime-quality.online` | Puffbase forge (git host) | `blacksheep` via OIDC |
+| `git.prime-quality.online` | Puffbase depot (git host) | `blacksheep` via OIDC |
 
 Auth: Keycloak OIDC, `puffbase-customers` realm, `slimegit` client.
 Middleware gates every route — unauthenticated requests bounce to

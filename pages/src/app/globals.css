@@ -118,7 +118,7 @@ code, pre, .font-mono {
 }
 
 /* real slime drip clusters under every card's top border — 2-3 medium-size
- * layered slime drips (cropped from the forge admin puffbase-strip art)
+ * layered slime drips (cropped from the depot admin puffbase-strip art)
  * instead of a dense tiled row of tiny ones */
 .slime-card::after,
 .project-card::after,

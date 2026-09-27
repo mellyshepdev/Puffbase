@@ -103,7 +103,7 @@ export async function PATCH(
     }
   }
 
-  // push mirror: register on the daemon (needs forge engine >=1.21); pull mirrors
+  // push mirror: register on the depot (needs depot engine >=1.21); pull mirrors
   // can't be retrofitted via API - only repos imported with mirror:true sync.
   let mirrorNote: string | undefined;
   if (typeof body.mirrorUrl === "string" && body.mirrorUrl.trim() && body.mirrorDirection === "push") {

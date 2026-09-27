@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
-// Thin client for the internal git daemon (`puffbase-forge` on puffnet).
+// Thin client for the internal git daemon (`puffbase-depot` on puffnet).
 // The daemon URL and an "admin" pufftoken come from the OpenBao token
 // exchange - no daemon credential lives in this process.
 // ---------------------------------------------------------------------------
 
 import { puffToken, daemonUrl } from "./bao";
 
-export type ForgeRepo = {
+export type DepotRepo = {
   id: number;
   name: string;
   fullName: string;
@@ -19,7 +19,7 @@ export type ForgeRepo = {
   forksCount: number;
 };
 
-type ForgeRepoResponse = {
+type DepotRepoResponse = {
   id: number;
   name: string;
   full_name: string;
@@ -32,14 +32,14 @@ type ForgeRepoResponse = {
   forks_count: number;
 };
 
-/** The forge's own html_url in API responses reflects whatever Host it saw
+/** The depot's own html_url in API responses reflects whatever Host it saw
  *  on the *request that hit it* - since this server calls it over the internal
  *  puffnet network (the daemon URL is the internal hostname), links come back
  *  pointing at that internal hostname, unusable from a browser.
- *  FORGE_PUBLIC_URL (the real public address) swaps that prefix back out
+ *  DEPOT_PUBLIC_URL (the real public address) swaps that prefix back out
  *  before a repo ever reaches the client. */
 async function toPublicUrl(internalUrl: string): Promise<string> {
-  const publicBase = process.env.FORGE_PUBLIC_URL;
+  const publicBase = process.env.DEPOT_PUBLIC_URL;
   if (!publicBase) return internalUrl;
   const internalBase = await daemonUrl();
   return internalUrl.startsWith(internalBase)
@@ -47,7 +47,7 @@ async function toPublicUrl(internalUrl: string): Promise<string> {
     : internalUrl;
 }
 
-async function forgeFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function depotFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = await daemonUrl();
   const token = await puffToken("admin");
   const res = await fetch(`${baseUrl}${path}`, {
@@ -59,13 +59,13 @@ async function forgeFetch<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
-    throw new Error(`Forge request failed (${res.status}): ${path}`);
+    throw new Error(`Depot request failed (${res.status}): ${path}`);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
-async function toRepo(r: ForgeRepoResponse): Promise<ForgeRepo> {
+async function toRepo(r: DepotRepoResponse): Promise<DepotRepo> {
   return {
     id: r.id,
     name: r.name,
@@ -82,8 +82,8 @@ async function toRepo(r: ForgeRepoResponse): Promise<ForgeRepo> {
 
 /** Every repo the token's user can see. Legitimately empty on a fresh
  *  instance - that's not an error, just nothing pushed yet. */
-export async function listRepos(): Promise<ForgeRepo[]> {
-  const data = await forgeFetch<{ ok: boolean; data: ForgeRepoResponse[] }>(
+export async function listRepos(): Promise<DepotRepo[]> {
+  const data = await depotFetch<{ ok: boolean; data: DepotRepoResponse[] }>(
     "/api/v1/repos/search?limit=50",
   );
   return Promise.all((data.data ?? []).map(toRepo));
@@ -94,8 +94,8 @@ export async function listRepos(): Promise<ForgeRepo[]> {
 export async function createRepo(
   name: string,
   description: string,
-): Promise<ForgeRepo> {
-  const data = await forgeFetch<ForgeRepoResponse>("/api/v1/user/repos", {
+): Promise<DepotRepo> {
+  const data = await depotFetch<DepotRepoResponse>("/api/v1/user/repos", {
     method: "POST",
     body: JSON.stringify({ name, description, private: true, auto_init: true }),
   });
@@ -103,7 +103,7 @@ export async function createRepo(
 }
 
 /* ------------------------------------------------------------------------- *
- * File browsing + editing - backs the console's code editor page. The forge's
+ * File browsing + editing - backs the console's code editor page. The depot's
  * contents API is the write path; every save is a real commit on the branch.
  * ------------------------------------------------------------------------- */
 
@@ -114,7 +114,7 @@ function encodeFilePath(path: string): string {
 }
 
 async function defaultBranch(owner: string, repo: string): Promise<string> {
-  const r = await forgeFetch<{ default_branch: string }>(
+  const r = await depotFetch<{ default_branch: string }>(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
   );
   return r.default_branch;
@@ -128,7 +128,7 @@ export async function repoTree(
   ref?: string,
 ): Promise<RepoTreeEntry[]> {
   const branch = ref ?? (await defaultBranch(owner, repo));
-  const data = await forgeFetch<{
+  const data = await depotFetch<{
     tree: { path: string; type: string; size: number }[];
   }>(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=true`,
@@ -155,7 +155,7 @@ export async function readRepoFile(
   ref?: string,
 ): Promise<RepoFile> {
   const q = ref ? `?ref=${encodeURIComponent(ref)}` : "";
-  const data = await forgeFetch<{
+  const data = await depotFetch<{
     type: string;
     name: string;
     path: string;
@@ -188,7 +188,7 @@ export async function writeRepoFile(
   };
   // sha present = update existing file (PUT); absent = create (POST)
   if (opts.sha) body.sha = opts.sha;
-  await forgeFetch(
+  await depotFetch(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeFilePath(path)}`,
     { method: opts.sha ? "PUT" : "POST", body: JSON.stringify(body) },
   );
@@ -200,7 +200,7 @@ export async function deleteRepoFile(
   path: string,
   opts: { sha: string; message: string; branch?: string },
 ): Promise<void> {
-  await forgeFetch(
+  await depotFetch(
     `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeFilePath(path)}`,
     {
       method: "DELETE",

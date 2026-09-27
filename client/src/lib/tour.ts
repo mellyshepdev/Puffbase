@@ -71,7 +71,7 @@ const STEPS: StepDef[] = [
     selector: '[data-testid="input-filter-repositories"]',
     on: "bottom",
     title: "🌿 Repositories",
-    text: "Your forge repos, proxied in — code, activity, and a jump straight to the repo on the public git host.",
+    text: "Your depot repos, proxied in — code, activity, and a jump straight to the repo on the public git host.",
   },
   {
     id: "builder",

@@ -206,7 +206,7 @@ export async function syncMirror(accountId: string, name: string): Promise<void>
   await storeFetch(accountId, `/repos/${await account(accountId)}/${repo}/mirror-sync`, { method: "POST" });
 }
 
-/** Register a push mirror on the daemon repo (best-effort - needs forge engine >=1.21). */
+/** Register a push mirror on the depot repo (best-effort - needs depot engine >=1.21). */
 export async function addPushMirror(
   accountId: string,
   name: string,

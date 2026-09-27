@@ -21,7 +21,7 @@ import {
   readRepoFile,
   repoTree,
   writeRepoFile,
-} from "./forge";
+} from "./depot";
 import { requireAdmin } from "./auth";
 import {
   createDocument,
@@ -463,15 +463,15 @@ export async function registerRoutes(
     }
   });
 
-  /* ---- repositories: shared puffadmin forge token => admin-only until
-   * per-user forge accounts exist (see requireAdmin in auth.ts) ---- */
+  /* ---- repositories: shared puffadmin depot token => admin-only until
+   * per-user depot accounts exist (see requireAdmin in auth.ts) ---- */
   app.use("/api/repos", requireAdmin);
 
   app.get("/api/repos", async (_req, res) => {
     try {
       return res.json(await listRepos());
     } catch (error) {
-      return res.status(500).json({ error: "Failed to list forge repos" });
+      return res.status(500).json({ error: "Failed to list depot repos" });
     }
   });
 
@@ -718,7 +718,7 @@ export async function registerRoutes(
 
   /* ---- site builder: survey -> generate -> iterate -> publish -> bill ---- */
 
-  const FORGE_OWNER = process.env.FORGE_OWNER ?? "puffadmin";
+  const DEPOT_OWNER = process.env.DEPOT_OWNER ?? "puffadmin";
   const surveySchema = z.record(z.string(), z.string().max(2000));
   const createProjectSchema = z.object({
     name: z.string().min(1).max(200),
@@ -1127,23 +1127,23 @@ export async function registerRoutes(
         `site-${owner.replace(/[^a-z0-9]/g, "").slice(0, 8)}-${id}`;
       await storage.updateBuilderProject(owner, id, { status: "deploying" });
 
-      /** Publish: commit the site to its forge repo and register the edge route.
+      /** Publish: commit the site to its depot repo and register the edge route.
        *  The generated page is served by this app on <subdomain>.<deploy-domain>
-        *  - the forge keeps the versioned copy. */
+        *  - the depot keeps the versioned copy. */
       let repoName = project.repo;
       if (!repoName) {
         repoName = `site-${subdomain}`;
         const repo = await createRepo(repoName, `Puffbase site: ${project.name}`);
-        await writeRepoFile(FORGE_OWNER, repo.name, "index.html", {
+        await writeRepoFile(DEPOT_OWNER, repo.name, "index.html", {
           content: project.html,
           message: `Publish ${project.name}`,
         });
       } else {
         let sha: string | undefined;
         try {
-          sha = (await readRepoFile(FORGE_OWNER, repoName, "index.html")).sha;
+          sha = (await readRepoFile(DEPOT_OWNER, repoName, "index.html")).sha;
         } catch {}
-        await writeRepoFile(FORGE_OWNER, repoName, "index.html", {
+        await writeRepoFile(DEPOT_OWNER, repoName, "index.html", {
           content: project.html,
           message: `Update ${project.name}`,
           sha,
