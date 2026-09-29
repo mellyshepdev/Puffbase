@@ -984,6 +984,9 @@ export async function registerRoutes(
         status: "generating",
       });
       if (project.email) sendSurveyReceived(project.email, project.name);
+      void notify(
+        `PUFFBASE ALERT — purchase: builder card on file for "${project.name}" (plan ${project.plan})`,
+      );
       enqueueGeneration(id, owner, project.plan);
       return res.json(updated);
     } catch {

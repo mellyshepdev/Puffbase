@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { accounts } from "@/db/schema";
 import { verify, sign, SESSION_COOKIE, SessionUser } from "@/lib/session";
 import { verifyPat, PAT_PREFIX } from "@/lib/pat";
+import { notify } from "@/lib/notify";
 
 export type Account = typeof accounts.$inferSelect;
 
@@ -43,6 +44,9 @@ export async function getOrCreateAccounts(
     .insert(accounts)
     .values({ userSub, kind: "personal", name: fallbackName || "Personal" })
     .returning();
+  void notify(
+    `PUFFBASE ALERT — new account created: "${personal.name}" (sub ${userSub.slice(0, 8)}…)`,
+  );
   return [personal];
 }
 

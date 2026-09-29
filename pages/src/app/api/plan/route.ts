@@ -4,6 +4,7 @@ import { accounts } from "@/db/schema";
 import { NextRequest, NextResponse } from "next/server";
 import { currentAccount } from "@/lib/accounts";
 import { stripeConfigured, createCardSetupSession, confirmCardSetup } from "@/lib/stripe";
+import { notify } from "@/lib/notify";
 
 // Membership tiers for a workspace account. Prices mirror the platform's
 // billing model (shared/schema.ts): paid plans are metered through Lago
@@ -64,6 +65,10 @@ export async function POST(req: NextRequest) {
     await db.update(accounts)
       .set({ plan, stripeCustomerId: customerId, updatedAt: new Date() })
       .where(eq(accounts.id, ctx.account.id));
+    void notify(
+      `PUFFBASE ALERT — purchase: ${PLANS[plan].label} ${PLANS[plan].price}${PLANS[plan].period} ` +
+        `for "${ctx.account.name}" (${ctx.user.email ?? ctx.user.sub.slice(0, 8)})`,
+    );
     return NextResponse.json({ ok: true, plan });
   }
 
