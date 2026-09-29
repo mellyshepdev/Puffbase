@@ -6,8 +6,14 @@ import { verify, SESSION_COOKIE } from "@/lib/session";
 // realm (see src/app/api/auth/*). /api/auth/* and Next's own asset routes
 // stay open so the redirect loop itself and static files work while logged out.
 const EDITOR_HOST = "puff.dashboard.prime-quality.online";
+// puff-base.store is the dedicated billing surface: its root goes straight
+// to the membership/plan page instead of the dashboard home.
+const STORE_HOSTS = new Set(["puff-base.store", "www.puff-base.store"]);
 
 export async function middleware(req: NextRequest) {
+  if (STORE_HOSTS.has(req.headers.get("host") ?? "") && req.nextUrl.pathname === "/") {
+    return NextResponse.redirect(new URL("/plan", req.url));
+  }
   const { pathname } = req.nextUrl;
   if (pathname.startsWith("/api/auth/")) return NextResponse.next();
 

@@ -38,6 +38,8 @@ export function appUrl(): string {
 const ALLOWED_HOSTS = new Set([
   "dash.puff-base.com",
   "app.puff-base.com",
+  "puff-base.store",
+  "www.puff-base.store",
   "puff.dashboard.prime-quality.online",
   "puffbase.prime-quality.online",
   "localhost:3500",
