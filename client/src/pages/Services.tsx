@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import type { Service } from "@shared/schema";
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { ExternalLink, Globe2, HardDrive, Search, Server, Signal, Smartphone, Sparkles, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,7 @@ const PRODUCTS = [
     icon: HardDrive,
     body: "Encrypted personal vaults and team sync - billed monthly through your account.",
     cta: "See plans",
-    href: "https://theofficialblacksheepco.com/html/tech-storage.html",
+    href: "https://theofficialblacksheepco.com/html/services.html",
     internal: false,
   },
   {
@@ -38,7 +37,7 @@ const PRODUCTS = [
     icon: Server,
     body: "Deploy-and-monitor nodes with node health metrics and scaling.",
     cta: "See tiers",
-    href: "https://theofficialblacksheepco.com/html/tech-vps.html",
+    href: "https://theofficialblacksheepco.com/html/services.html",
     internal: false,
   },
   {
@@ -46,17 +45,10 @@ const PRODUCTS = [
     icon: Smartphone,
     body: "Apple & Samsung board-level repair - screens, batteries, microsoldering.",
     cta: "Get a quote",
-    href: "https://theofficialblacksheepco.com/html/tech-repair.html",
+    href: "https://theofficialblacksheepco.com/html/services.html",
     internal: false,
   },
 ] as const;
-
-function sparkline(seed: number) {
-  return Array.from({ length: 20 }, (_, i) => ({
-    i,
-    v: 40 + Math.sin((i + seed) / 2.1) * 18 + ((seed * (i + 3)) % 17),
-  }));
-}
 
 export default function Services() {
   const { data, isLoading } = useServices();
@@ -159,7 +151,6 @@ export default function Services() {
 
 function ServiceCard({ service, idx }: { service: Service; idx: number }) {
   const tone = service.health > 85 ? "primary" : service.health > 50 ? "warn" : "bad";
-  const spark = useMemo(() => sparkline(service.id + idx), [service.id, idx]);
 
   return (
     <Card
@@ -191,41 +182,12 @@ function ServiceCard({ service, idx }: { service: Service; idx: number }) {
           <SlimeBar value={service.health} tone={tone} />
         </div>
 
-        <div className="mt-4 h-16">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={spark} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id={`spark-${service.id}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area
-                type="monotone"
-                dataKey="v"
-                stroke="hsl(var(--chart-1))"
-                strokeWidth={1.75}
-                fill={`url(#spark-${service.id})`}
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
           <Metric icon={Signal} label="Requests / 24h" value={compact(service.requests)} />
           <Metric icon={Timer} label="p50 latency" value={`${service.latency}ms`} />
         </div>
 
         <div className="mt-4 flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 flex-1 text-[11px]"
-            data-testid={`button-inspect-${service.id}`}
-          >
-            Inspect
-          </Button>
           <Button
             variant="ghost"
             size="sm"

@@ -49,6 +49,11 @@ export default function Deployments() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/deployments"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+  };
+
   const redeploy = useMutation({
     mutationFn: async (deployment: Deployment) => {
       const res = await apiRequest("PATCH", `/api/deployments/${deployment.id}`, {
@@ -57,8 +62,7 @@ export default function Deployments() {
       return res.json();
     },
     onSuccess: (_data, deployment) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/deployments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      invalidate();
       toast({
         title: "Redeploy started",
         description: `${deployment.name} ${deployment.version} is oozing out again.`,
@@ -69,6 +73,45 @@ export default function Deployments() {
         variant: "destructive",
         title: "Redeploy failed",
         description: `Could not restart ${deployment.name}.`,
+      }),
+  });
+
+  const promote = useMutation({
+    mutationFn: async (deployment: Deployment) => {
+      const res = await apiRequest("PATCH", `/api/deployments/${deployment.id}`, {
+        environment: "production",
+        status: "in-progress",
+      });
+      return res.json();
+    },
+    onSuccess: (_data, deployment) => {
+      invalidate();
+      toast({
+        title: "Promoted",
+        description: `${deployment.name} ${deployment.version} is rolling to production.`,
+      });
+    },
+    onError: (_error, deployment) =>
+      toast({
+        variant: "destructive",
+        title: "Promote failed",
+        description: `Could not promote ${deployment.name}.`,
+      }),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (deployment: Deployment) => {
+      await apiRequest("DELETE", `/api/deployments/${deployment.id}`);
+    },
+    onSuccess: (_data, deployment) => {
+      invalidate();
+      toast({ title: "Deployment deleted", description: deployment.name });
+    },
+    onError: (_error, deployment) =>
+      toast({
+        variant: "destructive",
+        title: "Delete failed",
+        description: `Could not delete ${deployment.name}.`,
       }),
   });
 
@@ -97,8 +140,8 @@ export default function Deployments() {
         <div>
           <SectionTitle hint={`${data.length} total`}>Deployments</SectionTitle>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Every rollout across the vat, newest first. Redeploy or roll back without leaving
-            the page.
+            Every rollout across the vat, newest first. Promote to production or remove a
+            rollout without leaving the page.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -225,19 +268,31 @@ export default function Deployments() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem data-testid={`action-logs-${d.id}`}>
-                              View build logs
-                            </DropdownMenuItem>
-                            <DropdownMenuItem data-testid={`action-rollback-${d.id}`}>
-                              Roll back one version
-                            </DropdownMenuItem>
-                            <DropdownMenuItem data-testid={`action-promote-${d.id}`}>
-                              Promote to production
-                            </DropdownMenuItem>
+                            {d.environment !== "production" && (
+                              <DropdownMenuItem
+                                data-testid={`action-promote-${d.id}`}
+                                disabled={promote.isPending}
+                                onSelect={() => promote.mutate(d)}
+                              >
+                                Promote to production
+                              </DropdownMenuItem>
+                            )}
+                            {d.url && (
+                              <DropdownMenuItem asChild data-testid={`action-open-${d.id}`}>
+                                <a href={d.url} target="_blank" rel="noreferrer">
+                                  Open live site
+                                </a>
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive dark:text-red-400"
                               data-testid={`action-delete-${d.id}`}
+                              disabled={remove.isPending}
+                              onSelect={() => {
+                                if (confirm(`Delete deployment "${d.name}" ${d.version}?`))
+                                  remove.mutate(d);
+                              }}
                             >
                               <Trash2 className="mr-2 h-3.5 w-3.5" />
                               Delete deployment

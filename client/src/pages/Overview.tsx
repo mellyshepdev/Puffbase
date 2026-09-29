@@ -78,6 +78,16 @@ export default function Overview() {
 
   const activeDeploys = data.recentDeployments.filter((d) => d.status === "deployed").length;
   const services = data.services.items;
+  const envCount = new Set(data.recentDeployments.map((d) => d.environment)).size;
+
+  // Real deltas: last 7 days vs the 7 before that, straight off chartData.
+  const weekDelta = (pick: (p: (typeof data.chartData)[number]) => number | undefined) => {
+    const last = chart.slice(-7).reduce((s, p) => s + (pick(p) ?? 0), 0);
+    const prev = chart.slice(-14, -7).reduce((s, p) => s + (pick(p) ?? 0), 0);
+    return prev > 0 ? ((last - prev) / prev) * 100 : undefined;
+  };
+  const revenueDelta = weekDelta((p) => p.revenue);
+  const callsDelta = weekDelta((p) => p.apiCalls);
 
   return (
     <PageShell>
@@ -103,9 +113,8 @@ export default function Overview() {
         <StatCard
           testId="stat-active-deployments"
           label="Active deployments"
-          value={String(activeDeploys || data.recentDeployments.length)}
-          delta={12.5}
-          hint="across 3 environments"
+          value={String(activeDeploys)}
+          hint={`across ${envCount} environment${envCount === 1 ? "" : "s"}`}
           icon={Rocket}
           loading={isLoading}
           accent={1}
@@ -114,8 +123,8 @@ export default function Overview() {
           testId="stat-monthly-revenue"
           label="Monthly revenue"
           value={money(data.kpis.totalRevenue)}
-          delta={8.4}
-          hint="MRR, net of credits"
+          delta={revenueDelta}
+          hint="recognized this period"
           icon={DollarSign}
           loading={isLoading}
           accent={2}
@@ -124,7 +133,7 @@ export default function Overview() {
           testId="stat-api-calls"
           label="API calls"
           value={compact(data.kpis.totalApiCalls)}
-          delta={23.9}
+          delta={callsDelta}
           hint={`${data.kpis.averageLatency}ms avg latency`}
           icon={Zap}
           loading={isLoading}
@@ -134,7 +143,6 @@ export default function Overview() {
           testId="stat-uptime"
           label="Uptime"
           value={`${data.kpis.uptime.toFixed(3)}%`}
-          delta={-0.4}
           hint={`${data.kpis.totalErrors.toLocaleString()} errors`}
           icon={ShieldCheck}
           loading={isLoading}
@@ -151,9 +159,12 @@ export default function Overview() {
           className="lg:col-span-2"
           bead
           action={
-            <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-primary">
-              +8.4% MoM
-            </span>
+            revenueDelta !== undefined ? (
+              <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-primary">
+                {revenueDelta >= 0 ? "+" : ""}
+                {revenueDelta.toFixed(1)}% vs prior week
+              </span>
+            ) : undefined
           }
         >
           {isLoading ? (

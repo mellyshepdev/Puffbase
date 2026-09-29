@@ -1185,10 +1185,7 @@ export async function registerRoutes(
       const project = await storage.getBuilderProject(owner, id);
       if (!project) return res.status(404).json({ error: "Project not found" });
 
-      const sessionUrl = await createCardSetupSession({
-        projectId: project.id,
-        email: project.email,
-      });
+      const sessionUrl = await createCardSetupSession(project.id, project.email);
 
       if (!sessionUrl) {
         return res.status(500).json({ error: "Failed to create setup session" });

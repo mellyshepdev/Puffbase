@@ -5,6 +5,7 @@ import {
   BookOpen,
   Boxes,
   CircleUser,
+  CreditCard,
   FileCode,
   GitBranch,
   LayoutDashboard,
@@ -35,8 +36,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PuffbaseLogo } from "@/components/PuffbaseLogo";
-import { SlimeBar } from "@/components/kit";
 import { useAuth, logoutUrl } from "@/lib/auth";
+import { compact, money, useDashboard } from "@/lib/data";
 import oozeSidebar from "@/assets/ooze-sidebar.webp";
 import oozeRail from "@/assets/ooze-drip-rail.webp";
 
@@ -51,6 +52,7 @@ export const NAV_ITEMS = [
   { title: "Site Builder", url: "/builder", icon: Sparkles },
   { title: "Documents", url: "/documents", icon: FileCode },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Billing", url: "/payment", icon: CreditCard },
   { title: "Documentation", url: "/docs/", icon: BookOpen, external: true },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;
@@ -142,12 +144,10 @@ export function AppSidebar() {
 
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary/70">
-            Vat capacity
+            Last 30 days
           </SidebarGroupLabel>
-          <SidebarGroupContent className="space-y-3 px-2 pt-1">
-            <UsageRow label="Ooze compute" value={68} detail="6.8 / 10 vCPU" icon={Waves} />
-            <UsageRow label="Bandwidth" value={41} detail="410 GB / 1 TB" icon={ActivityIcon} />
-            <UsageRow label="Build minutes" value={86} detail="4.3k / 5k min" icon={Rocket} tone="warn" />
+          <SidebarGroupContent className="space-y-2.5 px-2 pt-1">
+            <VatStats />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
@@ -159,28 +159,25 @@ export function AppSidebar() {
   );
 }
 
-function UsageRow({
-  label,
-  value,
-  detail,
-  icon: Icon,
-  tone = "primary",
-}: {
-  label: string;
-  value: number;
-  detail: string;
-  icon: typeof Waves;
-  tone?: "primary" | "warn" | "bad";
-}) {
+/* Real platform counters straight off /api/dashboard - no fixed quotas to
+ * fake percentages against, so plain numbers it is. */
+function VatStats() {
+  const { data } = useDashboard();
+  const rows = [
+    { label: "API calls", value: compact(data.kpis.totalApiCalls), icon: ActivityIcon },
+    { label: "Revenue", value: money(data.kpis.totalRevenue), icon: Waves },
+    { label: "Errors", value: data.kpis.totalErrors.toLocaleString(), icon: Rocket },
+    { label: "Uptime", value: `${data.kpis.uptime.toFixed(2)}%`, icon: LayoutDashboard },
+  ];
   return (
-    <div data-testid={`usage-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-      <div className="mb-1.5 flex items-center gap-1.5 text-[11px]">
-        <Icon className="h-3 w-3 text-primary" />
-        <span className="text-sidebar-foreground/85">{label}</span>
-        <span className="ml-auto font-mono text-[10px] text-muted-foreground">{value}%</span>
-      </div>
-      <SlimeBar value={value} tone={tone} className="h-1.5" />
-      <div className="mt-1 font-mono text-[10px] text-muted-foreground">{detail}</div>
+    <div data-testid="sidebar-stats" className="space-y-2.5">
+      {rows.map((r) => (
+        <div key={r.label} className="flex items-center gap-1.5 text-[11px]">
+          <r.icon className="h-3 w-3 text-primary" />
+          <span className="text-sidebar-foreground/85">{r.label}</span>
+          <span className="ml-auto font-mono text-[10px] text-muted-foreground">{r.value}</span>
+        </div>
+      ))}
     </div>
   );
 }
