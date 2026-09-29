@@ -79,7 +79,10 @@ const metricTypes = [
 ] as const;
 
 const deploymentStatusSchema = z
-  .object({ status: z.enum(deploymentStatuses) })
+  .object({
+    status: z.enum(deploymentStatuses),
+    environment: z.enum(deploymentEnvironments).optional(),
+  })
   .strict();
 const createDeploymentSchema = insertDeploymentSchema.extend({
   host: z
@@ -265,6 +268,7 @@ export async function registerRoutes(
         ownerOf(req),
         id,
         parsed.data.status as DeploymentStatus,
+        parsed.data.environment as DeploymentEnvironment | undefined,
       );
       if (!deployment) {
         return res.status(404).json({ error: "Deployment not found" });

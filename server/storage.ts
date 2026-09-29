@@ -74,6 +74,7 @@ export interface IStorage {
     owner: string,
     id: number,
     status: DeploymentStatus,
+    environment?: DeploymentEnvironment,
   ): Promise<Deployment | undefined>;
   deleteDeployment(owner: string, id: number): Promise<boolean>;
 
@@ -201,10 +202,11 @@ export class DatabaseStorage implements IStorage {
     owner: string,
     id: number,
     status: DeploymentStatus,
+    environment?: DeploymentEnvironment,
   ): Promise<Deployment | undefined> {
     const rows = await db
       .update(deployments)
-      .set({ status })
+      .set(environment ? { status, environment } : { status })
       .where(and(eq(deployments.owner, owner), eq(deployments.id, id)))
       .returning();
     return rows[0];
