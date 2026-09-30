@@ -111,6 +111,7 @@ async function runOnce() {
         latency: result.latency,
         region: target.region,
         url: target.url || null,
+        createdAt: new Date().toISOString(),
       })
       .catch((e) => console.error("probe: service upsert failed:", e));
   }

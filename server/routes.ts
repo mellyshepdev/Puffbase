@@ -183,11 +183,11 @@ function buildChartData(metricRows: Metric[], revenueByDay?: Map<string, number>
   // Lago invoices join at the day level - recognized revenue lives in the
   // billing system, not the metrics table.
   if (revenueByDay) {
-    for (const [date, dollars] of revenueByDay) {
+    revenueByDay.forEach((dollars, date) => {
       const point = day(date);
       point.revenue += dollars;
       point.revenueN++;
-    }
+    });
   }
 
   return Array.from(byDay.values())

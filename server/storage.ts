@@ -573,7 +573,7 @@ export class DatabaseStorage implements IStorage {
     if (existing[0]) {
       const rows = await db
         .update(services)
-        .set(service)
+        .set({ ...service, createdAt: existing[0].createdAt })
         .where(eq(services.id, existing[0].id))
         .returning();
       return rows[0];
