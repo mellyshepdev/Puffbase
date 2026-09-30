@@ -104,6 +104,10 @@ app.use((req, res, next) => {
 
 app.use(sessionMiddleware());
 registerAuthRoutes(app);
+// The landing page's chat bubble is public (guests clear site-chat's own OTP
+// gate) - mount before requireAuth. Signed-in visitors get their session
+// identity asserted upstream, so they skip the gate.
+registerChatProxy(app);
 // The user dashboard proxies builder calls with an asserted Keycloak sub
 // instead of a session cookie - establish that identity before requireAuth.
 app.use("/api/builder", internalIdentity);
@@ -117,9 +121,6 @@ app.use("/api", (req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
-  // Site chat bubble -> site-chat on unit4; sits behind requireAuth like the
-  // rest of /api and asserts the session identity upstream.
-  registerChatProxy(app);
   // Real platform/service health for the dashboard - measures the surfaces
   // tenants actually hit and upserts `services` rows on an interval.
   startProbes();
