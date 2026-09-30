@@ -140,6 +140,30 @@ export interface IStorage {
   findBuilderSite(
     subdomain: string,
   ): Promise<{ status: string; html: string | null } | undefined>;
+
+  /* ---- platform-wide reads. Deliberately unscoped like findBuilderSite -
+   *  the admin console's dashboard/services surfaces report on the whole
+   *  fleet, not the admin's own tenant slice. Only mount these behind
+   *  requireAdmin - exposing them per-owner would leak tenant data. ---- */
+  listMetricsAll(startDate?: string, endDate?: string): Promise<Metric[]>;
+  listDeploymentsAll(): Promise<Deployment[]>;
+  listActivityAll(limit?: number): Promise<Activity[]>;
+  listServicesAll(): Promise<Service[]>;
+  /** Idempotent write for the platform prober: keyed by owner+name so a
+   *  repeated probe updates the same row instead of stacking copies. */
+  upsertService(
+    owner: string,
+    name: string,
+    service: InsertService,
+  ): Promise<Service>;
+  /** Every published builder site, every owner - the real tenant
+   *  deployments the admin dashboard counts and the prober health-checks. */
+  listAllLiveProjects(): Promise<
+    Pick<
+      BuilderProject,
+      "id" | "owner" | "name" | "status" | "subdomain" | "url" | "plan" | "updatedAt"
+    >[]
+  >;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -505,6 +529,82 @@ export class DatabaseStorage implements IStorage {
       .where(eq(builderProjects.subdomain, subdomain))
       .limit(1);
     return rows[0];
+  }
+
+  async listMetricsAll(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<Metric[]> {
+    const conditions: SQL[] = [];
+    if (startDate) conditions.push(gte(metrics.timestamp, startDate));
+    if (endDate) conditions.push(lte(metrics.timestamp, endDate));
+    const query = db.select().from(metrics);
+    return (conditions.length ? query.where(and(...conditions)) : query).orderBy(
+      metrics.timestamp,
+    );
+  }
+
+  async listDeploymentsAll(): Promise<Deployment[]> {
+    return db.select().from(deployments).orderBy(desc(deployments.lastDeployed));
+  }
+
+  async listActivityAll(limit = 12): Promise<Activity[]> {
+    return db
+      .select()
+      .from(activity)
+      .orderBy(desc(activity.timestamp))
+      .limit(limit);
+  }
+
+  async listServicesAll(): Promise<Service[]> {
+    return db.select().from(services).orderBy(services.name);
+  }
+
+  async upsertService(
+    owner: string,
+    name: string,
+    service: InsertService,
+  ): Promise<Service> {
+    const existing = await db
+      .select()
+      .from(services)
+      .where(and(eq(services.owner, owner), eq(services.name, name)))
+      .limit(1);
+    if (existing[0]) {
+      const rows = await db
+        .update(services)
+        .set(service)
+        .where(eq(services.id, existing[0].id))
+        .returning();
+      return rows[0];
+    }
+    const rows = await db
+      .insert(services)
+      .values({ ...service, owner })
+      .returning();
+    return rows[0];
+  }
+
+  async listAllLiveProjects(): Promise<
+    Pick<
+      BuilderProject,
+      "id" | "owner" | "name" | "status" | "subdomain" | "url" | "plan" | "updatedAt"
+    >[]
+  > {
+    return db
+      .select({
+        id: builderProjects.id,
+        owner: builderProjects.owner,
+        name: builderProjects.name,
+        status: builderProjects.status,
+        subdomain: builderProjects.subdomain,
+        url: builderProjects.url,
+        plan: builderProjects.plan,
+        updatedAt: builderProjects.updatedAt,
+      })
+      .from(builderProjects)
+      .where(eq(builderProjects.status, "live"))
+      .orderBy(desc(builderProjects.updatedAt));
   }
 }
 

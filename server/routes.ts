@@ -4,7 +4,7 @@ import {
   insertMetricSchema,
   insertServiceSchema,
 } from "@shared/schema";
-import type { Metric } from "@shared/schema";
+import type { Deployment, Metric } from "@shared/schema";
 import type { Express, Request, Response } from "express";
 import type { Server } from "node:http";
 import { z } from "zod";
@@ -39,6 +39,7 @@ import {
   createSubscription,
   ensureCustomer,
   lagoConfigured,
+  revenueSummary,
 } from "./lago";
 import { FREE_MAX_LIVE_SITES } from "./usage";
 import { notify, notifyChannels } from "./notify";
@@ -139,50 +140,101 @@ function summarizeMetrics(metricRows: Metric[], periodDays: number) {
     totalApiCalls: apiCalls.reduce((sum, value) => sum + value, 0),
     totalRevenue: revenue.reduce((sum, value) => sum + value, 0),
     averageLatency: Math.round(average(latency)),
-    uptime: Number((average(uptime) / 100).toFixed(3)),
+    // Percent number (0-100): the KPI card renders it as `${uptime}%`, and
+    // the stored values are already 0-100 request-success rates per window.
+    uptime: Number(average(uptime).toFixed(3)),
     totalErrors: errors.reduce((sum, value) => sum + value, 0),
     periodDays,
   };
 }
 
-function buildChartData(metricRows: Metric[]) {
+/** Per-day chart points across ALL owners. Additive types (calls, errors,
+ *  revenue) sum; rate types (latency, uptime) average over windows. Days
+ *  with no rows for a type leave the key unset so the chart shows a gap
+ *  instead of a fabricated zero. */
+function buildChartData(metricRows: Metric[], revenueByDay?: Map<string, number>) {
   const byDay = new Map<
     string,
     {
       date: string;
-      apiCalls?: number;
-      revenue?: number;
-      latency?: number;
-      errors?: number;
-      uptime?: number;
+      apiCalls: number; apiCallsN: number;
+      revenue: number; revenueN: number;
+      latencySum: number; latencyN: number;
+      errors: number; errorsN: number;
+      uptimeSum: number; uptimeN: number;
     }
   >();
+  const day = (date: string) => {
+    const point =
+      byDay.get(date) ??
+      { date, apiCalls: 0, apiCallsN: 0, revenue: 0, revenueN: 0, latencySum: 0, latencyN: 0, errors: 0, errorsN: 0, uptimeSum: 0, uptimeN: 0 };
+    byDay.set(date, point);
+    return point;
+  };
 
   for (const metric of metricRows) {
-    const date = metric.timestamp.slice(0, 10);
-    const point = byDay.get(date) ?? { date };
-    const keyByType = {
-      api_calls: "apiCalls",
-      revenue: "revenue",
-      latency: "latency",
-      errors: "errors",
-      uptime: "uptime",
-    } as const;
-    const key = keyByType[metric.type];
-    point[key] = metric.type === "uptime" ? metric.value / 100 : metric.value;
-    byDay.set(date, point);
+    const point = day(metric.timestamp.slice(0, 10));
+    if (metric.type === "api_calls") { point.apiCalls += metric.value; point.apiCallsN++; }
+    else if (metric.type === "revenue") { point.revenue += metric.value; point.revenueN++; }
+    else if (metric.type === "errors") { point.errors += metric.value; point.errorsN++; }
+    else if (metric.type === "latency") { point.latencySum += metric.value; point.latencyN++; }
+    else if (metric.type === "uptime") { point.uptimeSum += metric.value; point.uptimeN++; }
+  }
+  // Lago invoices join at the day level - recognized revenue lives in the
+  // billing system, not the metrics table.
+  if (revenueByDay) {
+    for (const [date, dollars] of revenueByDay) {
+      const point = day(date);
+      point.revenue += dollars;
+      point.revenueN++;
+    }
   }
 
-  return Array.from(byDay.values()).sort((a, b) =>
-    a.date.localeCompare(b.date),
-  );
+  return Array.from(byDay.values())
+    .map((point) => ({
+      date: point.date,
+      ...(point.apiCallsN ? { apiCalls: point.apiCalls } : {}),
+      ...(point.revenueN ? { revenue: Math.round(point.revenue * 100) / 100 } : {}),
+      ...(point.errorsN ? { errors: point.errors } : {}),
+      ...(point.latencyN ? { latency: Math.round(point.latencySum / point.latencyN) } : {}),
+      ...(point.uptimeN ? { uptime: Number((point.uptimeSum / point.uptimeN).toFixed(3)) } : {}),
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express,
 ): Promise<Server> {
-  app.get("/api/deployments", async (req, res) => {
+  // Synthetic ids for builder-site rows in platform-wide lists: they share
+  // the Deployment shape but live in builder_projects, so a raw project id
+  // could alias a real puffbase_deployments row and a PATCH/DELETE would hit
+  // the wrong row. The offset keeps them distinct yet valid int4, so any
+  // stray mutation just 404s.
+  const SITE_DEPLOYMENT_ID_OFFSET = 2_000_000_000;
+  const siteToDeployment = (
+    site: Awaited<ReturnType<typeof storage.listAllLiveProjects>>[number],
+  ): Deployment => ({
+    id: SITE_DEPLOYMENT_ID_OFFSET + site.id,
+    owner: site.owner,
+    name: site.name,
+    status: "deployed",
+    environment: "production",
+    version: site.plan ?? "live",
+    serviceId: null,
+    lastDeployed: site.updatedAt,
+    commitSha: null,
+    duration: null,
+    subdomain: site.subdomain,
+    url: site.url,
+    host: null,
+    port: null,
+  });
+
+  /** Platform-wide for the admin console: every tenant's registered
+   *  deployments plus every live builder site. Mutations below stay
+   *  owner-scoped - synthetic site rows only ever render. */
+  app.get("/api/deployments", requireAdmin, async (req, res) => {
     try {
       const { environment } = req.query;
       if (
@@ -193,11 +245,15 @@ export async function registerRoutes(
           environment: `Must be one of: ${deploymentEnvironments.join(", ")}`,
         });
       }
-      const rows = await storage.listDeployments(
-        ownerOf(req),
-        environment as DeploymentEnvironment | undefined,
-      );
-      return res.json(rows);
+      const env = environment as DeploymentEnvironment | undefined;
+      const [rows, liveSites] = await Promise.all([
+        storage.listDeploymentsAll(),
+        storage.listAllLiveProjects(),
+      ]);
+      const all = [...rows, ...liveSites.map(siteToDeployment)]
+        .filter((d) => !env || d.environment === env)
+        .sort((a, b) => b.lastDeployed.localeCompare(a.lastDeployed));
+      return res.json(all);
     } catch (error) {
       return res.status(500).json({ error: "Failed to list deployments" });
     }
@@ -301,9 +357,13 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/services", async (req, res) => {
+  /** The admin console's Services page shows platform health - rows written
+   *  by the prober under owner 'platform' plus any tenant-registered rows.
+   *  Read is platform-wide; mutation stays owner-scoped (system rows aren't
+   *  editable from the console). */
+  app.get("/api/services", requireAdmin, async (_req, res) => {
     try {
-      return res.json(await storage.listServices(ownerOf(req)));
+      return res.json(await storage.listServicesAll());
     } catch (error) {
       return res.status(500).json({ error: "Failed to list services" });
     }
@@ -685,16 +745,27 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard", async (req, res) => {
+  /** Platform-wide admin dashboard. Unlike the per-owner endpoints this is
+   *  requireAdmin-gated and aggregates every tenant: metrics sum/average
+   *  across all owner buckets (the dash streams tenant traffic into the same
+   *  table), deployments include published builder sites, and revenue comes
+   *  from Lago invoices - not the (unused) revenue metric series. */
+  app.get("/api/dashboard", requireAdmin, async (_req, res) => {
     try {
-      const owner = ownerOf(req);
       const startDate = startDateForDays(30);
-      const [metricRows, deploymentRows, activityRows, serviceRows] =
+      const [metricRows, deploymentRows, liveSites, activityRows, serviceRows, revenue] =
         await Promise.all([
-          storage.listMetrics(owner, undefined, startDate, new Date().toISOString()),
-          storage.listDeployments(owner),
-          storage.listActivity(owner, 8),
-          storage.listServices(owner),
+          storage.listMetricsAll(startDate, new Date().toISOString()),
+          storage.listDeploymentsAll(),
+          storage.listAllLiveProjects(),
+          storage.listActivityAll(8),
+          storage.listServicesAll(),
+          lagoConfigured()
+            ? revenueSummary(startDate).catch((e) => {
+                console.error("dashboard revenue fetch failed:", e);
+                return null;
+              })
+            : Promise.resolve(null),
         ]);
       const serviceStatus = serviceRows.reduce(
         (counts, service) => {
@@ -704,11 +775,31 @@ export async function registerRoutes(
         { healthy: 0, degraded: 0, down: 0, idle: 0 },
       );
 
+      // Published builder sites are real tenant deployments; present them in
+      // the Deployment shape so the client counts and lists them alongside
+      // console-registered deployments.
+      const allDeployments = [
+        ...deploymentRows,
+        ...liveSites.map(siteToDeployment),
+      ].sort((a, b) => b.lastDeployed.localeCompare(a.lastDeployed));
+
+      const kpis = summarizeMetrics(metricRows, 30);
+      if (revenue) kpis.totalRevenue = revenue.totalDollars;
+      const activeDeployments = allDeployments.filter(
+        (d) => d.status === "deployed",
+      ).length;
+
       return res.json({
-        kpis: summarizeMetrics(metricRows, 30),
-        recentDeployments: deploymentRows.slice(0, 6),
+        kpis: {
+          ...kpis,
+          activeDeployments,
+          deploymentEnvironments: new Set(
+            allDeployments.map((d) => d.environment),
+          ).size,
+        },
+        recentDeployments: allDeployments.slice(0, 6),
         recentActivity: activityRows,
-        chartData: buildChartData(metricRows),
+        chartData: buildChartData(metricRows, revenue?.byDay),
         services: {
           total: serviceRows.length,
           status: serviceStatus,

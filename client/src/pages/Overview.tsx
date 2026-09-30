@@ -76,9 +76,9 @@ export default function Overview() {
     return rows;
   }, [data.recentDeployments]);
 
-  const activeDeploys = data.recentDeployments.filter((d) => d.status === "deployed").length;
+  const activeDeploys = data.kpis.activeDeployments;
   const services = data.services.items;
-  const envCount = new Set(data.recentDeployments.map((d) => d.environment)).size;
+  const envCount = data.kpis.deploymentEnvironments;
 
   // Real deltas: last 7 days vs the 7 before that, straight off chartData.
   const weekDelta = (pick: (p: (typeof data.chartData)[number]) => number | undefined) => {
@@ -95,8 +95,8 @@ export default function Overview() {
         <div>
           <SectionTitle hint={`last ${data.kpis.periodDays} days`}>Platform Overview</SectionTitle>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Everything oozing through Puffbase right now — deploys, revenue, traffic and the
-            health of every service in the vat.
+            Everything oozing through Puffbase right now — every tenant's deploys, billed
+            revenue, live traffic and the health of each service in the fleet.
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -12,6 +12,10 @@ export type Kpis = {
   uptime: number;
   totalErrors: number;
   periodDays: number;
+  // Real platform-wide counts (server-computed - recentDeployments is only a
+  // preview slice and can't produce a correct total).
+  activeDeployments: number;
+  deploymentEnvironments: number;
 };
 
 export type ChartPoint = {
@@ -50,7 +54,7 @@ export type DepotRepo = {
 };
 
 const emptyDashboard: Dashboard = {
-  kpis: { totalApiCalls: 0, totalRevenue: 0, averageLatency: 0, uptime: 0, totalErrors: 0, periodDays: 30 },
+  kpis: { totalApiCalls: 0, totalRevenue: 0, averageLatency: 0, uptime: 0, totalErrors: 0, periodDays: 30, activeDeployments: 0, deploymentEnvironments: 0 },
   recentDeployments: [],
   recentActivity: [],
   chartData: [],

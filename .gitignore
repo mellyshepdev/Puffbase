@@ -22,3 +22,4 @@ secrets/
 # Python bytecode
 __pycache__/
 *.pyc
+.next*

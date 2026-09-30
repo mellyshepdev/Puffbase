@@ -114,3 +114,46 @@ export async function emitUsageEvent(
     }),
   });
 }
+
+type LagoInvoice = {
+  status: string;
+  payment_status: string | null;
+  issuing_date: string; // 'YYYY-MM-DD' - lexical compare works for ranges
+  total_amount_cents: number;
+  total_paid_amount_cents: number;
+};
+
+/** Recognized revenue = finalized invoices. This is the billing system's
+ *  number, not a metric rollup, so the dashboard's revenue card and chart
+ *  are real even while nobody writes `revenue` rows into `metrics`.
+ *  Returns dollars (client formats USD), per-day for the chart. */
+export async function revenueSummary(startDate: string): Promise<{
+  totalDollars: number;
+  paidDollars: number;
+  byDay: Map<string, number>;
+}> {
+  const startDay = startDate.slice(0, 10);
+  const byDay = new Map<string, number>();
+  let totalCents = 0;
+  let paidCents = 0;
+  // Bounded pagination - 100/page covers years of invoices, and a pathological
+  // history can't stall a dashboard request forever.
+  for (let page = 1; page <= 5; page++) {
+    const data = await lagoFetch<{
+      invoices: LagoInvoice[];
+      meta?: { current_page?: number; total_pages?: number };
+    }>(`/invoices?status=finalized&per_page=100&page=${page}`);
+    for (const inv of data.invoices ?? []) {
+      if (inv.issuing_date < startDay) continue;
+      totalCents += inv.total_amount_cents ?? 0;
+      paidCents += inv.total_paid_amount_cents ?? 0;
+      byDay.set(
+        inv.issuing_date,
+        (byDay.get(inv.issuing_date) ?? 0) + (inv.total_amount_cents ?? 0) / 100,
+      );
+    }
+    const totalPages = data.meta?.total_pages ?? page;
+    if (page >= totalPages) break;
+  }
+  return { totalDollars: totalCents / 100, paidDollars: paidCents / 100, byDay };
+}

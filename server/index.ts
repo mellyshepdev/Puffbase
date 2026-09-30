@@ -6,6 +6,7 @@ import { serveStatic } from "./static";
 import { createServer } from "node:http";
 import { sessionMiddleware, registerAuthRoutes, requireAuth, internalIdentity } from "./auth";
 import { usageTracker } from "./usage";
+import { startProbes } from "./probes";
 import { storage } from "./storage";
 
 const app = express();
@@ -115,6 +116,9 @@ app.use("/api", (req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  // Real platform/service health for the dashboard - measures the surfaces
+  // tenants actually hit and upserts `services` rows on an interval.
+  startProbes();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

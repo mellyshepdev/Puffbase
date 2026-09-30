@@ -8,6 +8,7 @@ import { accounts } from "@/db/schema";
 import { verify, sign, SESSION_COOKIE, SessionUser } from "@/lib/session";
 import { verifyPat, PAT_PREFIX } from "@/lib/pat";
 import { notify } from "@/lib/notify";
+import { trackApiCall } from "@/lib/usage";
 
 export type Account = typeof accounts.$inferSelect;
 
@@ -77,6 +78,7 @@ export async function currentAccount(): Promise<{
   const user = await sessionUser();
   if (!user) return null;
   const list = await getOrCreateAccounts(user.sub, user.name ?? user.email ?? "Personal");
+  trackApiCall(user.sub);
   return { user, account: activeAccount(list, user), scopes: ["*"] };
 }
 
@@ -97,6 +99,7 @@ export async function requestAccount(req: Request): Promise<{
       .from(accounts)
       .where(eq(accounts.id, rec.accountId));
     if (!account) return null;
+    trackApiCall(rec.userSub);
     return {
       user: { sub: rec.userSub, accountId: rec.accountId },
       account,

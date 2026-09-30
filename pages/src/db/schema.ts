@@ -169,3 +169,16 @@ export const repoDeployKeys = pgTable("repo_deploy_keys", {
   canPush: boolean("can_push").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Usage metrics - shared with the express app's schema (shared/schema.ts).
+// The console's tracker writes its own rows; the dash writes api_calls here
+// too (see src/lib/usage.ts) so the admin dashboard's platform-wide rollup
+// counts tenant traffic, not just console sessions. owner = Keycloak sub.
+export const metrics = pgTable("metrics", {
+  id: serial("id").primaryKey(),
+  owner: text("owner").notNull().default(""),
+  type: varchar("type", { length: 20 }).notNull(),
+  value: integer("value").notNull(),
+  timestamp: text("timestamp").notNull(),
+  metadata: text("metadata"),
+});

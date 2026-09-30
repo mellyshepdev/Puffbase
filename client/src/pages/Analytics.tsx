@@ -41,7 +41,7 @@ export default function Analytics() {
         <div>
           <SectionTitle hint={`rolling ${window} days`}>Analytics</SectionTitle>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Traffic, latency percentiles, error budget burn and where in the world the ooze is
+            Tenant-wide traffic, latency, error budget burn and where in the world the ooze is
             flowing.
           </p>
         </div>
@@ -90,7 +90,7 @@ export default function Analytics() {
       <Panel
         testId="panel-api-usage"
         title="API usage"
-        subtitle="Requests per day, all environments"
+        subtitle="Requests per day, every tenant"
         bead
       >
         {isLoading ? (

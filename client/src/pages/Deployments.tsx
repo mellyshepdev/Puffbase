@@ -37,6 +37,7 @@ import {
   StatusPill,
 } from "@/components/kit";
 import { relativeTime, useDeployments } from "@/lib/data";
+import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,6 +46,7 @@ type Filter = (typeof FILTERS)[number];
 
 export default function Deployments() {
   const { data, isLoading } = useDeployments();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -140,8 +142,8 @@ export default function Deployments() {
         <div>
           <SectionTitle hint={`${data.length} total`}>Deployments</SectionTitle>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Every rollout across the vat, newest first. Promote to production or remove a
-            rollout without leaving the page.
+            Every tenant's rollout across the vat, newest first. Your own deployments can
+            be promoted or removed in place; other tenants' rows are read-only.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -200,10 +202,10 @@ export default function Deployments() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  {["Name", "Status", "Environment", "Version", "Last deployed", ""].map((h, i) => (
+                  {["Name", "Tenant", "Status", "Environment", "Version", "Last deployed", ""].map((h, i) => (
                     <TableHead
                       key={h || i}
-                      className={`font-mono text-[10px] uppercase tracking-wider ${i === 0 ? "pl-5" : ""} ${i === 5 ? "pr-5 text-right" : ""}`}
+                      className={`font-mono text-[10px] uppercase tracking-wider ${i === 0 ? "pl-5" : ""} ${i === 6 ? "pr-5 text-right" : ""}`}
                     >
                       {h}
                     </TableHead>
@@ -211,7 +213,9 @@ export default function Deployments() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((d) => (
+                {rows.map((d) => {
+                  const ownRow = !!user && d.owner === user.sub;
+                  return (
                   <TableRow key={d.id} data-testid={`row-deployment-${d.id}`}>
                     <TableCell className="pl-5">
                       <div className="text-xs font-semibold">{d.name}</div>
@@ -225,6 +229,11 @@ export default function Deployments() {
                           </>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-[10px] text-muted-foreground" title={d.owner}>
+                        {ownRow ? "you" : d.owner.slice(0, 8)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <StatusPill status={d.status} />
@@ -244,17 +253,19 @@ export default function Deployments() {
                     </TableCell>
                     <TableCell className="pr-5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-[11px]"
-                          data-testid={`button-redeploy-${d.id}`}
-                          disabled={redeploy.isPending}
-                          onClick={() => redeploy.mutate(d)}
-                        >
-                          <RotateCcw className="mr-1 h-3 w-3" />
-                          Redeploy
-                        </Button>
+                        {ownRow && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[11px]"
+                            data-testid={`button-redeploy-${d.id}`}
+                            disabled={redeploy.isPending}
+                            onClick={() => redeploy.mutate(d)}
+                          >
+                            <RotateCcw className="mr-1 h-3 w-3" />
+                            Redeploy
+                          </Button>
+                        )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -268,7 +279,7 @@ export default function Deployments() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
-                            {d.environment !== "production" && (
+                            {ownRow && d.environment !== "production" && (
                               <DropdownMenuItem
                                 data-testid={`action-promote-${d.id}`}
                                 disabled={promote.isPending}
@@ -284,25 +295,30 @@ export default function Deployments() {
                                 </a>
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive dark:text-red-400"
-                              data-testid={`action-delete-${d.id}`}
-                              disabled={remove.isPending}
-                              onSelect={() => {
-                                if (confirm(`Delete deployment "${d.name}" ${d.version}?`))
-                                  remove.mutate(d);
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-3.5 w-3.5" />
-                              Delete deployment
-                            </DropdownMenuItem>
+                            {ownRow && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive dark:text-red-400"
+                                  data-testid={`action-delete-${d.id}`}
+                                  disabled={remove.isPending}
+                                  onSelect={() => {
+                                    if (confirm(`Delete deployment "${d.name}" ${d.version}?`))
+                                      remove.mutate(d);
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                  Delete deployment
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

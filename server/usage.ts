@@ -73,8 +73,13 @@ export function usageTracker(app: Express) {
     const metered: { owner: string; count: number }[] = [];
 
     buckets.forEach((acc, owner) => {
-      // `uptime` is a percent: summarizeMetrics averages the column /100, so a
-      // live process writes 100 for every window it survives.
+      // `uptime` is a percent: summarizeMetrics averages the column /100.
+      // It's the measured request success rate for the window (1 - 5xx share
+      // of requests), not "the process was alive" - a window that served only
+      // 5xxs reports 0, and a healthy one reports 100.
+      const uptime = acc.latencyN
+        ? Math.round(100 * (1 - acc.errors / acc.latencyN))
+        : 100;
       pending.push(
         { owner, type: "api_calls", value: acc.apiCalls },
         {
@@ -83,7 +88,7 @@ export function usageTracker(app: Express) {
           value: acc.latencyN ? Math.round(acc.latencySum / acc.latencyN) : 0,
         },
         { owner, type: "errors", value: acc.errors },
-        { owner, type: "uptime", value: 100 },
+        { owner, type: "uptime", value: uptime },
       );
       if (acc.apiCalls > 0) metered.push({ owner, count: acc.apiCalls });
     });
