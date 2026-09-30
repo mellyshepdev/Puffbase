@@ -15,7 +15,8 @@ const FLUSH_MS = 60_000;
 const globalStore = globalThis as unknown as {
   __puffbaseUsage?: { buckets: Map<string, number>; timer?: NodeJS.Timeout };
 };
-const store = (globalStore.__puffbaseUsage ??= { buckets: new Map() });
+const store: { buckets: Map<string, number>; timer?: NodeJS.Timeout } =
+  (globalStore.__puffbaseUsage ??= { buckets: new Map() });
 
 /** One authenticated API call by `sub`. Called from requestAccount - every
  *  route handler that resolves an account gets counted, session or PAT. */
