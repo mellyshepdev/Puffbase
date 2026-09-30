@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "node:http";
 import { sessionMiddleware, registerAuthRoutes, requireAuth, internalIdentity } from "./auth";
+import { registerChatProxy } from "./chat";
 import { usageTracker } from "./usage";
 import { startProbes } from "./probes";
 import { storage } from "./storage";
@@ -116,6 +117,9 @@ app.use("/api", (req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  // Site chat bubble -> site-chat on unit4; sits behind requireAuth like the
+  // rest of /api and asserts the session identity upstream.
+  registerChatProxy(app);
   // Real platform/service health for the dashboard - measures the surfaces
   // tenants actually hit and upserts `services` rows on an interval.
   startProbes();

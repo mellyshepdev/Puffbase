@@ -12,6 +12,7 @@ import { AppSidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { OozeOverlay } from "@/components/OozeOverlay";
 import { AuthGate } from "@/components/AuthGate";
+import { ChatWidget } from "@/components/ChatWidget";
 import Overview from "@/pages/Overview";
 import Deployments from "@/pages/Deployments";
 import Services from "@/pages/Services";
@@ -74,6 +75,7 @@ function Shell() {
       </div>
       {/* THE OOZE — fixed, above content, never blocks clicks */}
       <OozeOverlay />
+      <ChatWidget />
     </div>
   );
 }
