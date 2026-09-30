@@ -496,7 +496,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/activity", async (req, res) => {
+  /** Platform-wide like /api/dashboard - the console's Activity page is the
+   *  fleet event feed, not one tenant's slice. Writes below stay owner-scoped. */
+  app.get("/api/activity", requireAdmin, async (req, res) => {
     const limit =
       req.query.limit === undefined
         ? 12
@@ -508,7 +510,7 @@ export async function registerRoutes(
     }
 
     try {
-      return res.json(await storage.listActivity(ownerOf(req), limit));
+      return res.json(await storage.listActivityAll(limit));
     } catch (error) {
       return res.status(500).json({ error: "Failed to list activity" });
     }
