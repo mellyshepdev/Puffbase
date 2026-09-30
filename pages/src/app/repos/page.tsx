@@ -153,11 +153,11 @@ function ReposPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredRepos.map((repo) => (
+          {filteredRepos.map((repo, i) => (
             <Link
               key={repo.id}
               href={`/repos/${repo.id}`}
-              className="slime-card p-5 group cursor-pointer"
+              className={`slime-card drip-clip drip-${["natural","med","sm","long"][i % 4]} p-5 group cursor-pointer`}
               style={{ overflow: "visible" }}
             >
               <div className="flex items-start justify-between mb-2">

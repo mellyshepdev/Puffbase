@@ -206,6 +206,17 @@ code, pre, .font-mono {
   transform: none;
 }
 
+/* the sheets are authored top-anchored at natural proportions — letting
+ * drip-clip stretch them 100% 100% over the whole card squashes the art
+ * into a blurry smear. Keep natural width-locked sizing pinned to the
+ * top edge so clipped cards look like the dashboard stat cards. */
+.drip-clip.drip-natural::after,
+.drip-clip.drip-sm::after,
+.drip-clip.drip-long::after {
+  background-position: center top;
+  background-size: 100% auto;
+}
+
 /* goo sheet is z2 — lift card content (text, links) above it so the font
  * renders in front of the slime */
 .drip-natural > *, .drip-med > *, .drip-sm > *, .drip-long > * {
