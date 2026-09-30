@@ -213,27 +213,6 @@ code, pre, .font-mono {
   z-index: 3;
 }
 
-/* small cards (repo project-cards, /repos list + detail) — a whole-card
- * goo sheet smears under the text and reads as blurry; keep the slime as
- * a top-edge band at natural proportions. Big stat/section cards keep
- * the full stretched drape. */
-.project-card::after,
-.slime-card.drip-clip::after {
-  bottom: auto;
-  height: 54px;
-  aspect-ratio: auto;
-  transform: none;
-}
-.project-card.drip-natural::after,
-.project-card.drip-sm::after,
-.project-card.drip-long::after,
-.slime-card.drip-clip.drip-natural::after,
-.slime-card.drip-clip.drip-sm::after,
-.slime-card.drip-clip.drip-long::after {
-  background-position: center top;
-  background-size: 100% auto;
-}
-
 .slime-card::before {
   content: '';
   position: absolute;

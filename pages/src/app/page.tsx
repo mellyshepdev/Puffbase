@@ -292,8 +292,8 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="project-grid">
-            {repos.map((repo, i) => (
-              <article className={`project-card drip-${["natural","med","sm","long"][i % 4]}`} key={repo.id}>
+            {repos.map((repo) => (
+              <article className="project-card" key={repo.id}>
                 <div className="project-card-top">
                   <div className="large-favicon">{repo.name.slice(0, 2).toUpperCase()}</div>
                   <div className="relative">
