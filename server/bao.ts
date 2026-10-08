@@ -54,6 +54,9 @@ async function daemonCred(): Promise<DaemonCred> {
   if (credCache && Date.now() - credCache.at < 5 * 60_000) return credCache.cred;
   const data = await baoRead("puffbase/git");
   const cred = { token: String(data.token ?? ""), user: String(data.user ?? ""), url: String(data.url ?? "") };
+  // DEPOT_INTERNAL_URL overrides the stored daemon URL - the engine runs
+  // embedded on the depot alias; the stored value still names retired "gitea".
+  if (process.env.DEPOT_INTERNAL_URL) cred.url = process.env.DEPOT_INTERNAL_URL.replace(/\/$/, "");
   if (!cred.token || !cred.user || !cred.url) {
     throw new BaoError("puffbase/git is missing token/user/url fields");
   }
@@ -91,10 +94,12 @@ export async function puffToken(key: string): Promise<string> {
         visibility: "private",
       }),
     });
-    if (!mkUser.ok && mkUser.status !== 422) {
+    // 422 (unprocessable) and 409 (conflict) both mean "user exists" across
+    // engine versions - fall through to the credential reset path.
+    if (!mkUser.ok && mkUser.status !== 422 && mkUser.status !== 409) {
       throw new BaoError(`daemon user create failed (${mkUser.status}) for ${username}`);
     }
-    if (mkUser.status === 422) {
+    if (mkUser.status === 422 || mkUser.status === 409) {
       const reset = await fetch(`${cred.url}/api/v1/admin/users/${username}`, {
         method: "PATCH",
         headers: admin,
@@ -129,5 +134,9 @@ export async function puffToken(key: string): Promise<string> {
 }
 
 export async function daemonUrl(): Promise<string> {
+  // DEPOT_INTERNAL_URL wins when set - the engine runs embedded on the depot
+  // network alias, and the stored value still names the retired gitea host.
+  const env = process.env.DEPOT_INTERNAL_URL;
+  if (env) return env.replace(/\/$/, "");
   return (await daemonCred()).url.replace(/\/$/, "");
 }

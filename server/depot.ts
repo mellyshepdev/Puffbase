@@ -212,3 +212,93 @@ export async function deleteRepoFile(
     },
   );
 }
+
+/* ------------------------------------------------------------------------- *
+ * Read paths for the public repo browser (server/repo-pages.ts). The same
+ * shared admin token backs these; privacy is enforced in repo-pages by
+ * refusing to render anything whose repo row reports private: true.
+ * ------------------------------------------------------------------------- */
+
+/** Single repo; null on 404 so callers can render a clean "not found". */
+export async function getRepo(
+  owner: string,
+  repo: string,
+): Promise<DepotRepo | null> {
+  try {
+    const r = await depotFetch<DepotRepoResponse>(
+      `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+    );
+    return toRepo(r);
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("(404)")) return null;
+    throw e;
+  }
+}
+
+export async function repoBranches(
+  owner: string,
+  repo: string,
+): Promise<string[]> {
+  const data = await depotFetch<{ name: string }[]>(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches?limit=100`,
+  );
+  return (data ?? []).map((b) => b.name);
+}
+
+export type RepoCommit = {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+};
+
+export async function repoCommits(
+  owner: string,
+  repo: string,
+  ref: string,
+  limit = 30,
+): Promise<RepoCommit[]> {
+  const data = await depotFetch<
+    {
+      sha: string;
+      commit?: { message?: string; author?: { name?: string; date?: string } };
+      author?: { login?: string };
+    }[]
+  >(
+    `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?sha=${encodeURIComponent(ref)}&limit=${limit}`,
+  );
+  return (data ?? []).map((c) => ({
+    sha: c.sha,
+    message: c.commit?.message ?? "",
+    author: c.commit?.author?.name ?? c.author?.login ?? "",
+    date: c.commit?.author?.date ?? "",
+  }));
+}
+
+/** Server-side markdown render via the depot - output is already sanitized
+ *  upstream, so it can be inlined straight into the page. Falls back to a
+ *  plain <pre> when the render call fails. */
+export async function renderMarkdown(
+  markdown: string,
+  context: string,
+): Promise<string> {
+  try {
+    const res = await fetch(`${await daemonUrl()}/api/v1/markdown`, {
+      method: "POST",
+      headers: {
+        Authorization: `token ${await puffToken("admin")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        Text: markdown,
+        Mode: "gfm",
+        Context: context,
+        Wiki: false,
+      }),
+    });
+    if (res.ok) return await res.text();
+  } catch {
+    /* fall through to plain render */
+  }
+  return `<pre>${markdown.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`)}</pre>`;
+}

@@ -2,6 +2,7 @@ import "dotenv/config";
 import express, { Response, NextFunction } from 'express';
 import type { Request } from 'express';
 import { registerRoutes } from "./routes";
+import { registerRepoPages } from "./repo-pages";
 import { serveStatic } from "./static";
 import { createServer } from "node:http";
 import { sessionMiddleware, registerAuthRoutes, requireAuth, internalIdentity } from "./auth";
@@ -121,6 +122,7 @@ app.use("/api", (req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  registerRepoPages(app);
   // Real platform/service health for the dashboard - measures the surfaces
   // tenants actually hit and upserts `services` rows on an interval.
   startProbes();
