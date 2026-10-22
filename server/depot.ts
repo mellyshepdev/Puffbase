@@ -89,6 +89,13 @@ export async function listRepos(): Promise<DepotRepo[]> {
   return Promise.all((data.data ?? []).map(toRepo));
 }
 
+/** The depot login behind the "admin" pufftoken. createRepo files repos under
+ *  this account (acct-admin, not DEPOT_OWNER), so writes must use it too. */
+export async function depotUser(): Promise<string> {
+  const me = await depotFetch<{ login: string }>("/api/v1/user");
+  return me.login;
+}
+
 /** Creates a repo under the token's account (puffadmin). Used by the site
  *  builder to give each published project a real repo. */
 export async function createRepo(

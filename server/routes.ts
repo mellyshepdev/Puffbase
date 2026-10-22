@@ -16,6 +16,7 @@ import {
 } from "./storage";
 import {
   createRepo,
+  depotUser,
   deleteRepoFile,
   listRepos,
   readRepoFile,
@@ -1240,22 +1241,31 @@ export async function registerRoutes(
       /** Publish: commit the site to its depot repo and register the edge route.
        *  The generated page is served by this app on <subdomain>.<deploy-domain>
         *  - the depot keeps the versioned copy. */
+      // project.repo holds "owner/name" since the repo lands under the
+      // pufftoken's own account; older rows hold a bare name under DEPOT_OWNER.
       let repoName = project.repo;
       if (!repoName) {
-        repoName = `site-${subdomain}`;
-        const repo = await createRepo(repoName, `Puffbase site: ${project.name}`);
-        await writeRepoFile(DEPOT_OWNER, repo.name, "index.html", {
-          content: project.html,
-          message: `Publish ${project.name}`,
-        });
-      } else {
+        const repoOwner = await depotUser();
+        const name = `site-${subdomain}`;
+        try {
+          await createRepo(name, `Puffbase site: ${project.name}`);
+        } catch (error) {
+          // 409: a failed earlier publish already created it - reuse it.
+          if (!String(error).includes("(409)")) throw error;
+        }
+        repoName = `${repoOwner}/${name}`;
+      }
+      {
+        const [repoOwner, name] = repoName.includes("/")
+          ? repoName.split("/", 2)
+          : [DEPOT_OWNER, repoName];
         let sha: string | undefined;
         try {
-          sha = (await readRepoFile(DEPOT_OWNER, repoName, "index.html")).sha;
+          sha = (await readRepoFile(repoOwner, name, "index.html")).sha;
         } catch {}
-        await writeRepoFile(DEPOT_OWNER, repoName, "index.html", {
+        await writeRepoFile(repoOwner, name, "index.html", {
           content: project.html,
-          message: `Update ${project.name}`,
+          message: `${sha ? "Update" : "Publish"} ${project.name}`,
           sha,
         });
       }
