@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text } from "drizzle-orm/pg-core";
+import { integer, pgTable, primaryKey, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -190,3 +190,17 @@ export const insertActivitySchema = createInsertSchema(activity, {
 
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activity.$inferSelect;
+
+/** Visitors to published builder sites (server/visits.ts): one row per site
+ *  per UTC day per visitor, where visitor is a day-salted HMAC of IP + UA -
+ *  never a raw IP. uniques = row count, views = sum(views). */
+export const siteVisits = pgTable(
+  "site_visits",
+  {
+    subdomain: text("subdomain").notNull(),
+    day: text("day").notNull(),
+    visitor: text("visitor").notNull(),
+    views: integer("views").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.subdomain, t.day, t.visitor] })],
+);

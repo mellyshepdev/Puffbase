@@ -5,6 +5,7 @@ import {
   deployments,
   metrics,
   services,
+  siteVisits,
   users,
 } from "@shared/schema";
 import type {
@@ -140,6 +141,17 @@ export interface IStorage {
   findBuilderSite(
     subdomain: string,
   ): Promise<{ status: string; html: string | null } | undefined>;
+  /** Creates site_visits if missing - additive, safe on every boot. */
+  ensureSiteVisitsTable(): Promise<void>;
+  /** Adds flushed hits: views accumulate per (site, day, visitor). */
+  addSiteVisits(
+    rows: { subdomain: string; day: string; visitor: string; views: number }[],
+  ): Promise<void>;
+  /** Daily views + unique visitors for one site, oldest day first. */
+  getSiteVisits(
+    subdomain: string,
+    sinceDay: string,
+  ): Promise<{ day: string; views: number; uniques: number }[]>;
 
   /* ---- platform-wide reads. Deliberately unscoped like findBuilderSite -
    *  the admin console's dashboard/services surfaces report on the whole
@@ -529,6 +541,46 @@ export class DatabaseStorage implements IStorage {
       .where(eq(builderProjects.subdomain, subdomain))
       .limit(1);
     return rows[0];
+  }
+
+  async ensureSiteVisitsTable(): Promise<void> {
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS site_visits (
+      subdomain text NOT NULL,
+      day text NOT NULL,
+      visitor text NOT NULL,
+      views integer NOT NULL DEFAULT 0,
+      PRIMARY KEY (subdomain, day, visitor)
+    )`);
+  }
+
+  async addSiteVisits(
+    rows: { subdomain: string; day: string; visitor: string; views: number }[],
+  ): Promise<void> {
+    if (rows.length === 0) return;
+    await db
+      .insert(siteVisits)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: [siteVisits.subdomain, siteVisits.day, siteVisits.visitor],
+        set: { views: sql`${siteVisits.views} + excluded.views` },
+      });
+  }
+
+  async getSiteVisits(
+    subdomain: string,
+    sinceDay: string,
+  ): Promise<{ day: string; views: number; uniques: number }[]> {
+    const rows = await db
+      .select({
+        day: siteVisits.day,
+        views: sql<string>`sum(${siteVisits.views})`,
+        uniques: sql<string>`count(*)`,
+      })
+      .from(siteVisits)
+      .where(and(eq(siteVisits.subdomain, subdomain), gte(siteVisits.day, sinceDay)))
+      .groupBy(siteVisits.day)
+      .orderBy(siteVisits.day);
+    return rows.map((r) => ({ day: r.day, views: Number(r.views), uniques: Number(r.uniques) }));
   }
 
   async listMetricsAll(

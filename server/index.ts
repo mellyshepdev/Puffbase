@@ -8,6 +8,7 @@ import { createServer } from "node:http";
 import { sessionMiddleware, registerAuthRoutes, requireAuth, internalIdentity } from "./auth";
 import { registerChatProxy } from "./chat";
 import { usageTracker } from "./usage";
+import { recordVisit, startVisitFlush, withVisitBeacon } from "./visits";
 import { startProbes } from "./probes";
 import { storage } from "./storage";
 
@@ -88,6 +89,13 @@ app.use((req, res, next) => {
   const host = req.hostname.toLowerCase();
   if (!domain || !host.endsWith(`.${domain}`)) return next();
   const subdomain = host.slice(0, -(domain.length + 1));
+  // Visitor beacon from the served page (server/visits.ts). Counted without
+  // a DB read - a hit for an unknown subdomain just never matches a project.
+  if (req.path === "/_pb/hit") {
+    if (req.method === "POST") recordVisit(req, subdomain);
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(204).end();
+  }
   void storage
     .findBuilderSite(subdomain)
     .then((site) => {
@@ -95,7 +103,7 @@ app.use((req, res, next) => {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       if (site.status === "live" && site.html) {
         res.setHeader("Cache-Control", "public, max-age=60");
-        return res.send(site.html);
+        return res.send(withVisitBeacon(site.html));
       }
       res.setHeader("Cache-Control", "no-store");
       return res.send(SITE_PLACEHOLDER);
@@ -126,6 +134,7 @@ app.use("/api", (req, res, next) => {
   // Real platform/service health for the dashboard - measures the surfaces
   // tenants actually hit and upserts `services` rows on an interval.
   startProbes();
+  startVisitFlush();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

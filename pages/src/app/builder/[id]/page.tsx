@@ -16,6 +16,7 @@ import {
   Send,
   Trash2,
   Clock,
+  Users,
 } from "lucide-react";
 
 interface ProjectDetail {
@@ -47,6 +48,77 @@ function timeAgo(dateStr: string) {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+interface Visits {
+  days: number;
+  series: { day: string; views: number; uniques: number }[];
+  totals: { views: number; uniques: number };
+  today: { views: number; uniques: number };
+}
+
+/** Visitor numbers for a published site (server/visits.ts beacon counts).
+ *  Refreshes every minute - the server flushes hits on the same cadence. */
+function VisitorsCard({ id }: { id: string }) {
+  const [visits, setVisits] = useState<Visits | null>(null);
+  useEffect(() => {
+    const load = () =>
+      fetch(`/api/builder/projects/${id}/visits?days=30`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d && setVisits(d))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 60000);
+    return () => clearInterval(t);
+  }, [id]);
+
+  // One bar per day for the last 30 days, zero-filled.
+  const bars: { day: string; uniques: number; views: number }[] = [];
+  if (visits) {
+    const byDay = new Map(visits.series.map((d) => [d.day, d]));
+    for (let i = visits.days - 1; i >= 0; i--) {
+      const day = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+      bars.push(byDay.get(day) ?? { day, uniques: 0, views: 0 });
+    }
+  }
+  const peak = Math.max(1, ...bars.map((b) => b.uniques));
+
+  return (
+    <div className="slime-card drip-sm p-4">
+      <div className="mb-2 text-sm font-medium text-white flex items-center gap-2">
+        <Users className="w-3.5 h-3.5" /> Visitors
+      </div>
+      {!visits ? (
+        <div className="text-xs text-[#5a4d7a]">Loading…</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <div className="text-lg font-semibold text-white">{visits.today.uniques}</div>
+              <div className="text-[#7a6b9d]">today · {visits.today.views} views</div>
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-white">{visits.totals.uniques}</div>
+              <div className="text-[#7a6b9d]">last {visits.days} days · {visits.totals.views} views</div>
+            </div>
+          </div>
+          <div className="mt-3 flex items-end gap-px h-10" aria-label="Daily unique visitors, last 30 days">
+            {bars.map((b) => (
+              <div
+                key={b.day}
+                title={`${b.day}: ${b.uniques} visitors, ${b.views} views`}
+                className="flex-1 rounded-sm bg-[#b6f34c]/70"
+                style={{ height: `${Math.max(4, (b.uniques / peak) * 100)}%`, opacity: b.uniques ? 1 : 0.25 }}
+              />
+            ))}
+          </div>
+          <div className="mt-1 font-mono text-[10px] text-[#5a4d7a]">
+            Daily unique visitors · bots excluded · no IPs stored
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 function BuilderDetailInner() {
@@ -278,6 +350,8 @@ function BuilderDetailInner() {
         </div>
 
         <div className="space-y-4">
+          {project.status === "live" && <VisitorsCard id={id} />}
+
           <div className="slime-card drip-sm p-4">
             <div className="mb-2 text-sm font-medium text-white">Request a change</div>
             <textarea

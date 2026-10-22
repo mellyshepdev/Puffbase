@@ -1122,6 +1122,38 @@ export async function registerRoutes(
     }
   });
 
+  /** Visitor numbers for a published site: daily views + unique visitors
+   *  for the last `days` (default 30, max 365), plus totals. */
+  app.get("/api/builder/projects/:id/visits", async (req, res) => {
+    const id = parseRowId(req.params.id);
+    if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
+    const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+    try {
+      const project = await storage.getBuilderProject(ownerOf(req), id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+      if (!project.subdomain) {
+        return res.json({ days, series: [], totals: { views: 0, uniques: 0 }, today: { views: 0, uniques: 0 } });
+      }
+      const since = new Date(Date.now() - (days - 1) * 86_400_000).toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      const series = await storage.getSiteVisits(project.subdomain, since);
+      const totals = series.reduce(
+        (t, d) => ({ views: t.views + d.views, uniques: t.uniques + d.uniques }),
+        { views: 0, uniques: 0 },
+      );
+      const todayRow = series.find((d) => d.day === today);
+      return res.json({
+        days,
+        series,
+        // Unique visitors are per day; the period total sums daily uniques.
+        totals,
+        today: { views: todayRow?.views ?? 0, uniques: todayRow?.uniques ?? 0 },
+      });
+    } catch {
+      return res.status(500).json({ error: "Failed to get visits" });
+    }
+  });
+
   /** Serves the generated document for the iframe preview. Same-origin +
    *  session cookie, so the console can embed it directly. */
   app.get("/api/builder/projects/:id/preview", async (req, res) => {
