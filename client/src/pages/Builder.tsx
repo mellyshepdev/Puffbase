@@ -70,7 +70,7 @@ function useBuilderStatus() {
 function useProjects() {
   return useQuery<BuilderProject[]>({ queryKey: ["/api/builder/projects"], retry: false });
 }
-function useProject(id: number | null, poll: boolean) {
+function useProject(id: string | null, poll: boolean) {
   return useQuery<ProjectDetail>({
     queryKey: ["/api/builder/projects", id],
     queryFn: () => api(`/api/builder/projects/${id}`),
@@ -158,7 +158,7 @@ function ProjectList({ onNew }: { onNew: () => void }) {
 
 /* ------------------------------- survey --------------------------------- */
 
-function Survey({ onDone }: { onDone: (id: number) => void }) {
+function Survey({ onDone }: { onDone: (id: string) => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -189,7 +189,7 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
         window.location.href = project.checkoutUrl;
         return;
       }
-      onDone(project.id);
+      onDone(String(project.id));
     },
   });
 
@@ -326,7 +326,7 @@ function Survey({ onDone }: { onDone: (id: number) => void }) {
 
 /* ------------------------------ detail ---------------------------------- */
 
-function ProjectDetail({ id }: { id: number }) {
+function ProjectDetail({ id }: { id: string }) {
   const { data: project, isLoading } = useProject(id, true);
   const [instruction, setInstruction] = useState("");
   const queryClient = useQueryClient();
@@ -575,7 +575,8 @@ function ProjectDetail({ id }: { id: number }) {
 export default function Builder() {
   const params = useParams<{ id?: string }>();
   const [creating, setCreating] = useState(false);
-  const projectId = params.id ? Number(params.id) : null;
+  // Ids are 19-digit INT8s; Number() would round them to a different row.
+  const projectId = params.id && /^\d+$/.test(params.id) ? params.id : null;
 
   useEffect(() => {
     if (projectId !== null) setCreating(false);
@@ -583,7 +584,7 @@ export default function Builder() {
 
   const content = useMemo(() => {
     if (creating) return <Survey onDone={(id) => (window.location.hash = `#/builder/${id}`)} />;
-    if (projectId !== null && !Number.isNaN(projectId))
+    if (projectId !== null)
       return <ProjectDetail id={projectId} />;
     return <ProjectList onNew={() => setCreating(true)} />;
   }, [creating, projectId]);

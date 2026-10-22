@@ -93,6 +93,16 @@ const createDeploymentSchema = insertDeploymentSchema.extend({
 });
 const servicePatchSchema = insertServiceSchema.partial();
 
+// Row ids are CockroachDB unique_rowid() INT8s (~1.2e18), well past
+// Number.MAX_SAFE_INTEGER. node-postgres already returns them as decimal
+// strings, so keep the caller's digits as-is rather than rounding them through
+// Number - the schema's `number` type does not hold for these columns.
+const MAX_INT8 = BigInt("9223372036854775807");
+function parseRowId(value: unknown): number | undefined {
+  if (typeof value !== "string" || !/^[1-9]\d{0,18}$/.test(value)) return undefined;
+  return BigInt(value) <= MAX_INT8 ? (value as unknown as number) : undefined;
+}
+
 function parsePositiveInteger(value: unknown): number | undefined {
   if (typeof value !== "string" || !/^\d+$/.test(value)) return undefined;
   const parsed = Number(value);
@@ -260,7 +270,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/deployments/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
@@ -314,7 +324,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/deployments/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     const parsed = deploymentStatusSchema.safeParse(req.body);
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
@@ -336,7 +346,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/deployments/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
@@ -370,7 +380,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/services/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
@@ -396,7 +406,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/services/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     const parsed = servicePatchSchema.safeParse(req.body);
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
@@ -418,7 +428,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/services/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
 
     try {
@@ -1034,7 +1044,7 @@ export async function registerRoutes(
   /** Hosted card collection for a project still waiting in "survey" - same
    *  Checkout URL path as create, for users who left and came back. */
   app.post("/api/builder/projects/:id/card-setup", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     if (!stripeConfigured()) {
       return res.status(503).json({ error: "Payments not configured" });
@@ -1056,7 +1066,7 @@ export async function registerRoutes(
   /** Return from Stripe Checkout: verify the setup session, save the
    *  customer, then kick off generation + the expectation email. */
   app.post("/api/builder/projects/:id/confirm-card", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     const parsed = z
       .object({ sessionId: z.string().min(1).max(200) })
@@ -1092,7 +1102,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/builder/projects/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     try {
       const project = await storage.getBuilderProject(ownerOf(req), id);
@@ -1114,7 +1124,7 @@ export async function registerRoutes(
   /** Serves the generated document for the iframe preview. Same-origin +
    *  session cookie, so the console can embed it directly. */
   app.get("/api/builder/projects/:id/preview", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     try {
       const project = await storage.getBuilderProject(ownerOf(req), id);
@@ -1128,7 +1138,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/builder/projects/:id/revise", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     const parsed = reviseSchema.safeParse(req.body);
     if (!parsed.success) return sendValidationError(res, parsed.error.issues);
@@ -1159,7 +1169,7 @@ export async function registerRoutes(
    *  generated page is served by this app on <subdomain>.<deploy-domain>
    *  via the site-vhost middleware mounted in index.ts. */
   app.post("/api/builder/projects/:id/publish", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     const owner = ownerOf(req);
     try {
@@ -1274,7 +1284,7 @@ export async function registerRoutes(
     }
   });
    app.post("/api/builder/projects/:id/setup-card", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     
     const owner = ownerOf(req);
@@ -1298,7 +1308,7 @@ export async function registerRoutes(
   /** Billing: attach a Lago subscription to the project. Lago customers are
    *  keyed by the Keycloak sub so billing follows the account. */
   app.post("/api/builder/projects/:id/subscribe", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     const parsed = z
       .object({ planCode: z.string().min(1).max(100) })
@@ -1335,7 +1345,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/builder/projects/:id", async (req, res) => {
-    const id = parsePositiveInteger(req.params.id);
+    const id = parseRowId(req.params.id);
     if (!id) return sendValidationError(res, { id: "Must be a positive integer" });
     const owner = ownerOf(req);
     try {
