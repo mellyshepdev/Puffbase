@@ -43,6 +43,13 @@ body {
   color: #e2d9f3;
 }
 
+/* Decorative blobs/drips poke past the right edge. Without this the page can
+   scroll sideways, sliding the content under the fixed sidebar. clip (not
+   hidden) so no scroll container is created and sticky headers still work. */
+html, body {
+  overflow-x: clip;
+}
+
 code, pre, .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
