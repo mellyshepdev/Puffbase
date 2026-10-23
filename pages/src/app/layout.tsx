@@ -18,9 +18,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="drip-strip-right" />
 
         {/* Floating slime blobs */}
-        <div className="slime-blob" style={{ width: 600, height: 600, top: -200, left: -200, background: 'radial-gradient(circle, #7c22ff, transparent)' }} />
-        <div className="slime-blob" style={{ width: 400, height: 400, bottom: -100, right: -100, background: 'radial-gradient(circle, #5d06d9, transparent)', animationDelay: '2s' }} />
-        <div className="slime-blob" style={{ width: 300, height: 300, top: '40%', left: '30%', background: 'radial-gradient(circle, #8b3dff, transparent)', animationDelay: '4s' }} />
+        {/* Clipped so the blobs that sit past the right edge can't make the page
+            scroll sideways and slide the content under the fixed sidebar. */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="slime-blob" style={{ width: 600, height: 600, top: -200, left: -200, background: 'radial-gradient(circle, #7c22ff, transparent)' }} />
+          <div className="slime-blob" style={{ width: 400, height: 400, bottom: -100, right: -100, background: 'radial-gradient(circle, #5d06d9, transparent)', animationDelay: '2s' }} />
+          <div className="slime-blob" style={{ width: 300, height: 300, top: '40%', left: '30%', background: 'radial-gradient(circle, #8b3dff, transparent)', animationDelay: '4s' }} />
+        </div>
 
         <div className="flex min-h-screen relative z-10">
           <Sidebar />
