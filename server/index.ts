@@ -125,6 +125,9 @@ app.use("/api/builder", internalIdentity);
 // while logged out, obviously).
 app.use("/api", (req, res, next) => {
   if (req.path.startsWith("/auth/")) return next();
+  // Lago's invoice.finalized webhook - machine-to-machine over the tailnet,
+  // no session. The route itself only fires a sendMail.
+  if (req.path === "/webhooks/lago") return next();
   return requireAuth(req, res, next);
 });
 

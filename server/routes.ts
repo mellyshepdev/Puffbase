@@ -46,6 +46,7 @@ import { FREE_MAX_LIVE_SITES } from "./usage";
 import { notify, notifyChannels } from "./notify";
 import {
   mailConfigured,
+  sendInvoice,
   sendSiteLive,
   sendSiteReady,
   sendSurveyReceived,
@@ -1403,6 +1404,45 @@ export async function registerRoutes(
       return res.status(204).send();
     } catch {
       return res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+
+  // Lago webhook: invoice.finalized -> branded invoice email to the customer.
+  // Fire-and-forget mail; always 200 so Lago doesn't retry on mail failures.
+  // Signature check skipped for now: the endpoint only receives traffic on
+  // the tailnet from the Lago instance; add LAGO_WEBHOOK_SECRET verification
+  // if it ever faces the open internet.
+  app.post("/api/webhooks/lago", async (req, res) => {
+    try {
+      const { webhook_type, invoice } = req.body ?? {};
+      if (webhook_type !== "invoice.finalized" || !invoice) {
+        return res.status(200).json({ ok: true, ignored: webhook_type ?? "unknown" });
+      }
+      const email = invoice.customer?.email;
+      if (!email) {
+        console.warn(`[lago-webhook] invoice ${invoice.number}: no customer email`);
+        return res.status(200).json({ ok: true, sent: false, reason: "no-email" });
+      }
+      const cents = invoice.total_amount_cents ?? 0;
+      const currency = invoice.currency ?? "USD";
+      const amount = new Intl.NumberFormat("en-US", {
+        style: "currency", currency,
+      }).format(cents / 100);
+      sendInvoice(email, {
+        number: invoice.number ?? invoice.lago_id ?? "(unnumbered)",
+        amount,
+        currency,
+        issuingDate: invoice.issuing_date,
+        dueDate: invoice.payment_due_date,
+        invoiceUrl: invoice.invoice_url ?? invoice.file_url,
+        customerName: invoice.customer?.name,
+      });
+      console.log(`[lago-webhook] invoice ${invoice.number} emailed to ${email}`);
+      return res.json({ ok: true, sent: true });
+    } catch (error) {
+      console.error("[lago-webhook] handler failed", error);
+      return res.json({ ok: true, sent: false });
     }
   });
 
