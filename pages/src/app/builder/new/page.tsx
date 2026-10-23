@@ -18,7 +18,7 @@ const SURVEY_FIELDS: { key: string; label: string; placeholder: string }[] = [
 const PLANS = [
   { value: "monthly", label: "Monthly", price: "$5/mo", note: "per site + usage" },
   { value: "yearly", label: "Yearly", price: "$50/yr", note: "per site + usage" },
-  { value: "business", label: "Business", price: "$25/mo", note: "flat, all your sites" },
+  { value: "business", label: "Business", price: "$25/mo", note: "all your sites + usage" },
 ] as const;
 
 const inputCls =
@@ -150,6 +150,9 @@ export default function NewSitePage() {
           </div>
           <p className="mt-1 text-xs text-[#7a6b9d]">
             Business covers every site on your account with priority generation and a larger resource reservation.
+          </p>
+          <p className="mt-1 text-xs text-[#7a6b9d]">
+            Usage on every paid plan: reserved RAM $5 per GB-month (128 MB per site, 256 MB on Business), storage $0.10 per GB-month, API calls $1 per million after 100k free each month.
           </p>
         </div>
 

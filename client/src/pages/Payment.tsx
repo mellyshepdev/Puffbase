@@ -32,9 +32,9 @@ type BuilderStatus = {
 };
 
 const PLAN_LABEL: Record<string, string> = {
-  monthly: "Monthly — $5/mo per site",
-  yearly: "Yearly — $50/yr per site",
-  business: "Business — $25/mo flat",
+  monthly: "Monthly — $5/mo per site + usage",
+  yearly: "Yearly — $50/yr per site + usage",
+  business: "Business — $25/mo + usage",
   free: "Free tier",
 };
 
